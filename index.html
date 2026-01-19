@@ -1038,7 +1038,7 @@
                         <span class="stat-label">Personalizado</span>
                     </div>
                 </div>
-                <button class="cta-button" onclick="document.getElementById('generator').scrollIntoView({behavior: 'smooth'})">
+                <button class="cta-button" onclick="document.getElementById('generator-header').scrollIntoView({behavior: 'smooth', block: 'start'})">
                     🚀 CREAR MI RUTINA GRATIS
                 </button>
             </div>
@@ -1087,11 +1087,17 @@
                     <div class="testimonial-rating">⭐⭐⭐⭐⭐</div>
                 </div>
             </div>
+            <!-- Botón Continuar después de testimonios -->
+            <div style="text-align: center; margin-top: 40px;">
+                <button class="cta-button" onclick="document.getElementById('generator-header').scrollIntoView({behavior: 'smooth', block: 'start'})">
+                    👇 COMENZAR AHORA
+                </button>
+            </div>
         </section>
 
         <!-- Generador -->
-        <div id="generator">
-        <header class="header">
+        <div id="generator" style="padding-top: 20px;">
+        <header class="header" id="generator-header" style="scroll-margin-top: 20px;">
             <h1>GENERADOR DE RUTINAS PERSONALIZADAS</h1>
             <p>Completa los 7 pasos y genera tu rutina personalizada en PDF</p>
         </header>
