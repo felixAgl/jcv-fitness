@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JCV Fitness - Generador de Rutinas Personalizadas</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- html2pdf con mejor soporte para iOS/Safari -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -867,9 +869,20 @@
             color: var(--accent-cyan);
         }
 
-        /* PDF Preview */
+        /* PDF Preview - Posición fuera de pantalla para renderizado */
         #pdf-content {
-            display: none;
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 210mm;
+            background: linear-gradient(180deg, #0a1628 0%, #132d4a 100%);
+            color: white;
+            font-family: 'Inter', Arial, sans-serif;
+        }
+
+        #pdf-content.generating {
+            position: relative;
+            left: 0;
         }
 
         /* Loading Animation */
@@ -1039,7 +1052,7 @@
                     </div>
                 </div>
                 <button class="cta-button" onclick="document.getElementById('generator-header').scrollIntoView({behavior: 'smooth', block: 'start'})">
-                    🚀 CREAR MI RUTINA
+                    🚀 CREAR MI RUTINA GRATIS
                 </button>
             </div>
             <div class="hero-image">
@@ -1944,32 +1957,124 @@
             }
         }
 
-        // Generar PDF
+        // Detectar iOS/Safari
+        function isIOS() {
+            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        }
+
+        function isSafari() {
+            return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        }
+
+        // Generar PDF - Compatible con iOS/Safari
         function generatePDF() {
             const loading = document.getElementById('loading');
             loading.classList.add('active');
 
-            setTimeout(() => {
-                const userName = document.getElementById('user-name').value || 'Campeón';
-                const pdfContent = generatePDFContent(userName);
+            // Pequeño delay para mostrar loading
+            setTimeout(async () => {
+                try {
+                    const userName = document.getElementById('user-name').value || 'Campeón';
+                    const pdfContent = generatePDFContent(userName);
+                    const element = document.getElementById('pdf-content');
+                    const filename = `JCV_Fitness_Rutina_${userName.replace(/\s+/g, '_')}.pdf`;
 
-                document.getElementById('pdf-content').innerHTML = pdfContent;
-                document.getElementById('pdf-content').style.display = 'block';
+                    // Insertar contenido y hacerlo visible temporalmente
+                    element.innerHTML = pdfContent;
+                    element.style.position = 'fixed';
+                    element.style.left = '0';
+                    element.style.top = '0';
+                    element.style.zIndex = '-1000';
+                    element.style.opacity = '1';
+                    element.style.width = '210mm';
+                    element.style.minHeight = '297mm';
 
-                const element = document.getElementById('pdf-content');
-                const opt = {
-                    margin: 0,
-                    filename: `JCV_Fitness_Rutina_${userName.replace(/\s+/g, '_')}.pdf`,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
+                    // Esperar a que se renderice
+                    await new Promise(resolve => setTimeout(resolve, 500));
 
-                html2pdf().set(opt).from(element).save().then(() => {
+                    // Configuración optimizada para iOS/Safari
+                    const opt = {
+                        margin: 0,
+                        filename: filename,
+                        image: { type: 'jpeg', quality: 0.92 },
+                        html2canvas: {
+                            scale: 1.5,
+                            useCORS: true,
+                            logging: true,
+                            allowTaint: true,
+                            backgroundColor: '#0a1628',
+                            width: element.scrollWidth,
+                            height: element.scrollHeight,
+                            scrollX: 0,
+                            scrollY: -window.scrollY
+                        },
+                        jsPDF: {
+                            unit: 'mm',
+                            format: 'a4',
+                            orientation: 'portrait'
+                        },
+                        pagebreak: { mode: 'avoid-all' }
+                    };
+
+                    // En iOS/Safari, usar método diferente
+                    if (isIOS() || isSafari()) {
+                        console.log('Detectado iOS/Safari - usando método alternativo');
+
+                        const worker = html2pdf().set(opt).from(element);
+                        const pdf = await worker.outputPdf('blob');
+
+                        // Crear URL del blob
+                        const blobUrl = URL.createObjectURL(pdf);
+
+                        // En iOS, abrir en nueva pestaña
+                        const newWindow = window.open(blobUrl, '_blank');
+
+                        if (!newWindow || newWindow.closed) {
+                            // Si popup bloqueado, crear link
+                            const link = document.createElement('a');
+                            link.href = blobUrl;
+                            link.download = filename;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        }
+
+                        // Limpiar URL después de un delay
+                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+                    } else {
+                        // Método normal para otros navegadores
+                        await html2pdf().set(opt).from(element).save();
+                    }
+
+                    // Limpiar
+                    element.style.position = 'absolute';
+                    element.style.left = '-9999px';
+                    element.style.zIndex = '';
+                    element.innerHTML = '';
                     loading.classList.remove('active');
-                    document.getElementById('pdf-content').style.display = 'none';
-                });
-            }, 500);
+
+                    // Mostrar mensaje de éxito
+                    if (isIOS()) {
+                        alert('✅ ¡Tu rutina se abrió en una nueva pestaña! Toca "Compartir" y luego "Guardar en Archivos" para descargarla.');
+                    } else {
+                        alert('✅ ¡Tu rutina ha sido generada! Revisa tu carpeta de descargas.');
+                    }
+
+                } catch (error) {
+                    console.error('Error generando PDF:', error);
+                    loading.classList.remove('active');
+                    document.getElementById('pdf-content').innerHTML = '';
+
+                    if (isIOS()) {
+                        alert('⚠️ Hubo un problema. En iPhone/iPad, intenta usar Chrome o Firefox en lugar de Safari.');
+                    } else {
+                        alert('⚠️ Hubo un problema generando el PDF. Por favor intenta de nuevo.');
+                    }
+                }
+            }, 300);
         }
 
         function generatePDFContent(userName) {
@@ -2364,3 +2469,4 @@
     </script>
 </body>
 </html>
+
