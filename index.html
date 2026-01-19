@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JCV Fitness - Generador de Rutinas Personalizadas</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <!-- html2pdf con mejor soporte para iOS/Safari -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+    <!-- Librerías para PDF - jsPDF + html2canvas directamente -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         * {
@@ -1957,124 +1957,105 @@
             }
         }
 
-        // Detectar iOS/Safari
-        function isIOS() {
-            return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-        }
-
-        function isSafari() {
-            return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        }
-
-        // Generar PDF - Compatible con iOS/Safari
-        function generatePDF() {
+        // Generar PDF usando jsPDF + html2canvas directamente
+        async function generatePDF() {
             const loading = document.getElementById('loading');
             loading.classList.add('active');
 
-            // Pequeño delay para mostrar loading
-            setTimeout(async () => {
-                try {
-                    const userName = document.getElementById('user-name').value || 'Campeón';
-                    const pdfContent = generatePDFContent(userName);
-                    const element = document.getElementById('pdf-content');
-                    const filename = `JCV_Fitness_Rutina_${userName.replace(/\s+/g, '_')}.pdf`;
+            try {
+                const userName = document.getElementById('user-name').value || 'Campeón';
+                const pdfContent = generatePDFContent(userName);
+                const element = document.getElementById('pdf-content');
+                const filename = `JCV_Fitness_Rutina_${userName.replace(/\s+/g, '_')}.pdf`;
 
-                    // Insertar contenido y hacerlo visible temporalmente
-                    element.innerHTML = pdfContent;
-                    element.style.position = 'fixed';
-                    element.style.left = '0';
-                    element.style.top = '0';
-                    element.style.zIndex = '-1000';
-                    element.style.opacity = '1';
-                    element.style.width = '210mm';
-                    element.style.minHeight = '297mm';
+                // Insertar contenido
+                element.innerHTML = pdfContent;
 
-                    // Esperar a que se renderice
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                // Hacer visible el elemento temporalmente (CRÍTICO para html2canvas)
+                element.style.position = 'fixed';
+                element.style.left = '0';
+                element.style.top = '0';
+                element.style.width = '794px'; // A4 width at 96 DPI
+                element.style.zIndex = '9999';
+                element.style.background = 'linear-gradient(180deg, #0a1628 0%, #132d4a 100%)';
+                element.style.overflow = 'visible';
 
-                    // Configuración optimizada para iOS/Safari
-                    const opt = {
-                        margin: 0,
-                        filename: filename,
-                        image: { type: 'jpeg', quality: 0.92 },
-                        html2canvas: {
-                            scale: 1.5,
-                            useCORS: true,
-                            logging: true,
-                            allowTaint: true,
-                            backgroundColor: '#0a1628',
-                            width: element.scrollWidth,
-                            height: element.scrollHeight,
-                            scrollX: 0,
-                            scrollY: -window.scrollY
-                        },
-                        jsPDF: {
-                            unit: 'mm',
-                            format: 'a4',
-                            orientation: 'portrait'
-                        },
-                        pagebreak: { mode: 'avoid-all' }
-                    };
+                // Scroll al inicio del documento
+                window.scrollTo(0, 0);
 
-                    // En iOS/Safari, usar método diferente
-                    if (isIOS() || isSafari()) {
-                        console.log('Detectado iOS/Safari - usando método alternativo');
+                // Esperar renderizado
+                await new Promise(resolve => setTimeout(resolve, 800));
 
-                        const worker = html2pdf().set(opt).from(element);
-                        const pdf = await worker.outputPdf('blob');
+                // Capturar con html2canvas
+                console.log('Capturando contenido...');
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#0a1628',
+                    logging: false,
+                    width: element.scrollWidth,
+                    height: element.scrollHeight,
+                    windowWidth: element.scrollWidth,
+                    windowHeight: element.scrollHeight
+                });
 
-                        // Crear URL del blob
-                        const blobUrl = URL.createObjectURL(pdf);
+                console.log('Canvas creado:', canvas.width, 'x', canvas.height);
 
-                        // En iOS, abrir en nueva pestaña
-                        const newWindow = window.open(blobUrl, '_blank');
+                // Crear PDF con jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
 
-                        if (!newWindow || newWindow.closed) {
-                            // Si popup bloqueado, crear link
-                            const link = document.createElement('a');
-                            link.href = blobUrl;
-                            link.download = filename;
-                            link.target = '_blank';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                        }
+                const pageWidth = 210; // A4 width in mm
+                const pageHeight = 297; // A4 height in mm
+                const imgWidth = pageWidth;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                        // Limpiar URL después de un delay
-                        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+                // Agregar imagen al PDF (múltiples páginas si es necesario)
+                let heightLeft = imgHeight;
+                let position = 0;
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
-                    } else {
-                        // Método normal para otros navegadores
-                        await html2pdf().set(opt).from(element).save();
-                    }
+                // Primera página
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
 
-                    // Limpiar
-                    element.style.position = 'absolute';
-                    element.style.left = '-9999px';
-                    element.style.zIndex = '';
-                    element.innerHTML = '';
-                    loading.classList.remove('active');
-
-                    // Mostrar mensaje de éxito
-                    if (isIOS()) {
-                        alert('✅ ¡Tu rutina se abrió en una nueva pestaña! Toca "Compartir" y luego "Guardar en Archivos" para descargarla.');
-                    } else {
-                        alert('✅ ¡Tu rutina ha sido generada! Revisa tu carpeta de descargas.');
-                    }
-
-                } catch (error) {
-                    console.error('Error generando PDF:', error);
-                    loading.classList.remove('active');
-                    document.getElementById('pdf-content').innerHTML = '';
-
-                    if (isIOS()) {
-                        alert('⚠️ Hubo un problema. En iPhone/iPad, intenta usar Chrome o Firefox en lugar de Safari.');
-                    } else {
-                        alert('⚠️ Hubo un problema generando el PDF. Por favor intenta de nuevo.');
-                    }
+                // Páginas adicionales si el contenido es más largo que una página
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
                 }
-            }, 300);
+
+                console.log('PDF generado con', pdf.getNumberOfPages(), 'páginas');
+
+                // Ocultar elemento
+                element.style.position = 'absolute';
+                element.style.left = '-9999px';
+                element.style.zIndex = '-1';
+
+                // Guardar PDF
+                pdf.save(filename);
+
+                loading.classList.remove('active');
+                alert('✅ ¡Tu rutina ha sido generada! Revisa tu carpeta de descargas.');
+
+            } catch (error) {
+                console.error('Error generando PDF:', error);
+                loading.classList.remove('active');
+
+                const element = document.getElementById('pdf-content');
+                element.style.position = 'absolute';
+                element.style.left = '-9999px';
+                element.innerHTML = '';
+
+                alert('⚠️ Hubo un problema generando el PDF: ' + error.message);
+            }
         }
 
         function generatePDFContent(userName) {
