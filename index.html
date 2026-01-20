@@ -1957,7 +1957,15 @@
             }
         }
 
-        // Generar PDF usando jsPDF + html2canvas directamente
+        // Detectar iOS/Safari
+        function isIOSorSafari() {
+            const ua = navigator.userAgent;
+            const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+            return isIOS || isSafari;
+        }
+
+        // Generar PDF - Solución robusta cross-platform
         async function generatePDF() {
             const loading = document.getElementById('loading');
             loading.classList.add('active');
@@ -1968,93 +1976,183 @@
                 const element = document.getElementById('pdf-content');
                 const filename = `JCV_Fitness_Rutina_${userName.replace(/\s+/g, '_')}.pdf`;
 
+                console.log('Iniciando generación de PDF...');
+                console.log('Dispositivo iOS/Safari:', isIOSorSafari());
+
                 // Insertar contenido
                 element.innerHTML = pdfContent;
 
-                // Hacer visible el elemento temporalmente (CRÍTICO para html2canvas)
-                element.style.position = 'fixed';
-                element.style.left = '0';
-                element.style.top = '0';
-                element.style.width = '794px'; // A4 width at 96 DPI
-                element.style.zIndex = '9999';
-                element.style.background = 'linear-gradient(180deg, #0a1628 0%, #132d4a 100%)';
-                element.style.overflow = 'visible';
+                // CRÍTICO: Posicionar elemento en el viewport visible para html2canvas
+                // Usar position: absolute en lugar de fixed para mejor compatibilidad
+                const originalBodyOverflow = document.body.style.overflow;
+                const originalBodyPosition = document.body.style.position;
+                const originalScrollTop = window.scrollY;
 
-                // Scroll al inicio del documento
+                document.body.style.overflow = 'hidden';
+                document.body.style.position = 'relative';
+
+                element.style.cssText = `
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 794px;
+                    min-height: 1123px;
+                    z-index: 99999;
+                    background: linear-gradient(180deg, #0a1628 0%, #132d4a 100%);
+                    color: white;
+                    font-family: 'Inter', Arial, sans-serif;
+                    overflow: visible;
+                    visibility: visible;
+                    opacity: 1;
+                `;
+
+                // Scroll al inicio
                 window.scrollTo(0, 0);
 
-                // Esperar renderizado
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // Esperar renderizado completo
+                await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Capturar con html2canvas
-                console.log('Capturando contenido...');
+                // Forzar reflow
+                element.offsetHeight;
+
+                console.log('Elemento dimensiones:', element.scrollWidth, 'x', element.scrollHeight);
+
+                // Capturar con html2canvas - configuración optimizada para iOS
                 const canvas = await html2canvas(element, {
                     scale: 2,
                     useCORS: true,
                     allowTaint: true,
                     backgroundColor: '#0a1628',
-                    logging: false,
-                    width: element.scrollWidth,
+                    logging: true,
+                    width: 794,
                     height: element.scrollHeight,
-                    windowWidth: element.scrollWidth,
-                    windowHeight: element.scrollHeight
+                    scrollX: 0,
+                    scrollY: 0,
+                    x: 0,
+                    y: 0,
+                    foreignObjectRendering: false, // Más compatible con Safari
+                    removeContainer: true
                 });
 
                 console.log('Canvas creado:', canvas.width, 'x', canvas.height);
+
+                // Verificar que el canvas tiene contenido
+                if (canvas.width < 100 || canvas.height < 100) {
+                    throw new Error('Canvas demasiado pequeño - posible error de renderizado');
+                }
 
                 // Crear PDF con jsPDF
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: 'a4'
+                    format: 'a4',
+                    compress: true
                 });
 
-                const pageWidth = 210; // A4 width in mm
-                const pageHeight = 297; // A4 height in mm
+                const pageWidth = 210;
+                const pageHeight = 297;
                 const imgWidth = pageWidth;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                // Agregar imagen al PDF (múltiples páginas si es necesario)
+                // Convertir canvas a imagen - usar PNG para mejor calidad en iOS
+                const imgData = canvas.toDataURL('image/png', 1.0);
+
+                console.log('Imagen data length:', imgData.length);
+
+                // Verificar que la imagen tiene datos
+                if (imgData.length < 10000) {
+                    throw new Error('Imagen generada está vacía o corrupta');
+                }
+
+                // Agregar imagen al PDF con manejo de múltiples páginas
                 let heightLeft = imgHeight;
                 let position = 0;
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                let pageNum = 1;
 
                 // Primera página
-                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
 
-                // Páginas adicionales si el contenido es más largo que una página
+                // Páginas adicionales
                 while (heightLeft > 0) {
                     position = heightLeft - imgHeight;
                     pdf.addPage();
-                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
+                    pageNum++;
                 }
 
-                console.log('PDF generado con', pdf.getNumberOfPages(), 'páginas');
+                console.log('PDF generado con', pageNum, 'páginas');
 
-                // Ocultar elemento
-                element.style.position = 'absolute';
-                element.style.left = '-9999px';
-                element.style.zIndex = '-1';
+                // Restaurar estilos
+                element.style.cssText = `
+                    position: absolute;
+                    left: -9999px;
+                    top: 0;
+                    width: 210mm;
+                    z-index: -1;
+                `;
+                element.innerHTML = '';
 
-                // Guardar PDF
-                pdf.save(filename);
+                document.body.style.overflow = originalBodyOverflow;
+                document.body.style.position = originalBodyPosition;
+                window.scrollTo(0, originalScrollTop);
 
-                loading.classList.remove('active');
-                alert('✅ ¡Tu rutina ha sido generada! Revisa tu carpeta de descargas.');
+                // Guardar PDF - método adaptado para iOS/Safari
+                if (isIOSorSafari()) {
+                    // En iOS/Safari, abrir en nueva pestaña como blob
+                    console.log('Usando método iOS/Safari...');
+                    const pdfBlob = pdf.output('blob');
+                    const blobUrl = URL.createObjectURL(pdfBlob);
+
+                    // Crear link de descarga
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = blobUrl;
+                    downloadLink.download = filename;
+                    downloadLink.style.display = 'none';
+                    document.body.appendChild(downloadLink);
+
+                    // Intentar descarga primero
+                    downloadLink.click();
+
+                    // También abrir en nueva pestaña como fallback
+                    setTimeout(() => {
+                        window.open(blobUrl, '_blank');
+                        document.body.removeChild(downloadLink);
+                    }, 500);
+
+                    loading.classList.remove('active');
+                    alert('✅ ¡Tu rutina ha sido generada! Si no se descargó automáticamente, se abrirá en una nueva pestaña. Puedes guardarla desde ahí.');
+                } else {
+                    // En otros navegadores, usar método estándar
+                    pdf.save(filename);
+                    loading.classList.remove('active');
+                    alert('✅ ¡Tu rutina ha sido generada! Revisa tu carpeta de descargas.');
+                }
 
             } catch (error) {
                 console.error('Error generando PDF:', error);
                 loading.classList.remove('active');
 
+                // Limpiar elemento
                 const element = document.getElementById('pdf-content');
-                element.style.position = 'absolute';
-                element.style.left = '-9999px';
-                element.innerHTML = '';
+                if (element) {
+                    element.style.cssText = `
+                        position: absolute;
+                        left: -9999px;
+                        top: 0;
+                        width: 210mm;
+                        z-index: -1;
+                    `;
+                    element.innerHTML = '';
+                }
 
-                alert('⚠️ Hubo un problema generando el PDF: ' + error.message);
+                // Restaurar body
+                document.body.style.overflow = '';
+                document.body.style.position = '';
+
+                alert('⚠️ Hubo un problema generando el PDF. Por favor intenta de nuevo.\n\nError: ' + error.message);
             }
         }
 
