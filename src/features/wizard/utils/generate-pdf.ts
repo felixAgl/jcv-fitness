@@ -210,7 +210,7 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
       pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(day.restDay ? COLORS.gray : COLORS.cyan);
+      pdf.setTextColor(...(day.restDay ? COLORS.gray : COLORS.cyan));
       pdf.text(`DIA ${day.dayNumber}: ${day.name}`, margin + 4, y + 6);
 
       if (!day.restDay && day.duration) {
