@@ -54,7 +54,7 @@ export function CheckoutModal({
     setSelectedProvider("mercadopago");
 
     try {
-      // En produccion, llamar a tu API para crear la preferencia
+      // Try API route first (works with Vercel/server hosting)
       const response = await fetch("/api/payment/mercadopago/create-preference", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -65,17 +65,24 @@ export function CheckoutModal({
       });
 
       if (!response.ok) {
-        throw new Error("Error creando preferencia de pago");
+        // If API is not available (static hosting), show WhatsApp option
+        const whatsappMessage = encodeURIComponent(
+          `Hola! Quiero adquirir el ${product.title} por $${product.unitPrice.toLocaleString("es-CO")} COP`
+        );
+        window.open(`https://wa.me/573143826430?text=${whatsappMessage}`, "_blank");
+        onClose();
+        return;
       }
 
       const preference = await response.json();
-
-      // Redirigir al checkout de Mercado Pago
       window.location.href = preference.initPoint;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error procesando pago";
-      setError(message);
-      onPaymentError?.(message);
+    } catch {
+      // Fallback to WhatsApp for static hosting
+      const whatsappMessage = encodeURIComponent(
+        `Hola! Quiero adquirir el ${product.title} por $${product.unitPrice.toLocaleString("es-CO")} COP`
+      );
+      window.open(`https://wa.me/573143826430?text=${whatsappMessage}`, "_blank");
+      onClose();
     } finally {
       setIsLoading(false);
     }
