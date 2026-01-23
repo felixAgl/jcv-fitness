@@ -1,0 +1,11 @@
+name = "mercadopago-jcv"
+main = "mercadopago-worker.js"
+compatibility_date = "2024-01-01"
+
+# Environment variables (secrets should be set via wrangler secret put)
+# MP_ACCESS_TOKEN - Set this as a secret, not here!
+
+# Optional: Custom domain
+# routes = [
+#   { pattern = "api.jcvfitness.com/*", zone_name = "jcvfitness.com" }
+# ]

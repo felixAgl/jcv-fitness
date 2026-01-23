@@ -54,35 +54,41 @@ export function CheckoutModal({
     setSelectedProvider("mercadopago");
 
     try {
-      // Try API route first (works with Vercel/server hosting)
-      const response = await fetch("/api/payment/mercadopago/create-preference", {
+      // Use Cloudflare Worker for static hosting (GitHub Pages)
+      const workerUrl = process.env.NEXT_PUBLIC_MP_WORKER_URL;
+
+      if (!workerUrl) {
+        throw new Error("Worker URL not configured. Set NEXT_PUBLIC_MP_WORKER_URL in .env.local");
+      }
+
+      const response = await fetch(workerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: [product],
           payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
+          backUrls: {
+            success: `${window.location.origin}/jcv-fitness/payment/success`,
+            failure: `${window.location.origin}/jcv-fitness/payment/failure`,
+            pending: `${window.location.origin}/jcv-fitness/payment/pending`,
+          },
         }),
       });
 
       if (!response.ok) {
-        // If API is not available (static hosting), show WhatsApp option
-        const whatsappMessage = encodeURIComponent(
-          `Hola! Quiero adquirir el ${product.title} por $${product.unitPrice.toLocaleString("es-CO")} COP`
-        );
-        window.open(`https://wa.me/573143826430?text=${whatsappMessage}`, "_blank");
-        onClose();
-        return;
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Error al crear preferencia de pago");
       }
 
       const preference = await response.json();
-      window.location.href = preference.initPoint;
-    } catch {
-      // Fallback to WhatsApp for static hosting
-      const whatsappMessage = encodeURIComponent(
-        `Hola! Quiero adquirir el ${product.title} por $${product.unitPrice.toLocaleString("es-CO")} COP`
-      );
-      window.open(`https://wa.me/573143826430?text=${whatsappMessage}`, "_blank");
-      onClose();
+
+      // Use sandbox URL for testing, production URL otherwise
+      const checkoutUrl = preference.sandboxInitPoint || preference.initPoint;
+      window.location.href = checkoutUrl;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error procesando pago con MercadoPago";
+      setError(message);
+      onPaymentError?.(message);
     } finally {
       setIsLoading(false);
     }
