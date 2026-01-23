@@ -14,7 +14,7 @@ import {
 } from "../utils/wompi";
 
 type PaymentProvider = "mercadopago" | "wompi";
-type PlanType = "PLAN_BASICO" | "PLAN_PREMIUM" | "PLAN_40_DIAS";
+type PlanType = "PLAN_BASICO" | "PLAN_PRO" | "PLAN_PREMIUM";
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -29,7 +29,7 @@ interface CheckoutModalProps {
 export function CheckoutModal({
   isOpen,
   onClose,
-  selectedPlan = "PLAN_PREMIUM",
+  selectedPlan = "PLAN_PRO",
   customerEmail = "",
   customerName = "",
   onPaymentSuccess,

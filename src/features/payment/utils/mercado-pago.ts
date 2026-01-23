@@ -208,30 +208,33 @@ export async function createPaymentPreference(
 
 /**
  * Productos predefinidos de JCV Fitness
+ * Sincronizados con PricingSection
  */
 export const JCV_PRODUCTS = {
   PLAN_BASICO: {
     title: "JCV Fitness - Plan Basico",
-    description: "Rutina personalizada + Guia nutricional basica",
+    description: "Plan de alimentacion 7 dias + Rutina de entrenamiento casa + Acceso a la app + Soporte por email",
     quantity: 1,
     unitPrice: 49900, // COP
     currencyId: "COP" as const,
   },
-  PLAN_PREMIUM: {
-    title: "JCV Fitness - Plan Premium",
-    description: "Rutina completa + Plan alimenticio + Seguimiento mensual",
+  PLAN_PRO: {
+    title: "JCV Fitness - Plan Pro",
+    description: "Plan de alimentacion personalizado + Rutina gimnasio + casa + Videos de ejercicios + Soporte prioritario + Seguimiento semanal",
     quantity: 1,
-    unitPrice: 99900, // COP
+    unitPrice: 89900, // COP
     currencyId: "COP" as const,
   },
-  PLAN_40_DIAS: {
-    title: "JCV Fitness - Entrena Conmigo 40 Dias",
-    description: "Programa intensivo de transformacion con coaching personalizado",
+  PLAN_PREMIUM: {
+    title: "JCV Fitness - Plan Premium",
+    description: "Todo lo del plan Pro + Coaching 1 a 1 + Ajustes mensuales + Acceso a comunidad VIP + Garantia de resultados",
     quantity: 1,
-    unitPrice: 199900, // COP
+    unitPrice: 149900, // COP
     currencyId: "COP" as const,
   },
 };
+
+export type PlanId = keyof typeof JCV_PRODUCTS;
 
 /**
  * Ejemplo de API Route para crear preferencia

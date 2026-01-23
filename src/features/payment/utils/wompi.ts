@@ -174,24 +174,27 @@ export async function checkTransactionStatus(transactionId: string): Promise<{
 
 /**
  * Productos predefinidos de JCV Fitness (en centavos COP)
+ * Sincronizados con PricingSection
  */
 export const JCV_PRODUCTS_COP = {
   PLAN_BASICO: {
     name: "JCV Fitness - Plan Basico",
-    description: "Rutina personalizada + Guia nutricional basica",
+    description: "Plan de alimentacion 7 dias + Rutina de entrenamiento casa + Acceso a la app + Soporte por email",
     amountInCents: 4990000, // $49,900 COP
+  },
+  PLAN_PRO: {
+    name: "JCV Fitness - Plan Pro",
+    description: "Plan de alimentacion personalizado + Rutina gimnasio + casa + Videos de ejercicios + Soporte prioritario + Seguimiento semanal",
+    amountInCents: 8990000, // $89,900 COP
   },
   PLAN_PREMIUM: {
     name: "JCV Fitness - Plan Premium",
-    description: "Rutina completa + Plan alimenticio + Seguimiento mensual",
-    amountInCents: 9990000, // $99,900 COP
-  },
-  PLAN_40_DIAS: {
-    name: "JCV Fitness - Entrena Conmigo 40 Dias",
-    description: "Programa intensivo de transformacion con coaching personalizado",
-    amountInCents: 19990000, // $199,900 COP
+    description: "Todo lo del plan Pro + Coaching 1 a 1 + Ajustes mensuales + Acceso a comunidad VIP + Garantia de resultados",
+    amountInCents: 14990000, // $149,900 COP
   },
 };
+
+export type WompiPlanId = keyof typeof JCV_PRODUCTS_COP;
 
 /**
  * Convierte COP a centavos
