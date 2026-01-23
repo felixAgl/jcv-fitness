@@ -51,7 +51,7 @@ export function NavigationButtons({
               ? isLastStep
                 ? "bg-accent-green text-black hover:shadow-lg hover:shadow-accent-green/50"
                 : "bg-accent-cyan text-black hover:shadow-lg hover:shadow-accent-cyan/50"
-              : "bg-gray-700 text-gray-500 cursor-not-allowed"
+              : "bg-blue-900/60 text-blue-300 border border-blue-600/40 cursor-not-allowed"
           )}
         >
           {isLastStep ? "Finalizar" : nextLabel}

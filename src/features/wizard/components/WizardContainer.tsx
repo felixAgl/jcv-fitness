@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useWizardStore } from "../store/wizard-store";
 import { WizardProgress } from "./WizardProgress";
 import { StepLevel } from "./StepLevel";
@@ -42,13 +43,13 @@ export function WizardContainer() {
   return (
     <div className="min-h-screen bg-black py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
+        <Link href="/" className="block text-center mb-8 hover:opacity-80 transition-opacity cursor-pointer">
           <h1 className="text-3xl md:text-4xl font-black">
             <span className="text-accent-cyan">JCV</span>{" "}
             <span className="text-white">FITNESS</span>
           </h1>
           <p className="text-gray-500 text-sm mt-2">Tu transformacion comienza aqui</p>
-        </div>
+        </Link>
 
         <WizardProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
