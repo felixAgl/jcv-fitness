@@ -49,7 +49,11 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                 <span
                   className={cn(
                     "text-xs mt-1 hidden sm:block transition-colors",
-                    isActive ? "text-accent-cyan font-semibold" : "text-gray-500"
+                    isActive
+                      ? "text-accent-cyan font-semibold"
+                      : isCompleted
+                        ? "text-accent-cyan/70"
+                        : "text-gray-400"
                   )}
                 >
                   {STEP_LABELS[i]}
@@ -68,8 +72,8 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
         })}
       </div>
       <div className="text-center mt-4">
-        <span className="text-gray-400 text-sm">
-          Paso {currentStep} de {totalSteps}
+        <span className="text-gray-300 text-sm">
+          Paso <span className="text-accent-cyan font-bold">{currentStep}</span> de {totalSteps}
         </span>
       </div>
     </div>
