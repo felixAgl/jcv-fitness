@@ -1,4 +1,4 @@
-import { Header, Hero, Footer } from "@/features/landing/components";
+import { Header, Hero, Footer, TransformationGallery } from "@/features/landing/components";
 import { MealPlanSection } from "@/features/meal-plan/components";
 import { WorkoutPlanSection } from "@/features/workout-plan/components";
 import { PricingSection } from "@/features/payment/components";
@@ -11,6 +11,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
+        <TransformationGallery />
         <MealPlanSection config={mealPlanPhase1} />
         <WorkoutPlanSection gymPlan={gymWorkoutPlan} homePlan={homeWorkoutPlan} />
         <PricingSection />
