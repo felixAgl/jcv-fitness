@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useWizardStore } from "../store/wizard-store";
-import { exercises, getFilteredExercises } from "../data/exercises";
+import { getFilteredExercises } from "../data/exercises";
 import { TRANSLATIONS, type ExerciseCategory } from "../types";
 import { ExerciseCard } from "./ExerciseCard";
 import { NavigationButtons } from "./NavigationButtons";

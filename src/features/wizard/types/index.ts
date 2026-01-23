@@ -57,6 +57,51 @@ export interface Exercise {
   category: ExerciseCategory;
   muscle: string;
   equipment: EquipmentType[];
+  videoUrl?: string;
+  instructions?: string[];
+  sets?: { min: number; max: number };
+  reps?: { min: number; max: number };
+  restSeconds?: number;
+}
+
+export interface MealPlanDay {
+  dayNumber: number;
+  meals: Meal[];
+  totalCalories: number;
+  macros: { protein: number; carbs: number; fat: number };
+}
+
+export interface Meal {
+  name: string;
+  time: string;
+  foods: MealFood[];
+  calories: number;
+}
+
+export interface MealFood {
+  name: string;
+  portion: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface WorkoutDay {
+  dayNumber: number;
+  name: string;
+  muscleGroups: string[];
+  exercises: WorkoutExercise[];
+  duration: number;
+  restDay: boolean;
+}
+
+export interface WorkoutExercise {
+  exerciseId: string;
+  sets: number;
+  reps: string;
+  rest: string;
+  notes?: string;
 }
 
 export type WeightGoal = "perder" | "mantener" | "ganar";

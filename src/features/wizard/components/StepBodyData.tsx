@@ -1,25 +1,35 @@
 "use client";
 
+import { useEffect } from "react";
 import { useWizardStore } from "../store/wizard-store";
 import { NavigationButtons } from "./NavigationButtons";
 import { ACTIVITY_LEVELS, WEIGHT_GOALS } from "../types";
 import { cn } from "@/shared/utils/cn";
 
+const DEFAULT_BODY_DATA = {
+  currentWeight: 70,
+  targetWeight: 70,
+  height: 170,
+  age: 25,
+  gender: "masculino" as const,
+  activityLevel: "moderado" as const,
+  weightGoal: "mantener" as const,
+};
+
 export function StepBodyData() {
-  const { userBodyData, updateBodyDataField, nextStep, prevStep, canProceed, calculateCalories } =
+  const { userBodyData, setUserBodyData, updateBodyDataField, nextStep, prevStep, canProceed, calculateCalories } =
     useWizardStore();
+
+  // Inicializar datos si no existen para que canProceed() funcione
+  useEffect(() => {
+    if (!userBodyData) {
+      setUserBodyData(DEFAULT_BODY_DATA);
+    }
+  }, [userBodyData, setUserBodyData]);
 
   const calories = calculateCalories();
 
-  const currentData = userBodyData || {
-    currentWeight: 70,
-    targetWeight: 70,
-    height: 170,
-    age: 25,
-    gender: "masculino" as const,
-    activityLevel: "moderado" as const,
-    weightGoal: "mantener" as const,
-  };
+  const currentData = userBodyData || DEFAULT_BODY_DATA;
 
   return (
     <div className="space-y-6">

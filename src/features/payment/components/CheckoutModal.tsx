@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   loadMercadoPagoSDK,
   JCV_PRODUCTS,
-  type CreatePreferenceResponse,
 } from "../utils/mercado-pago";
 import {
   openWompiCheckout,
@@ -38,7 +37,6 @@ export function CheckoutModal({
 }: CheckoutModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedProvider, setSelectedProvider] = useState<PaymentProvider | null>(null);
-  const [mpPreference, setMpPreference] = useState<CreatePreferenceResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const product = JCV_PRODUCTS[selectedPlan];
@@ -71,7 +69,6 @@ export function CheckoutModal({
       }
 
       const preference = await response.json();
-      setMpPreference(preference);
 
       // Redirigir al checkout de Mercado Pago
       window.location.href = preference.initPoint;

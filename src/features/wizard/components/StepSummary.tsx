@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useWizardStore } from "../store/wizard-store";
 import { exercises } from "../data/exercises";
 import { TRANSLATIONS } from "../types";
-import { NavigationButtons } from "./NavigationButtons";
 import { generateWorkoutPDF } from "../utils/generate-pdf";
+import { CheckoutModal } from "@/features/payment/components/CheckoutModal";
 
 interface SummarySectionProps {
   title: string;
@@ -28,6 +28,8 @@ function SummarySection({ title, value, icon }: SummarySectionProps) {
 export function StepSummary() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   const state = useWizardStore();
   const {
     level,
@@ -82,6 +84,42 @@ export function StepSummary() {
     setShowPayment(true);
   };
 
+  const handlePaymentSuccess = async (transactionId: string, provider: string) => {
+    console.log(`Pago exitoso: ${transactionId} via ${provider}`);
+    setPaymentSuccess(true);
+    setShowCheckout(false);
+    // Generar PDF automaticamente tras pago exitoso
+    await handleGeneratePDF();
+  };
+
+  const handlePaymentError = (error: string) => {
+    console.error("Error en pago:", error);
+  };
+
+  if (paymentSuccess) {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="w-20 h-20 mx-auto rounded-full bg-accent-green/20 flex items-center justify-center">
+          <svg className="w-10 h-10 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h2 className="text-2xl md:text-3xl font-bold text-white">
+          Pago Exitoso
+        </h2>
+        <p className="text-gray-400">
+          Tu PDF ha sido generado y descargado automaticamente.
+        </p>
+        <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+          <p className="text-gray-300 text-sm">
+            Revisa tu carpeta de descargas. Si tienes dudas, contactanos:
+          </p>
+          <p className="text-accent-cyan font-bold mt-2">WhatsApp: 314 382 64 30</p>
+        </div>
+      </div>
+    );
+  }
+
   if (showPayment) {
     return (
       <div className="space-y-6">
@@ -98,25 +136,25 @@ export function StepSummary() {
           <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
             <h3 className="text-lg font-bold text-accent-cyan mb-4">Plan Premium</h3>
             <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-black text-white">$29.99</span>
-              <span className="text-gray-500">USD / mes</span>
+              <span className="text-4xl font-black text-white">$99.900</span>
+              <span className="text-gray-500">COP</span>
             </div>
             <ul className="space-y-2 text-gray-300 text-sm mb-6">
               <li className="flex items-center gap-2">
-                <span className="text-accent-green">✓</span>
-                Rutina personalizada PDF
+                <span className="text-accent-green">+</span>
+                Rutina personalizada PDF con videos
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-accent-green">✓</span>
-                Plan alimenticio basico
+                <span className="text-accent-green">+</span>
+                Plan alimenticio semanal detallado
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-accent-green">✓</span>
-                Calculo de calorias
+                <span className="text-accent-green">+</span>
+                Calculo de calorias y macros
               </li>
               <li className="flex items-center gap-2">
-                <span className="text-accent-green">✓</span>
-                Actualizaciones mensuales
+                <span className="text-accent-green">+</span>
+                Soporte por WhatsApp
               </li>
             </ul>
           </div>
@@ -124,46 +162,46 @@ export function StepSummary() {
           <div className="grid gap-3">
             <button
               type="button"
-              onClick={handleGeneratePDF}
-              disabled={isGenerating}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold text-lg hover:from-blue-500 hover:to-blue-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={() => setShowCheckout(true)}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-[#009ee3] to-[#00b1ff] text-white font-bold text-lg hover:from-[#00b1ff] hover:to-[#009ee3] transition-all flex items-center justify-center gap-3"
             >
-              {isGenerating ? (
-                <>
-                  <span className="animate-spin">⏳</span>
-                  Generando PDF...
-                </>
-              ) : (
-                <>
-                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 2c1.93 0 3.5 1.57 3.5 3.5S13.93 11 12 11s-3.5-1.57-3.5-3.5S10.07 4 12 4zm7 14H5v-.75c0-2.25 4.5-3.5 7-3.5s7 1.25 7 3.5V18z"/>
-                  </svg>
-                  Pagar con Mercado Pago
-                </>
-              )}
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+              </svg>
+              Pagar con Mercado Pago
             </button>
 
             <button
               type="button"
-              onClick={handleGeneratePDF}
-              disabled={isGenerating}
-              className="w-full py-4 rounded-xl bg-gradient-to-r from-green-600 to-green-500 text-white font-bold text-lg hover:from-green-500 hover:to-green-400 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              onClick={() => setShowCheckout(true)}
+              className="w-full py-4 rounded-xl bg-gradient-to-r from-[#00c389] to-[#00a86b] text-white font-bold text-lg hover:from-[#00d499] hover:to-[#00b97c] transition-all flex items-center justify-center gap-3"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
               </svg>
-              Pagar con Wompi (Colombia)
+              Pagar con Wompi (PSE, Nequi, Tarjetas)
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center pt-4 border-t border-gray-800">
             <button
               type="button"
               onClick={handleGeneratePDF}
-              className="text-accent-cyan hover:underline text-sm"
+              disabled={isGenerating}
+              className="text-accent-cyan hover:underline text-sm flex items-center justify-center gap-2 mx-auto"
             >
-              Generar PDF de prueba (gratis)
+              {isGenerating ? (
+                <>
+                  <span className="animate-spin inline-block w-4 h-4 border-2 border-accent-cyan border-t-transparent rounded-full" />
+                  Generando...
+                </>
+              ) : (
+                "Generar PDF de prueba (gratis)"
+              )}
             </button>
+            <p className="text-xs text-gray-600 mt-1">
+              Version limitada sin soporte
+            </p>
           </div>
         </div>
 
@@ -174,6 +212,14 @@ export function StepSummary() {
         >
           Volver al resumen
         </button>
+
+        <CheckoutModal
+          isOpen={showCheckout}
+          onClose={() => setShowCheckout(false)}
+          selectedPlan="PLAN_PREMIUM"
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentError={handlePaymentError}
+        />
       </div>
     );
   }

@@ -7,15 +7,15 @@
   --bg-card-hover: rgba(20, 35, 60, 0.9);
   --accent-cyan: #22d3ee;
   --accent-blue: #3b82f6;
-  --accent-green: #39ff14;
+  --accent-green: #4ade80;
   --accent-neon: #39ff14;
   --accent-orange: #f59e0b;
   --accent-pink: #ec4899;
   --accent-purple: #8b5cf6;
   --accent-red: #ef4444;
   --text-primary: #ffffff;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
   --border-color: rgba(34, 211, 238, 0.3);
 }
 

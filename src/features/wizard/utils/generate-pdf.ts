@@ -1,6 +1,8 @@
 import jsPDF from "jspdf";
 import type { WizardState, Exercise } from "../types";
 import { TRANSLATIONS } from "../types";
+import { generateMealPlan } from "../data/meal-templates";
+import { generateWorkoutPlan, getVideoUrl } from "../data/workout-templates";
 
 interface PDFData {
   state: WizardState;
@@ -15,7 +17,9 @@ const COLORS = {
   white: [255, 255, 255] as [number, number, number],
   gray: [156, 163, 175] as [number, number, number],
   darkGray: [75, 85, 99] as [number, number, number],
+  lightGray: [209, 213, 219] as [number, number, number],
   black: [0, 0, 0] as [number, number, number],
+  bgCard: [15, 23, 42] as [number, number, number],
 };
 
 export async function generateWorkoutPDF(data: PDFData): Promise<void> {
@@ -28,278 +32,485 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
-  const margin = 15;
+  const margin = 12;
+  const contentWidth = pageWidth - margin * 2;
   let y = margin;
+  let pageNum = 1;
 
-  const addHeader = () => {
+  // Generar planes
+  const mealPlan = state.userBodyData && calories
+    ? generateMealPlan(calories.target, state.userBodyData.weightGoal, 7)
+    : null;
+
+  const workoutPlan = state.level && state.goal
+    ? generateWorkoutPlan(state.level, state.goal, state.selectedExercises, state.time)
+    : null;
+
+  // ============ HELPER FUNCTIONS ============
+  const addHeader = (title: string) => {
     pdf.setFillColor(...COLORS.black);
-    pdf.rect(0, 0, pageWidth, 35, "F");
+    pdf.rect(0, 0, pageWidth, 28, "F");
 
-    pdf.setFontSize(24);
+    pdf.setFontSize(18);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(...COLORS.cyan);
-    pdf.text("JCV", margin, 22);
-
+    pdf.text("JCV", margin, 18);
     pdf.setTextColor(...COLORS.white);
-    pdf.text("FITNESS", margin + 22, 22);
+    pdf.text("FITNESS", margin + 16, 18);
 
-    pdf.setFontSize(10);
+    pdf.setFontSize(9);
     pdf.setTextColor(...COLORS.gray);
-    pdf.text("Tu Rutina Personalizada", pageWidth - margin, 22, { align: "right" });
+    pdf.text(title, pageWidth - margin, 18, { align: "right" });
 
-    y = 45;
+    y = 35;
   };
 
-  const addFooter = (pageNum: number) => {
-    pdf.setFontSize(8);
-    pdf.setTextColor(...COLORS.gray);
+  const addFooter = () => {
+    pdf.setFontSize(7);
+    pdf.setTextColor(...COLORS.darkGray);
     pdf.text(
-      `Pagina ${pageNum} - Generado por JCV Fitness`,
+      `Pag. ${pageNum} | JCV Fitness - Tu transformacion comienza aqui | www.jcvfitness.com`,
       pageWidth / 2,
-      pageHeight - 10,
+      pageHeight - 8,
       { align: "center" }
     );
   };
 
-  const checkNewPage = (neededSpace: number) => {
-    if (y + neededSpace > pageHeight - 20) {
-      addFooter(pdf.getNumberOfPages());
+  const checkNewPage = (neededSpace: number, headerTitle: string = "Plan Personalizado"): boolean => {
+    if (y + neededSpace > pageHeight - 15) {
+      addFooter();
       pdf.addPage();
-      y = margin;
+      pageNum++;
+      addHeader(headerTitle);
       return true;
     }
     return false;
   };
 
-  // Page 1: Cover & Summary
-  addHeader();
-
-  // User name
-  if (state.userName) {
-    pdf.setFontSize(16);
+  const drawSectionTitle = (title: string, color: [number, number, number] = COLORS.cyan) => {
+    pdf.setFillColor(...color);
+    pdf.rect(margin, y - 1, 3, 8, "F");
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
     pdf.setTextColor(...COLORS.white);
-    pdf.text(`Hola, ${state.userName}!`, margin, y);
-    y += 10;
-  }
+    pdf.text(title, margin + 6, y + 5);
+    y += 12;
+  };
 
-  // Summary Section
-  pdf.setFontSize(14);
-  pdf.setTextColor(...COLORS.cyan);
-  pdf.text("Resumen de tu Programa", margin, y);
+  const drawInfoRow = (label: string, value: string, labelWidth: number = 40) => {
+    pdf.setFontSize(9);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text(label, margin + 4, y);
+    pdf.setTextColor(...COLORS.white);
+    pdf.text(value, margin + labelWidth, y);
+    y += 5;
+  };
+
+  // ============ PAGE 1: COVER & PROFILE ============
+  addHeader("Tu Plan Personalizado");
+
+  // Welcome message
+  pdf.setFontSize(22);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(...COLORS.white);
+  const welcomeName = state.userName || "Guerrero";
+  pdf.text(`Hola, ${welcomeName}!`, margin, y);
   y += 8;
 
   pdf.setFontSize(10);
+  pdf.setFont("helvetica", "normal");
   pdf.setTextColor(...COLORS.gray);
+  pdf.text("Este es tu plan personalizado de entrenamiento y alimentacion.", margin, y);
+  y += 12;
 
-  const summaryItems = [
-    ["Nivel:", state.level ? TRANSLATIONS.levels[state.level] : "-"],
-    ["Objetivo:", state.goal ? TRANSLATIONS.goals[state.goal] : "-"],
-    ["Tiempo por sesion:", `${state.time} minutos`],
-    ["Duracion:", state.duration ? TRANSLATIONS.durations[state.duration] : "-"],
-    ["Equipo:", state.equipment.map((e) => TRANSLATIONS.equipment[e]).join(", ")],
-  ];
+  // Profile Card
+  pdf.setFillColor(...COLORS.bgCard);
+  pdf.roundedRect(margin, y, contentWidth, 55, 3, 3, "F");
+  y += 8;
 
-  summaryItems.forEach(([label, value]) => {
-    pdf.setTextColor(...COLORS.gray);
-    pdf.text(label, margin, y);
-    pdf.setTextColor(...COLORS.white);
-    pdf.text(value, margin + 45, y);
-    y += 6;
-  });
+  drawSectionTitle("TU PERFIL", COLORS.cyan);
 
-  y += 10;
+  if (state.level) drawInfoRow("Nivel:", TRANSLATIONS.levels[state.level]);
+  if (state.goal) drawInfoRow("Objetivo:", TRANSLATIONS.goals[state.goal]);
+  drawInfoRow("Tiempo/sesion:", `${state.time} minutos`);
+  if (state.duration) drawInfoRow("Duracion:", TRANSLATIONS.durations[state.duration]);
+  drawInfoRow("Equipo:", state.equipment.map(e => TRANSLATIONS.equipment[e]).join(", "));
 
-  // Body Data Section
-  if (state.userBodyData) {
-    pdf.setFontSize(14);
-    pdf.setTextColor(...COLORS.cyan);
-    pdf.text("Tus Datos Corporales", margin, y);
+  y += 8;
+
+  // Body Data Card
+  if (state.userBodyData && calories) {
+    pdf.setFillColor(...COLORS.bgCard);
+    pdf.roundedRect(margin, y, contentWidth, 65, 3, 3, "F");
     y += 8;
 
-    pdf.setFontSize(10);
+    drawSectionTitle("TUS DATOS CORPORALES", COLORS.green);
 
-    const bodyItems = [
-      ["Genero:", state.userBodyData.gender === "masculino" ? "Masculino" : "Femenino"],
-      ["Edad:", `${state.userBodyData.age} anos`],
-      ["Altura:", `${state.userBodyData.height} cm`],
-      ["Peso actual:", `${state.userBodyData.currentWeight} kg`],
-      ["Peso objetivo:", `${state.userBodyData.targetWeight} kg`],
-    ];
-
-    bodyItems.forEach(([label, value]) => {
-      pdf.setTextColor(...COLORS.gray);
-      pdf.text(label, margin, y);
-      pdf.setTextColor(...COLORS.white);
-      pdf.text(value, margin + 35, y);
-      y += 6;
-    });
+    const bd = state.userBodyData;
+    drawInfoRow("Genero:", bd.gender === "masculino" ? "Masculino" : "Femenino");
+    drawInfoRow("Edad:", `${bd.age} anos`);
+    drawInfoRow("Altura:", `${bd.height} cm`);
+    drawInfoRow("Peso actual:", `${bd.currentWeight} kg`);
+    drawInfoRow("Peso objetivo:", `${bd.targetWeight} kg`);
 
     y += 5;
 
-    // Calories box
-    if (calories) {
-      pdf.setFillColor(20, 30, 50);
-      pdf.roundedRect(margin, y, pageWidth - margin * 2, 25, 3, 3, "F");
+    // Calories Box
+    const boxY = y;
+    const boxHeight = 20;
+    const colWidth = contentWidth / 3;
 
-      const boxCenterY = y + 12.5;
-      const colWidth = (pageWidth - margin * 2) / 3;
+    pdf.setFillColor(10, 20, 35);
+    pdf.roundedRect(margin, boxY, contentWidth, boxHeight, 2, 2, "F");
 
-      pdf.setFontSize(16);
-      pdf.setTextColor(...COLORS.gray);
-      pdf.text(String(calories.bmr), margin + colWidth / 2, boxCenterY - 2, { align: "center" });
-      pdf.setFontSize(8);
-      pdf.text("BMR", margin + colWidth / 2, boxCenterY + 6, { align: "center" });
+    // BMR
+    pdf.setFontSize(14);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text(String(calories.bmr), margin + colWidth / 2, boxY + 10, { align: "center" });
+    pdf.setFontSize(7);
+    pdf.setTextColor(...COLORS.darkGray);
+    pdf.text("BMR (Basal)", margin + colWidth / 2, boxY + 16, { align: "center" });
 
-      pdf.setFontSize(16);
-      pdf.setTextColor(...COLORS.white);
-      pdf.text(String(calories.tdee), margin + colWidth * 1.5, boxCenterY - 2, { align: "center" });
-      pdf.setFontSize(8);
-      pdf.text("TDEE", margin + colWidth * 1.5, boxCenterY + 6, { align: "center" });
+    // TDEE
+    pdf.setFontSize(14);
+    pdf.setTextColor(...COLORS.white);
+    pdf.text(String(calories.tdee), margin + colWidth * 1.5, boxY + 10, { align: "center" });
+    pdf.setFontSize(7);
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text("TDEE (Diario)", margin + colWidth * 1.5, boxY + 16, { align: "center" });
 
-      pdf.setFontSize(18);
-      pdf.setTextColor(...COLORS.green);
-      pdf.text(String(calories.target), margin + colWidth * 2.5, boxCenterY - 2, { align: "center" });
-      pdf.setFontSize(8);
-      pdf.text("OBJETIVO", margin + colWidth * 2.5, boxCenterY + 6, { align: "center" });
+    // Target
+    pdf.setFontSize(16);
+    pdf.setTextColor(...COLORS.green);
+    pdf.text(String(calories.target), margin + colWidth * 2.5, boxY + 10, { align: "center" });
+    pdf.setFontSize(7);
+    pdf.text("CALORIAS OBJETIVO", margin + colWidth * 2.5, boxY + 16, { align: "center" });
 
-      y += 30;
-    }
+    y = boxY + boxHeight + 10;
   }
 
-  addFooter(1);
+  addFooter();
 
-  // Page 2+: Exercises
-  pdf.addPage();
-  y = margin;
+  // ============ PAGE 2+: WORKOUT PLAN ============
+  if (workoutPlan && workoutPlan.length > 0) {
+    pdf.addPage();
+    pageNum++;
+    addHeader("Plan de Entrenamiento");
 
-  pdf.setFontSize(18);
-  pdf.setTextColor(...COLORS.cyan);
-  pdf.text("Tus Ejercicios", margin, y);
-  y += 10;
+    drawSectionTitle("RUTINA SEMANAL", COLORS.red);
 
-  const groupedExercises = exercises.reduce((acc, exercise) => {
-    if (!acc[exercise.category]) {
-      acc[exercise.category] = [];
-    }
-    acc[exercise.category].push(exercise);
-    return acc;
-  }, {} as Record<string, Exercise[]>);
+    workoutPlan.forEach((day) => {
+      checkNewPage(day.restDay ? 12 : 45, "Plan de Entrenamiento");
 
-  Object.entries(groupedExercises).forEach(([category, categoryExercises]) => {
-    checkNewPage(20);
-
-    pdf.setFontSize(12);
-    pdf.setTextColor(...COLORS.red);
-    pdf.text(
-      TRANSLATIONS.categories[category as keyof typeof TRANSLATIONS.categories].toUpperCase(),
-      margin,
-      y
-    );
-    y += 7;
-
-    categoryExercises.forEach((exercise) => {
-      checkNewPage(10);
+      // Day header
+      pdf.setFillColor(day.restDay ? 40 : 25, day.restDay ? 40 : 35, day.restDay ? 45 : 55);
+      pdf.roundedRect(margin, y, contentWidth, day.restDay ? 10 : 8, 2, 2, "F");
 
       pdf.setFontSize(10);
-      pdf.setTextColor(...COLORS.white);
-      pdf.text(`${exercise.emoji} ${exercise.name}`, margin + 5, y);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(day.restDay ? COLORS.gray : COLORS.cyan);
+      pdf.text(`DIA ${day.dayNumber}: ${day.name}`, margin + 4, y + 6);
 
-      if (exercise.altName) {
+      if (!day.restDay && day.duration) {
         pdf.setFontSize(8);
         pdf.setTextColor(...COLORS.gray);
-        pdf.text(`(${exercise.altName})`, margin + 60, y);
+        pdf.text(`${day.duration} min`, pageWidth - margin - 4, y + 6, { align: "right" });
       }
 
-      pdf.setFontSize(8);
-      pdf.setTextColor(...COLORS.darkGray);
-      pdf.text(exercise.muscle, pageWidth - margin, y, { align: "right" });
+      y += day.restDay ? 14 : 12;
+
+      if (day.restDay) {
+        pdf.setFontSize(8);
+        pdf.setTextColor(...COLORS.darkGray);
+        pdf.text("Recuperacion activa: caminar, estirar, descansar.", margin + 4, y);
+        y += 8;
+        return;
+      }
+
+      // Exercises table
+      day.exercises.forEach((ex, idx) => {
+        checkNewPage(8, "Plan de Entrenamiento");
+
+        const bgColor = idx % 2 === 0 ? [20, 25, 35] : [15, 20, 30];
+        pdf.setFillColor(...(bgColor as [number, number, number]));
+        pdf.rect(margin, y - 1, contentWidth, 7, "F");
+
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(...COLORS.white);
+
+        // Exercise name
+        const exerciseName = exercises.find(e => e.id === ex.exerciseId)?.name || ex.exerciseId;
+        pdf.text(exerciseName, margin + 3, y + 4);
+
+        // Sets x Reps
+        pdf.setTextColor(...COLORS.cyan);
+        pdf.text(`${ex.sets}x${ex.reps}`, margin + 75, y + 4);
+
+        // Rest
+        pdf.setTextColor(...COLORS.gray);
+        pdf.text(ex.rest, margin + 100, y + 4);
+
+        // Video link indicator
+        const videoUrl = getVideoUrl(ex.exerciseId);
+        if (videoUrl) {
+          pdf.setTextColor(...COLORS.red);
+          pdf.text("[VIDEO]", pageWidth - margin - 3, y + 4, { align: "right" });
+        }
+
+        y += 7;
+
+        // Notes
+        if (ex.notes) {
+          pdf.setFontSize(7);
+          pdf.setTextColor(...COLORS.darkGray);
+          pdf.text(`  Tip: ${ex.notes}`, margin + 3, y + 2);
+          y += 5;
+        }
+      });
 
       y += 6;
     });
 
-    y += 5;
-  });
+    // Video Links Section
+    addFooter();
+    pdf.addPage();
+    pageNum++;
+    addHeader("Videos de Ejercicios");
 
-  addFooter(pdf.getNumberOfPages());
+    drawSectionTitle("LINKS DE VIDEOS", COLORS.red);
 
-  // Page: Nutrition Guide
-  pdf.addPage();
-  y = margin;
+    pdf.setFontSize(8);
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text("Escanea el QR o visita los enlaces para ver la tecnica correcta de cada ejercicio:", margin, y);
+    y += 8;
 
-  pdf.setFontSize(18);
-  pdf.setTextColor(...COLORS.cyan);
-  pdf.text("Guia Nutricional Basica", margin, y);
-  y += 10;
+    const allExerciseIds = new Set<string>();
+    workoutPlan.forEach(day => {
+      day.exercises.forEach(ex => allExerciseIds.add(ex.exerciseId));
+    });
 
-  pdf.setFontSize(10);
-  pdf.setTextColor(...COLORS.gray);
-  pdf.text(
-    "Nota: Esta es una guia orientativa. Consulta un nutricionista para un plan personalizado.",
-    margin,
-    y,
-    { maxWidth: pageWidth - margin * 2 }
-  );
-  y += 15;
+    Array.from(allExerciseIds).forEach((exId) => {
+      const videoUrl = getVideoUrl(exId);
+      if (!videoUrl) return;
 
-  const nutritionTips = [
-    {
-      title: "Proteinas",
-      tips: [
-        "Consume 1.6-2.2g por kg de peso corporal",
-        "Fuentes: pollo, pescado, huevos, legumbres",
-        "Distribuye en 4-5 comidas al dia",
-      ],
-    },
-    {
-      title: "Carbohidratos",
-      tips: [
-        "Prioriza carbohidratos complejos",
-        "Arroz integral, avena, batata, quinoa",
-        "Consume mas cerca del entrenamiento",
-      ],
-    },
-    {
-      title: "Grasas Saludables",
-      tips: [
-        "20-35% de tus calorias totales",
-        "Aguacate, frutos secos, aceite de oliva",
-        "Evita grasas trans y procesadas",
-      ],
-    },
-    {
-      title: "Hidratacion",
-      tips: [
-        "Minimo 2-3 litros de agua al dia",
-        "Aumenta en dias de entrenamiento",
-        "Evita bebidas azucaradas",
-      ],
-    },
-  ];
+      checkNewPage(7, "Videos de Ejercicios");
 
-  nutritionTips.forEach((section) => {
-    checkNewPage(30);
+      const exerciseName = exercises.find(e => e.id === exId)?.name || exId;
 
-    pdf.setFontSize(12);
-    pdf.setTextColor(...COLORS.green);
-    pdf.text(section.title, margin, y);
-    y += 6;
-
-    section.tips.forEach((tip) => {
-      pdf.setFontSize(9);
+      pdf.setFontSize(8);
+      pdf.setFont("helvetica", "bold");
       pdf.setTextColor(...COLORS.white);
-      pdf.text(`- ${tip}`, margin + 5, y);
+      pdf.text(exerciseName, margin + 3, y);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(...COLORS.cyan);
+      pdf.textWithLink(videoUrl, margin + 50, y, { url: videoUrl });
+
+      y += 6;
+    });
+  }
+
+  // ============ MEAL PLAN ============
+  if (mealPlan && mealPlan.length > 0 && state.userBodyData) {
+    addFooter();
+    pdf.addPage();
+    pageNum++;
+    addHeader("Plan de Alimentacion");
+
+    drawSectionTitle("PLAN NUTRICIONAL SEMANAL", COLORS.green);
+
+    // Macro distribution
+    const macroRatio = state.userBodyData.weightGoal === "perder"
+      ? "40% Proteina | 30% Carbos | 30% Grasa"
+      : state.userBodyData.weightGoal === "ganar"
+      ? "30% Proteina | 45% Carbos | 25% Grasa"
+      : "30% Proteina | 40% Carbos | 30% Grasa";
+
+    pdf.setFontSize(9);
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text(`Distribucion de macros: ${macroRatio}`, margin, y);
+    y += 8;
+
+    mealPlan.forEach((day) => {
+      checkNewPage(55, "Plan de Alimentacion");
+
+      // Day header
+      pdf.setFillColor(20, 40, 30);
+      pdf.roundedRect(margin, y, contentWidth, 8, 2, 2, "F");
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...COLORS.green);
+      pdf.text(`DIA ${day.dayNumber}`, margin + 4, y + 6);
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(...COLORS.white);
+      pdf.text(
+        `${day.totalCalories} kcal | P:${day.macros.protein}g C:${day.macros.carbs}g G:${day.macros.fat}g`,
+        pageWidth - margin - 4,
+        y + 6,
+        { align: "right" }
+      );
+
+      y += 12;
+
+      // Meals
+      day.meals.forEach((meal) => {
+        checkNewPage(20, "Plan de Alimentacion");
+
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(...COLORS.cyan);
+        pdf.text(`${meal.time} - ${meal.name}`, margin + 3, y);
+        pdf.setTextColor(...COLORS.gray);
+        pdf.text(`${meal.calories} kcal`, pageWidth - margin - 3, y, { align: "right" });
+        y += 5;
+
+        meal.foods.forEach((food) => {
+          pdf.setFontSize(8);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(...COLORS.lightGray);
+          pdf.text(`- ${food.name} (${food.portion})`, margin + 6, y);
+          y += 4;
+        });
+
+        y += 3;
+      });
+
       y += 5;
     });
 
-    y += 5;
+    // Nutrition Tips
+    addFooter();
+    pdf.addPage();
+    pageNum++;
+    addHeader("Consejos Nutricionales");
+
+    drawSectionTitle("GUIA NUTRICIONAL", COLORS.green);
+
+    const nutritionTips = [
+      {
+        title: "PROTEINAS - La Base del Musculo",
+        tips: [
+          `Consume ${state.userBodyData.weightGoal === "ganar" ? "2.0-2.2" : "1.6-2.0"}g por kg de peso corporal`,
+          "Fuentes: pollo, pescado, huevos, carne magra, legumbres",
+          "Distribuye en 4-5 comidas para mejor absorcion",
+          "Incluye proteina en cada comida principal",
+        ],
+      },
+      {
+        title: "CARBOHIDRATOS - Tu Energia",
+        tips: [
+          "Prioriza carbohidratos complejos y de bajo indice glucemico",
+          "Mejores opciones: arroz integral, avena, batata, quinoa, platano",
+          "Consume mas carbos antes y despues del entrenamiento",
+          "Reduce carbos simples (azucares, harinas refinadas)",
+        ],
+      },
+      {
+        title: "GRASAS SALUDABLES - Hormonas y Salud",
+        tips: [
+          "20-30% de tus calorias totales deben venir de grasas",
+          "Fuentes: aguacate, aceite de oliva, frutos secos, salmon",
+          "Evita grasas trans y procesadas",
+          "Las grasas son esenciales para la absorcion de vitaminas",
+        ],
+      },
+      {
+        title: "HIDRATACION - El Factor Olvidado",
+        tips: [
+          "Minimo 35ml por kg de peso corporal (ej: 70kg = 2.5L)",
+          "Aumenta 500ml-1L en dias de entrenamiento",
+          "Agua natural es la mejor opcion",
+          "Evita bebidas azucaradas y alcohol",
+        ],
+      },
+      {
+        title: "TIMING NUTRICIONAL",
+        tips: [
+          "Pre-entreno (1-2h antes): carbos + proteina",
+          "Post-entreno (30-60min): proteina + carbos rapidos",
+          "No saltees comidas, mantén un horario regular",
+          "Ultima comida: 2-3 horas antes de dormir",
+        ],
+      },
+    ];
+
+    nutritionTips.forEach((section) => {
+      checkNewPage(30, "Consejos Nutricionales");
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...COLORS.green);
+      pdf.text(section.title, margin, y);
+      y += 6;
+
+      section.tips.forEach((tip) => {
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(...COLORS.lightGray);
+        pdf.text(`- ${tip}`, margin + 4, y);
+        y += 5;
+      });
+
+      y += 4;
+    });
+  }
+
+  // ============ FINAL PAGE: MOTIVATION ============
+  addFooter();
+  pdf.addPage();
+  pageNum++;
+  addHeader("Tu Compromiso");
+
+  y = 60;
+
+  pdf.setFontSize(20);
+  pdf.setFont("helvetica", "bold");
+  pdf.setTextColor(...COLORS.cyan);
+  pdf.text("RECUERDA", pageWidth / 2, y, { align: "center" });
+  y += 15;
+
+  const motivationalQuotes = [
+    "La consistencia supera a la perfeccion.",
+    "Cada entrenamiento te acerca a tu mejor version.",
+    "No es sobre ser el mejor, es sobre ser mejor que ayer.",
+    "Tu unico limite eres tu mismo.",
+    "El dolor de hoy es la fuerza de manana.",
+  ];
+
+  pdf.setFontSize(12);
+  pdf.setFont("helvetica", "normal");
+  pdf.setTextColor(...COLORS.white);
+
+  motivationalQuotes.forEach((quote) => {
+    pdf.text(`"${quote}"`, pageWidth / 2, y, { align: "center" });
+    y += 10;
   });
 
-  addFooter(pdf.getNumberOfPages());
+  y += 15;
 
-  // Save PDF
+  pdf.setFontSize(11);
+  pdf.setTextColor(...COLORS.gray);
+  pdf.text("Contacto y seguimiento:", pageWidth / 2, y, { align: "center" });
+  y += 8;
+
+  pdf.setTextColor(...COLORS.green);
+  pdf.text("WhatsApp: 314 382 64 30", pageWidth / 2, y, { align: "center" });
+  y += 6;
+  pdf.setTextColor(...COLORS.cyan);
+  pdf.text("Instagram: @jcvfitness", pageWidth / 2, y, { align: "center" });
+
+  addFooter();
+
+  // ============ SAVE PDF ============
+  const date = new Date().toISOString().split("T")[0];
   const fileName = state.userName
-    ? `JCV_Fitness_${state.userName.replace(/\s/g, "_")}.pdf`
-    : "JCV_Fitness_Rutina.pdf";
+    ? `JCV_Fitness_${state.userName.replace(/\s/g, "_")}_${date}.pdf`
+    : `JCV_Fitness_Plan_${date}.pdf`;
 
   pdf.save(fileName);
 }
