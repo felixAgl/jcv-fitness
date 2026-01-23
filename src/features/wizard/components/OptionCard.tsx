@@ -23,27 +23,18 @@ export function OptionCard({
   color = "cyan",
   size = "md",
 }: OptionCardProps) {
-  const colorClasses = {
-    cyan: "border-accent-cyan/50 bg-accent-cyan/10",
-    red: "border-accent-red/50 bg-accent-red/10",
-    green: "border-accent-green/50 bg-accent-green/10",
-    blue: "border-accent-blue/50 bg-accent-blue/10",
-    yellow: "border-yellow-500/50 bg-yellow-500/10",
-    purple: "border-purple-500/50 bg-purple-500/10",
-    orange: "border-orange-500/50 bg-orange-500/10",
-    pink: "border-pink-500/50 bg-pink-500/10",
+  const selectedColorClasses = {
+    cyan: "border-accent-cyan bg-accent-cyan/30 ring-2 ring-accent-cyan shadow-lg shadow-accent-cyan/20",
+    red: "border-accent-red bg-accent-red/30 ring-2 ring-accent-red shadow-lg shadow-accent-red/20",
+    green: "border-accent-green bg-accent-green/30 ring-2 ring-accent-green shadow-lg shadow-accent-green/20",
+    blue: "border-accent-blue bg-accent-blue/30 ring-2 ring-accent-blue shadow-lg shadow-accent-blue/20",
+    yellow: "border-yellow-500 bg-yellow-500/30 ring-2 ring-yellow-500 shadow-lg shadow-yellow-500/20",
+    purple: "border-purple-500 bg-purple-500/30 ring-2 ring-purple-500 shadow-lg shadow-purple-500/20",
+    orange: "border-orange-500 bg-orange-500/30 ring-2 ring-orange-500 shadow-lg shadow-orange-500/20",
+    pink: "border-pink-500 bg-pink-500/30 ring-2 ring-pink-500 shadow-lg shadow-pink-500/20",
   };
 
-  const selectedColorClasses = {
-    cyan: "border-accent-cyan bg-accent-cyan/20 ring-2 ring-accent-cyan",
-    red: "border-accent-red bg-accent-red/20 ring-2 ring-accent-red",
-    green: "border-accent-green bg-accent-green/20 ring-2 ring-accent-green",
-    blue: "border-accent-blue bg-accent-blue/20 ring-2 ring-accent-blue",
-    yellow: "border-yellow-500 bg-yellow-500/20 ring-2 ring-yellow-500",
-    purple: "border-purple-500 bg-purple-500/20 ring-2 ring-purple-500",
-    orange: "border-orange-500 bg-orange-500/20 ring-2 ring-orange-500",
-    pink: "border-pink-500 bg-pink-500/20 ring-2 ring-pink-500",
-  };
+  const unselectedClasses = "border-gray-600 bg-gray-900/80 hover:border-gray-500 hover:bg-gray-800/60";
 
   const sizeClasses = {
     sm: "p-3",
@@ -51,7 +42,7 @@ export function OptionCard({
     lg: "p-6",
   };
 
-  const colorKey = color as keyof typeof colorClasses;
+  const colorKey = color as keyof typeof selectedColorClasses;
 
   return (
     <button
@@ -63,8 +54,7 @@ export function OptionCard({
         sizeClasses[size],
         isSelected
           ? selectedColorClasses[colorKey] || selectedColorClasses.cyan
-          : colorClasses[colorKey] || colorClasses.cyan,
-        !isSelected && "border-gray-700/50 bg-gray-900/50 hover:border-gray-600"
+          : unselectedClasses
       )}
     >
       {isSelected && (
