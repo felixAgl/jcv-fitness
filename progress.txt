@@ -1,0 +1,5 @@
+# JCV Fitness - Progress Tracker
+# Este archivo se actualiza automaticamente con cada tarea completada por Ralph
+
+---
+
