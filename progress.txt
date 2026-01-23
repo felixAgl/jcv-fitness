@@ -1,5 +1,7 @@
-# JCV Fitness - Progress Tracker
-# Este archivo se actualiza automaticamente con cada tarea completada por Ralph
+# JCV Fitness - Progress Log
+
+Este archivo trackea el progreso del Ralph Loop.
+Cada iteracion agrega una entrada con la tarea completada.
 
 ---
 
