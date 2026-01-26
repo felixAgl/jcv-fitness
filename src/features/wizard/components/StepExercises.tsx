@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useWizardStore } from "../store/wizard-store";
-import { getFilteredExercises } from "../data/exercises";
+import { getFilteredExercises, exercises } from "../data/exercises";
 import { TRANSLATIONS, type ExerciseCategory } from "../types";
 import { ExerciseCard } from "./ExerciseCard";
 import { NavigationButtons } from "./NavigationButtons";
@@ -18,11 +18,22 @@ const CATEGORIES: ExerciseCategory[] = [
   "cuerpo_completo",
 ];
 
+const RECOMMENDED_BY_CATEGORY: Record<ExerciseCategory, string[]> = {
+  piernas: ["sentadilla", "zancadas", "peso_muerto_rumano", "puente_gluteo", "elevacion_talones"],
+  pecho: ["flexiones", "press_mancuernas", "aperturas", "flexiones_inclinadas"],
+  espalda: ["remo_mancuerna", "dominadas_asistidas", "superman", "face_pull"],
+  brazos: ["curl_bicep", "tricep_fondos", "press_militar", "elevaciones_laterales"],
+  core: ["plancha", "crunch_bicicleta", "mountain_climber", "dead_bug"],
+  cardio: ["burpees", "jumping_jacks", "high_knees", "saltar_cuerda"],
+  cuerpo_completo: ["kettlebell_swing", "thruster", "bear_crawl", "inchworm"],
+};
+
 export function StepExercises() {
-  const { equipment, selectedExercises, toggleExercise, nextStep, prevStep, canProceed } =
+  const { equipment, selectedExercises, toggleExercise, setSelectedExercises, nextStep, prevStep, canProceed } =
     useWizardStore();
   const [activeCategory, setActiveCategory] = useState<ExerciseCategory>("piernas");
   const [searchTerm, setSearchTerm] = useState("");
+  const [hasAppliedRecommendations, setHasAppliedRecommendations] = useState(false);
 
   const filteredExercises = useMemo(() => {
     let filtered = getFilteredExercises(activeCategory, equipment);
@@ -50,17 +61,42 @@ export function StepExercises() {
     return counts;
   }, [equipment, selectedExercises]);
 
+  const recommendedForCategory = useMemo(() => {
+    const recommended = RECOMMENDED_BY_CATEGORY[activeCategory] || [];
+    return filteredExercises.filter(ex => recommended.includes(ex.id));
+  }, [activeCategory, filteredExercises]);
+
+  const otherExercises = useMemo(() => {
+    const recommended = RECOMMENDED_BY_CATEGORY[activeCategory] || [];
+    return filteredExercises.filter(ex => !recommended.includes(ex.id));
+  }, [activeCategory, filteredExercises]);
+
   const selectAll = () => {
     const allIds = filteredExercises.map((ex) => ex.id);
     const currentSelected = new Set(selectedExercises);
     allIds.forEach((id) => currentSelected.add(id));
-    useWizardStore.setState({ selectedExercises: Array.from(currentSelected) });
+    setSelectedExercises(Array.from(currentSelected));
   };
 
   const deselectAll = () => {
     const categoryIds = new Set(filteredExercises.map((ex) => ex.id));
     const newSelected = selectedExercises.filter((id) => !categoryIds.has(id));
-    useWizardStore.setState({ selectedExercises: newSelected });
+    setSelectedExercises(newSelected);
+  };
+
+  const selectRecommended = () => {
+    const allRecommended: string[] = [];
+    CATEGORIES.forEach(cat => {
+      const catExercises = getFilteredExercises(cat, equipment);
+      const recommended = RECOMMENDED_BY_CATEGORY[cat] || [];
+      catExercises
+        .filter(ex => recommended.includes(ex.id))
+        .forEach(ex => allRecommended.push(ex.id));
+    });
+    const currentSelected = new Set(selectedExercises);
+    allRecommended.forEach(id => currentSelected.add(id));
+    setSelectedExercises(Array.from(currentSelected));
+    setHasAppliedRecommendations(true);
   };
 
   return (
@@ -74,10 +110,28 @@ export function StepExercises() {
         </p>
       </div>
 
+      {!hasAppliedRecommendations && selectedExercises.length === 0 && (
+        <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-4 border border-accent-cyan/30">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div>
+              <p className="text-white font-medium">No sabes cuales elegir?</p>
+              <p className="text-sm text-gray-400">Usa nuestra seleccion recomendada por JCV</p>
+            </div>
+            <button
+              type="button"
+              onClick={selectRecommended}
+              className="px-4 py-2 bg-accent-green text-black font-bold rounded-lg hover:bg-accent-green/90 transition-colors whitespace-nowrap"
+            >
+              Usar recomendados
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="relative">
         <input
           type="text"
-          placeholder="Buscar ejercicio..."
+          placeholder="Buscar ejercicio por nombre, musculo o tipo..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full p-3 pl-10 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none"
@@ -145,18 +199,49 @@ export function StepExercises() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-        {filteredExercises.length > 0 ? (
-          filteredExercises.map((exercise) => (
-            <ExerciseCard
-              key={exercise.id}
-              exercise={exercise}
-              isSelected={selectedExercises.includes(exercise.id)}
-              onToggle={() => toggleExercise(exercise.id)}
-            />
-          ))
-        ) : (
-          <div className="col-span-2 text-center py-8 text-gray-500">
+      <div className="max-h-[400px] overflow-y-auto pr-2 custom-scrollbar space-y-4">
+        {recommendedForCategory.length > 0 && !searchTerm && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-accent-green text-sm font-bold">Recomendados por JCV</span>
+              <span className="text-xs text-gray-500">- Los basicos que no pueden faltar</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {recommendedForCategory.map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  isSelected={selectedExercises.includes(exercise.id)}
+                  onToggle={() => toggleExercise(exercise.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {otherExercises.length > 0 && (
+          <div>
+            {recommendedForCategory.length > 0 && !searchTerm && (
+              <div className="flex items-center gap-2 mb-3 pt-4 border-t border-gray-800">
+                <span className="text-gray-400 text-sm font-medium">Otros ejercicios</span>
+                <span className="text-xs text-gray-500">- Para variar tu rutina</span>
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {(searchTerm ? filteredExercises : otherExercises).map((exercise) => (
+                <ExerciseCard
+                  key={exercise.id}
+                  exercise={exercise}
+                  isSelected={selectedExercises.includes(exercise.id)}
+                  onToggle={() => toggleExercise(exercise.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {filteredExercises.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
             No se encontraron ejercicios para tu equipo disponible
           </div>
         )}

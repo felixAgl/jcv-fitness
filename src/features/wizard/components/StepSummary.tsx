@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useWizardStore } from "../store/wizard-store";
 import { exercises } from "../data/exercises";
+import { foods, FOOD_TRANSLATIONS, type FoodCategory } from "../data/foods";
 import { TRANSLATIONS } from "../types";
 import { generateWorkoutPDF } from "../utils/generate-pdf";
 import { CheckoutModal } from "@/features/payment/components/CheckoutModal";
@@ -38,6 +39,9 @@ export function StepSummary() {
     equipment,
     duration,
     selectedExercises,
+    selectedFoods,
+    userName,
+    setUserName,
     userBodyData,
     prevStep,
     calculateCalories,
@@ -56,6 +60,18 @@ export function StepSummary() {
     acc[exercise.category].push(exercise);
     return acc;
   }, {} as Record<string, typeof selectedExercisesList>);
+
+  const selectedFoodsList = foods.filter((food) =>
+    selectedFoods.includes(food.id)
+  );
+
+  const groupedFoods = selectedFoodsList.reduce((acc, food) => {
+    if (!acc[food.category]) {
+      acc[food.category] = [];
+    }
+    acc[food.category].push(food);
+    return acc;
+  }, {} as Record<FoodCategory, typeof selectedFoodsList>);
 
   const handleGeneratePDF = async () => {
     setIsGenerating(true);
@@ -228,10 +244,27 @@ export function StepSummary() {
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-          Resumen de tu programa
+          {userName ? `${userName}, ` : ""}Resumen de tu programa
         </h2>
         <p className="text-gray-400">
-          Revisa los detalles antes de generar tu rutina
+          Revisa los detalles antes de generar tu rutina personalizada
+        </p>
+      </div>
+
+      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+        <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-2">
+          Tu nombre (para personalizar el PDF)
+        </label>
+        <input
+          id="userName"
+          type="text"
+          value={userName}
+          onChange={(e) => setUserName(e.target.value)}
+          placeholder="Ej: Juan Carlos"
+          className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none focus:ring-2 focus:ring-accent-cyan/50"
+        />
+        <p className="text-xs text-gray-500 mt-2">
+          Este nombre aparecera en tu PDF personalizado
         </p>
       </div>
 
@@ -340,6 +373,37 @@ export function StepSummary() {
         ) : (
           <p className="text-gray-500 text-center py-4">
             No has seleccionado ejercicios. Se generara una rutina automatica basada en tu nivel y objetivo.
+          </p>
+        )}
+      </div>
+
+      <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+        <h3 className="text-lg font-bold text-accent-green mb-4">
+          Alimentos seleccionados ({selectedFoods.length})
+        </h3>
+        {Object.entries(groupedFoods).length > 0 ? (
+          <div className="space-y-4">
+            {Object.entries(groupedFoods).map(([category, foodList]) => (
+              <div key={category}>
+                <h4 className="text-sm font-semibold text-gray-400 mb-2 uppercase">
+                  {FOOD_TRANSLATIONS[category as FoodCategory]}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {foodList.map((food) => (
+                    <span
+                      key={food.id}
+                      className="px-3 py-1 bg-gray-800 rounded-full text-sm text-gray-300"
+                    >
+                      {food.emoji} {food.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">
+            No has seleccionado alimentos. Se generara un plan basico con alimentos recomendados.
           </p>
         )}
       </div>

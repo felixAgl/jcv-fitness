@@ -10,9 +10,10 @@ import { StepEquipment } from "./StepEquipment";
 import { StepDuration } from "./StepDuration";
 import { StepBodyData } from "./StepBodyData";
 import { StepExercises } from "./StepExercises";
+import { StepFoods } from "./StepFoods";
 import { StepSummary } from "./StepSummary";
 
-const TOTAL_STEPS = 8;
+const TOTAL_STEPS = 9;
 
 export function WizardContainer() {
   const { currentStep } = useWizardStore();
@@ -34,6 +35,8 @@ export function WizardContainer() {
       case 7:
         return <StepExercises />;
       case 8:
+        return <StepFoods />;
+      case 9:
         return <StepSummary />;
       default:
         return <StepLevel />;

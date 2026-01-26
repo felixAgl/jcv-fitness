@@ -16,6 +16,8 @@ interface WizardActions {
   setDuration: (duration: ProgramDuration) => void;
   toggleExercise: (exerciseId: string) => void;
   setSelectedExercises: (exercises: string[]) => void;
+  toggleFood: (foodId: string) => void;
+  setSelectedFoods: (foods: string[]) => void;
   setUserName: (name: string) => void;
   setUserBodyData: (data: UserBodyData) => void;
   updateBodyDataField: <K extends keyof UserBodyData>(field: K, value: UserBodyData[K]) => void;
@@ -45,6 +47,7 @@ const initialState: WizardState = {
   equipment: ["sin_equipo"],
   duration: null,
   selectedExercises: [],
+  selectedFoods: [],
   userName: "",
   userBodyData: null,
 };
@@ -93,6 +96,21 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   setSelectedExercises: (exercises) => set({ selectedExercises: exercises }),
 
+  toggleFood: (foodId) =>
+    set((state) => {
+      const exists = state.selectedFoods.includes(foodId);
+      if (exists) {
+        return {
+          selectedFoods: state.selectedFoods.filter((f) => f !== foodId),
+        };
+      }
+      return {
+        selectedFoods: [...state.selectedFoods, foodId],
+      };
+    }),
+
+  setSelectedFoods: (foods) => set({ selectedFoods: foods }),
+
   setUserName: (userName) => set({ userName }),
 
   setUserBodyData: (data) => set({ userBodyData: data }),
@@ -106,7 +124,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
   nextStep: () =>
     set((state) => ({
-      currentStep: Math.min(state.currentStep + 1, 8),
+      currentStep: Math.min(state.currentStep + 1, 9),
     })),
 
   prevStep: () =>
@@ -114,7 +132,7 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       currentStep: Math.max(state.currentStep - 1, 1),
     })),
 
-  goToStep: (step) => set({ currentStep: Math.max(1, Math.min(step, 8)) }),
+  goToStep: (step) => set({ currentStep: Math.max(1, Math.min(step, 9)) }),
 
   reset: () => set(initialState),
 
@@ -139,6 +157,8 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       case 7:
         return true;
       case 8:
+        return true;
+      case 9:
         return true;
       default:
         return false;

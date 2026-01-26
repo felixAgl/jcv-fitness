@@ -17,6 +17,7 @@ export type TrainingGoal =
 
 export type EquipmentType =
   | "sin_equipo"
+  | "gym_completo"
   | "mancuernas"
   | "bandas"
   | "barra"
@@ -27,7 +28,11 @@ export type EquipmentType =
   | "trx"
   | "step"
   | "pelota"
-  | "cuerda";
+  | "cuerda"
+  | "ligas"
+  | "discos"
+  | "poleas"
+  | "soga_batalla";
 
 export type ProgramDuration =
   | "1_dia"
@@ -126,6 +131,7 @@ export interface WizardState {
   equipment: EquipmentType[];
   duration: ProgramDuration | null;
   selectedExercises: string[];
+  selectedFoods: string[];
   userName: string;
   userBodyData: UserBodyData | null;
 }
@@ -203,6 +209,7 @@ export const TRANSLATIONS = {
   },
   equipment: {
     sin_equipo: "Sin Equipo",
+    gym_completo: "Gimnasio Completo",
     mancuernas: "Mancuernas",
     bandas: "Bandas",
     barra: "Barra",
@@ -214,6 +221,10 @@ export const TRANSLATIONS = {
     step: "Step/Cajon",
     pelota: "Balon Medicinal",
     cuerda: "Cuerda",
+    ligas: "Ligas/Therabands",
+    discos: "Discos/Bumpers",
+    poleas: "Poleas/Cables",
+    soga_batalla: "Soga de Batalla",
   },
   categories: {
     piernas: "Piernas",
