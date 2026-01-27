@@ -1,54 +1,85 @@
 "use client";
 
 import Image from "next/image";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
 import { transformationImages } from "../data/transformations";
+
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
+import "swiper/css/effect-coverflow";
 
 export function TransformationGallery() {
   return (
     <section className="py-20 px-4 bg-black relative overflow-hidden">
-      <div className="bg-pattern opacity-30" />
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-900/50 via-black to-gray-900/50" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-5xl font-black mb-4">
             <span className="text-white">RESULTADOS</span>{" "}
-            <span className="text-accent-red glow-red">REALES</span>
+            <span className="text-accent-red">REALES</span>
           </h2>
-          <p className="text-gray-400 max-w-2xl mx-auto">
-            Transformaciones comprobadas. No promesas vacias, resultados que hablan por si solos.
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg">
+            Personas <span className="font-extrabold underline text-white">reales como tu</span>, que ya
+            iniciaron su transformacion. Esto dicen algunas de ellas:
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {transformationImages.map((image, index) => (
-            <div
-              key={image.id}
-              className={`relative rounded-2xl overflow-hidden group ${
-                index === 0 ? "col-span-2 row-span-2" : ""
-              }`}
-            >
-              <div className={`relative ${index === 0 ? "aspect-square" : "aspect-[3/4]"}`}>
-                <Image
-                  src={image.url}
-                  alt={image.alt}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
-                  sizes={index === 0 ? "(max-width: 768px) 100vw, 50vw" : "(max-width: 768px) 50vw, 25vw"}
-                  unoptimized
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                  <p className="text-white text-sm font-medium">{image.alt}</p>
-                </div>
-              </div>
+        <div className="relative">
+          <Swiper
+            modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
+            effect="coverflow"
+            grabCursor={true}
+            centeredSlides={true}
+            slidesPerView="auto"
+            coverflowEffect={{
+              rotate: 0,
+              stretch: 0,
+              depth: 100,
+              modifier: 2.5,
+              slideShadows: false,
+            }}
+            autoplay={{
+              delay: 3000,
+              disableOnInteraction: false,
+              pauseOnMouseEnter: true,
+            }}
+            pagination={{
+              clickable: true,
+              dynamicBullets: true,
+            }}
+            navigation={true}
+            loop={true}
+            className="transformation-swiper"
+          >
+            {transformationImages.map((image) => (
+              <SwiperSlide key={image.id} className="!w-[300px] md:!w-[400px]">
+                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden group">
+                  <Image
+                    src={image.url}
+                    alt={image.alt}
+                    fill
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    sizes="(max-width: 768px) 300px, 400px"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
 
-              {image.type === "promo" && (
-                <div className="absolute top-3 right-3 bg-accent-red text-white text-xs font-bold px-3 py-1 rounded-full">
-                  PROMO
+                  <div className="absolute bottom-0 left-0 right-0 p-4">
+                    <p className="text-white text-sm font-medium text-center">{image.alt}</p>
+                  </div>
+
+                  {image.type === "promo" && (
+                    <div className="absolute top-3 right-3 bg-accent-red text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
+                      40 DIAS
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          ))}
+              </SwiperSlide>
+            ))}
+          </Swiper>
         </div>
 
         <div className="mt-12 text-center">

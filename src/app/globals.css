@@ -188,3 +188,58 @@ h1, h2, h3 {
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
+/* Swiper Transformation Gallery */
+.transformation-swiper {
+  padding: 20px 0 50px;
+}
+
+.transformation-swiper .swiper-slide {
+  transition: transform 0.3s ease;
+}
+
+.transformation-swiper .swiper-slide-active {
+  transform: scale(1.05);
+  z-index: 10;
+}
+
+.transformation-swiper .swiper-button-prev,
+.transformation-swiper .swiper-button-next {
+  color: var(--accent-cyan);
+  background: rgba(0, 0, 0, 0.7);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.transformation-swiper .swiper-button-prev:hover,
+.transformation-swiper .swiper-button-next:hover {
+  background: var(--accent-cyan);
+  color: black;
+}
+
+.transformation-swiper .swiper-button-prev::after,
+.transformation-swiper .swiper-button-next::after {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.transformation-swiper .swiper-pagination-bullet {
+  background: var(--text-muted);
+  opacity: 0.5;
+  width: 10px;
+  height: 10px;
+  transition: all 0.3s ease;
+}
+
+.transformation-swiper .swiper-pagination-bullet-active {
+  background: var(--accent-cyan);
+  opacity: 1;
+  width: 24px;
+  border-radius: 5px;
+}
+
+.transformation-swiper .swiper-pagination {
+  bottom: 0 !important;
+}
