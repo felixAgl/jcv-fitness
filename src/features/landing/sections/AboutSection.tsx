@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Card, CardContent } from "@/shared/components/ui";
 import { Target, TrendingUp, Users, Clock } from "lucide-react";
 import { transformationImages } from "../data/transformations";
+import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 const features = [
   {
@@ -48,7 +49,10 @@ export function AboutSection() {
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
               <div className="absolute bottom-4 left-4 right-4">
                 <div className="bg-black/70 backdrop-blur-sm rounded-xl p-4 border border-accent-cyan/30">
-                  <p className="text-accent-cyan font-bold text-lg">JCV</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <JCVLogoMini variant="cyan" size="sm" />
+                    <span className="text-accent-cyan font-bold text-lg">24 FITNESS</span>
+                  </div>
                   <p className="text-gray-300 text-sm">Entrenador Personal Certificado</p>
                 </div>
               </div>
@@ -59,7 +63,7 @@ export function AboutSection() {
 
           <div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Por que <span className="text-primary">JCV Fitness</span>?
+              Por que <span className="text-primary">JCV 24 Fitness</span>?
             </h2>
             <p className="text-foreground/60 mb-6 text-lg">
               No vendemos milagros. Ofrecemos ciencia aplicada, disciplina guiada y

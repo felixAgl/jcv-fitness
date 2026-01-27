@@ -14,9 +14,9 @@ const bebasNeue = Bebas_Neue({
 });
 
 export const metadata: Metadata = {
-  title: "JCV Fitness - Transforma tu Cuerpo",
+  title: "JCV 24 Fitness - Transforma tu Cuerpo",
   description:
-    "Planes de alimentacion personalizados y rutinas de entrenamiento para transformar tu cuerpo. JCV Fitness te guia en tu metamorfosis.",
+    "Planes de alimentacion personalizados y rutinas de entrenamiento para transformar tu cuerpo. JCV 24 Fitness te guia en tu metamorfosis.",
   keywords: [
     "fitness",
     "nutricion",
@@ -24,12 +24,21 @@ export const metadata: Metadata = {
     "plan alimentacion",
     "gimnasio",
     "JCV Fitness",
+    "JCV 24",
+    "jcv24fitness",
   ],
-  authors: [{ name: "JCV Fitness" }],
+  authors: [{ name: "JCV 24 Fitness" }],
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/favicon.svg",
+  },
   openGraph: {
-    title: "JCV Fitness - Transforma tu Cuerpo",
+    title: "JCV 24 Fitness - Transforma tu Cuerpo",
     description: "Planes de alimentacion y rutinas de entrenamiento personalizadas",
     type: "website",
+    siteName: "JCV 24 Fitness",
   },
 };
 

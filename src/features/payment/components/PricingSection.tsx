@@ -5,6 +5,7 @@ import { Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/compo
 import { Check } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { CheckoutModal } from "./CheckoutModal";
+import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 type PlanType = "PLAN_BASICO" | "PLAN_PRO" | "PLAN_PREMIUM";
 
@@ -86,6 +87,13 @@ export function PricingSection() {
       <section id="pricing" className="py-20 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <JCVLogoMini variant="cyan" size="md" />
+              <span className="text-xl font-bold">
+                <span className="text-primary">24</span>
+                <span className="text-foreground/80"> FITNESS</span>
+              </span>
+            </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
               Elige tu <span className="text-primary">plan</span>
             </h2>

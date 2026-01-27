@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/shared/components/ui";
 import { Star, Quote } from "lucide-react";
+import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 const testimonials = [
   {
@@ -32,8 +33,12 @@ export function TestimonialsSection() {
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Lo que dicen nuestros <span className="text-accent">clientes</span>
           </h2>
-          <p className="text-foreground/60 max-w-2xl mx-auto">
-            Historias reales de personas reales que transformaron sus vidas con JCV Fitness.
+          <p className="text-foreground/60 max-w-2xl mx-auto flex items-center justify-center gap-2 flex-wrap">
+            Historias reales de personas que transformaron sus vidas con
+            <span className="inline-flex items-center gap-1">
+              <JCVLogoMini variant="cyan" size="sm" />
+              <span className="text-accent-cyan font-semibold">JCV 24 Fitness</span>
+            </span>
           </p>
         </div>
 

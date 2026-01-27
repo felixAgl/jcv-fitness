@@ -4,9 +4,10 @@ import Image from "next/image";
 import { Button } from "@/shared/components/ui";
 import { ChevronDown, Dumbbell, Apple, Zap } from "lucide-react";
 import { transformationImages } from "../data/transformations";
+import { JCVLogoAnimated } from "@/shared/components/JCVLogo";
 
 export function HeroSection() {
-  const heroImage = transformationImages[0]; // physique-1
+  const heroImage = transformationImages[0];
 
   const scrollToMealPlan = () => {
     document.getElementById("meal-plan")?.scrollIntoView({ behavior: "smooth" });
@@ -26,8 +27,14 @@ export function HeroSection() {
               </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              <span className="text-primary">JCV</span> FITNESS
+            {/* Logo grande animado */}
+            <div className="flex items-center justify-center lg:justify-start gap-4 mb-4">
+              <JCVLogoAnimated variant="cyan" size="xl" />
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-bold mb-2 leading-tight">
+              <span className="text-primary">24</span>
+              <span className="text-foreground"> FITNESS</span>
             </h1>
 
             <p className="text-xl md:text-2xl text-foreground/70 mb-8 max-w-2xl">

@@ -85,7 +85,7 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
     pdf.setFontSize(7);
     pdf.setTextColor(...COLORS.darkGray);
     pdf.text(
-      `Pag. ${pageNum} | JCV Fitness - Tu transformacion comienza aqui`,
+      `Pag. ${pageNum} | JCV 24 Fitness - Tu transformacion comienza aqui | @jcv_24`,
       pageWidth / 2,
       pageHeight - 8,
       { align: "center" }
@@ -185,11 +185,11 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
   pdf.setTextColor(...COLORS.orange);
   pdf.text("*", pageWidth / 2, y - 20, { align: "center" }); // Placeholder for emoji
 
-  // JCV FITNESS logo
+  // JCV 24 FITNESS logo
   pdf.setFontSize(42);
   pdf.setFont("helvetica", "bold");
   pdf.setTextColor(...COLORS.cyan);
-  pdf.text("JCV FITNESS", pageWidth / 2, y + 10, { align: "center" });
+  pdf.text("JCV 24 FITNESS", pageWidth / 2, y + 10, { align: "center" });
 
   // Gradient line under logo
   pdf.setDrawColor(...COLORS.cyan);
@@ -649,6 +649,130 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
   addFooter();
 
+  // ============ WEEKLY/MONTHLY SUMMARY PAGE ============
+  const totalWeeks = Math.ceil(durationDays / 7);
+  const isMonthly = durationDays >= 28;
+
+  if (totalWeeks > 1) {
+    pdf.addPage();
+    pageNum++;
+    drawBackground();
+    y = 25;
+
+    // Header
+    pdf.setFontSize(22);
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(...COLORS.white);
+    const summaryTitle = isMonthly
+      ? `RESUMEN MENSUAL - ${Math.ceil(durationDays / 30)} MES${durationDays > 30 ? "ES" : ""}`
+      : `RESUMEN SEMANAL - ${totalWeeks} SEMANAS`;
+    pdf.text(summaryTitle, pageWidth / 2, y, { align: "center" });
+    y += 8;
+
+    pdf.setFontSize(10);
+    pdf.setTextColor(...COLORS.gray);
+    pdf.text(`Tu programa de ${durationDays} dias dividido en semanas`, pageWidth / 2, y, { align: "center" });
+    y += 18;
+
+    // Weekly breakdown
+    for (let week = 1; week <= Math.min(totalWeeks, 12); week++) {
+      checkNewPage(45);
+
+      const weekStartDay = (week - 1) * 7 + 1;
+      const weekEndDay = Math.min(week * 7, durationDays);
+      const monthNum = Math.ceil(weekEndDay / 30);
+
+      // Week card
+      drawCard(margin, y, contentWidth, 35);
+
+      // Week number with color badge
+      pdf.setFillColor(...(week % 4 === 1 ? COLORS.cyan : week % 4 === 2 ? COLORS.green : week % 4 === 3 ? COLORS.orange : COLORS.red));
+      pdf.roundedRect(margin + 5, y + 5, 50, 25, 3, 3, "F");
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(...COLORS.white);
+      pdf.text("SEMANA", margin + 30, y + 13, { align: "center" });
+
+      pdf.setFontSize(18);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(String(week), margin + 30, y + 25, { align: "center" });
+
+      // Week details
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...COLORS.white);
+      pdf.text(`Dias ${weekStartDay} - ${weekEndDay}`, margin + 65, y + 13);
+
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(...COLORS.gray);
+      if (isMonthly) {
+        pdf.text(`Mes ${monthNum}`, margin + 65, y + 21);
+      }
+
+      // Weekly stats
+      const trainingDays = workoutPlan?.filter(d => !d.restDay).length || 5;
+      const restDays = 7 - trainingDays;
+
+      pdf.setTextColor(...COLORS.cyan);
+      pdf.text(`${trainingDays} dias entrenamiento`, pageWidth - margin - 80, y + 13);
+      pdf.setTextColor(...COLORS.orange);
+      pdf.text(`${restDays} dias descanso`, pageWidth - margin - 80, y + 21);
+
+      // Progress checkbox
+      pdf.setDrawColor(...COLORS.cyan);
+      pdf.setLineWidth(0.5);
+      pdf.roundedRect(pageWidth - margin - 20, y + 10, 12, 12, 2, 2, "S");
+      pdf.setFontSize(6);
+      pdf.setTextColor(...COLORS.gray);
+      pdf.text("OK", pageWidth - margin - 14, y + 17.5);
+
+      y += 40;
+    }
+
+    // Monthly milestones if applicable
+    if (isMonthly && durationDays >= 30) {
+      checkNewPage(60);
+      y += 5;
+
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(...COLORS.yellow);
+      pdf.text("METAS MENSUALES", margin, y);
+      y += 12;
+
+      const milestones = [
+        { month: 1, title: "Mes 1 - Adaptacion", desc: "Tu cuerpo se adapta al nuevo ritmo. Enfocate en la tecnica." },
+        { month: 2, title: "Mes 2 - Progresion", desc: "Aumenta cargas gradualmente. Los cambios son visibles." },
+        { month: 3, title: "Mes 3 - Consolidacion", desc: "Habitos establecidos. Transformacion en marcha." },
+      ];
+
+      const totalMonths = Math.ceil(durationDays / 30);
+
+      milestones.slice(0, totalMonths).forEach((m) => {
+        checkNewPage(25);
+
+        pdf.setFillColor(...COLORS.bgCard);
+        pdf.roundedRect(margin, y, contentWidth, 20, 2, 2, "F");
+
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(...COLORS.yellow);
+        pdf.text(m.title, margin + 8, y + 8);
+
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(...COLORS.lightGray);
+        pdf.text(m.desc, margin + 8, y + 15);
+
+        y += 24;
+      });
+    }
+
+    addFooter();
+  }
+
   // ============ MOTIVATIONAL FINAL PAGE ============
   pdf.addPage();
   pageNum++;
@@ -696,7 +820,7 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
   pdf.setFontSize(11);
   pdf.setTextColor(...COLORS.cyan);
-  pdf.text("@jcvfitness", pageWidth / 2, y + 40, { align: "center" });
+  pdf.text("Instagram: @jcv_24", pageWidth / 2, y + 40, { align: "center" });
 
   addFooter();
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/shared/components/ui";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
+import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 const navLinks = [
   { href: "#meal-plan", label: "Alimentacion" },
@@ -19,8 +20,12 @@ export function Header() {
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-2xl font-bold">
-            <span className="text-primary">JCV</span> Fitness
+          <Link href="/" className="flex items-center gap-2 group">
+            <JCVLogoMini variant="cyan" className="transition-transform group-hover:scale-110" />
+            <span className="text-xl font-bold">
+              <span className="text-primary">24</span>
+              <span className="text-foreground/80 text-sm ml-1">FITNESS</span>
+            </span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">

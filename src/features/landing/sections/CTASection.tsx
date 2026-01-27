@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Button } from "@/shared/components/ui";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { transformationImages } from "../data/transformations";
+import { JCVLogo } from "@/shared/components/JCVLogo";
 
 export function CTASection() {
   const promoImage = transformationImages[1]; // promo-40dias
@@ -28,7 +29,7 @@ export function CTASection() {
             </h2>
             <p className="text-xl text-foreground/70 mb-8">
               No dejes pasar mas tiempo. Tu mejor version te esta esperando.
-              Comienza hoy con JCV Fitness.
+              Comienza hoy con <span className="inline-flex items-center gap-1"><JCVLogo variant="cyan" size="sm" showText={false} /></span> JCV 24 Fitness.
             </p>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">
               <Button size="lg" className="gap-2">
@@ -64,7 +65,7 @@ export function CTASection() {
                 />
               </div>
               <div className="absolute -bottom-4 -right-4 bg-accent-red text-white px-6 py-3 rounded-xl font-bold shadow-lg transform rotate-3">
-                40 DIAS
+                JCV 24
               </div>
             </div>
           </div>

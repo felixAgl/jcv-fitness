@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
 import { transformationImages } from "../data/transformations";
+import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 import "swiper/css";
 import "swiper/css/pagination";
@@ -17,6 +18,10 @@ export function TransformationGallery() {
 
       <div className="max-w-6xl mx-auto relative z-10">
         <div className="text-center mb-12">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <JCVLogoMini variant="cyan" size="md" />
+            <span className="text-accent-cyan font-bold text-xl">24 FITNESS</span>
+          </div>
           <h2 className="text-3xl md:text-5xl font-black mb-4">
             <span className="text-white">RESULTADOS</span>{" "}
             <span className="text-accent-red">REALES</span>
@@ -73,7 +78,7 @@ export function TransformationGallery() {
 
                   {image.type === "promo" && (
                     <div className="absolute top-3 right-3 bg-accent-red text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-                      40 DIAS
+                      JCV 24
                     </div>
                   )}
                 </div>
@@ -114,8 +119,9 @@ export function TransformationGallery() {
               />
             </div>
             <div className="text-center md:text-left">
-              <h3 className="text-xl font-bold text-white mb-2">
-                Entrena conmigo por 40 dias
+              <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                <JCVLogoMini variant="cyan" size="sm" />
+                Entrena conmigo - JCV 24 Fitness
               </h3>
               <p className="text-gray-400 mb-4">
                 Cupos limitados para quienes realmente quieren un cambio.
