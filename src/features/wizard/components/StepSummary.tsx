@@ -85,6 +85,7 @@ export function StepSummary() {
           equipment: state.equipment,
           duration: state.duration,
           selectedExercises: state.selectedExercises,
+          selectedFoods: state.selectedFoods,
           userName: state.userName,
           userBodyData: state.userBodyData,
         },
