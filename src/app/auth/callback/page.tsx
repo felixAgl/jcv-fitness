@@ -12,6 +12,10 @@ function CallbackContent() {
   useEffect(() => {
     const handleCallback = async () => {
       const supabase = createClient();
+      if (!supabase) {
+        setError("Supabase not initialized");
+        return;
+      }
 
       const code = searchParams.get("code");
       const errorParam = searchParams.get("error");
