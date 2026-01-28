@@ -14,6 +14,7 @@ interface WizardActions {
   setGoal: (goal: TrainingGoal) => void;
   setTime: (time: number) => void;
   toggleEquipment: (equipment: EquipmentType) => void;
+  setEquipment: (equipment: EquipmentType[]) => void;
   setDuration: (duration: ProgramDuration) => void;
   toggleExercise: (exerciseId: string) => void;
   setSelectedExercises: (exercises: string[]) => void;
@@ -81,6 +82,8 @@ export const useWizardStore = create<WizardState & WizardActions>()(
       }
       return { equipment: [...state.equipment, equipment] };
     }),
+
+  setEquipment: (equipment) => set({ equipment }),
 
   setDuration: (duration) => set({ duration }),
 

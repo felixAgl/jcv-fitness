@@ -62,28 +62,20 @@ const EQUIPMENT_OPTIONS: EquipmentOption[] = [
 ];
 
 export function StepEquipment() {
-  const { equipment, toggleEquipment, nextStep, prevStep, canProceed } = useWizardStore();
+  const { equipment, toggleEquipment, setEquipment, nextStep, prevStep, canProceed } = useWizardStore();
 
   const handleToggle = (value: EquipmentType) => {
     toggleEquipment(value);
   };
 
   const handleQuickSelect = (equipmentList: EquipmentType[]) => {
-    const currentEquipment = new Set(equipment);
-    const isAllSelected = equipmentList.every(eq => currentEquipment.has(eq));
+    const isAllSelected = equipmentList.every(eq => equipment.includes(eq))
+      && equipment.length === equipmentList.length;
 
     if (isAllSelected) {
-      equipmentList.forEach(eq => {
-        if (equipment.includes(eq)) {
-          toggleEquipment(eq);
-        }
-      });
+      setEquipment([]);
     } else {
-      equipmentList.forEach(eq => {
-        if (!equipment.includes(eq)) {
-          toggleEquipment(eq);
-        }
-      });
+      setEquipment(equipmentList);
     }
   };
 
