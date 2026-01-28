@@ -3,10 +3,16 @@ import type { PlanType, PaymentProvider, Subscription } from "../types";
 import { getPlanDuration } from "../types";
 
 export class SubscriptionService {
-  private supabase = createClient();
+  private getSupabase() {
+    const supabase = createClient();
+    if (!supabase) {
+      throw new Error("Supabase not initialized");
+    }
+    return supabase;
+  }
 
   async getActiveSubscription(userId: string): Promise<Subscription | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.getSupabase()
       .from("subscriptions")
       .select("*")
       .eq("user_id", userId)
@@ -32,7 +38,7 @@ export class SubscriptionService {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + durationMonths);
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.getSupabase()
       .from("subscriptions")
       .insert({
         user_id: params.userId,
@@ -51,7 +57,7 @@ export class SubscriptionService {
     if (!data) throw new Error("Failed to create subscription");
 
     // Update profile
-    await this.supabase
+    await this.getSupabase()
       .from("profiles")
       .update({
         has_active_subscription: true,
@@ -64,7 +70,7 @@ export class SubscriptionService {
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {
-    const { data: subscription, error: fetchError } = await this.supabase
+    const { data: subscription, error: fetchError } = await this.getSupabase()
       .from("subscriptions")
       .select("user_id")
       .eq("id", subscriptionId)
@@ -74,7 +80,7 @@ export class SubscriptionService {
       throw new Error("Subscription not found");
     }
 
-    const { error } = await this.supabase
+    const { error } = await this.getSupabase()
       .from("subscriptions")
       .update({ status: "cancelled" })
       .eq("id", subscriptionId);
@@ -82,7 +88,7 @@ export class SubscriptionService {
     if (error) throw new Error(error.message);
 
     // Check if user has other active subscriptions
-    const { data: otherSubs } = await this.supabase
+    const { data: otherSubs } = await this.getSupabase()
       .from("subscriptions")
       .select("id")
       .eq("user_id", subscription.user_id)
@@ -91,7 +97,7 @@ export class SubscriptionService {
       .limit(1);
 
     if (!otherSubs || otherSubs.length === 0) {
-      await this.supabase
+      await this.getSupabase()
         .from("profiles")
         .update({
           has_active_subscription: false,
@@ -103,7 +109,7 @@ export class SubscriptionService {
   }
 
   async getSubscriptionHistory(userId: string): Promise<Subscription[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.getSupabase()
       .from("subscriptions")
       .select("*")
       .eq("user_id", userId)
@@ -117,7 +123,7 @@ export class SubscriptionService {
     const now = new Date().toISOString();
 
     // Get all expired subscriptions
-    const { data: expiredSubs, error: fetchError } = await this.supabase
+    const { data: expiredSubs, error: fetchError } = await this.getSupabase()
       .from("subscriptions")
       .select("id, user_id")
       .eq("status", "active")
@@ -126,13 +132,13 @@ export class SubscriptionService {
     if (fetchError || !expiredSubs) return;
 
     for (const sub of expiredSubs) {
-      await this.supabase
+      await this.getSupabase()
         .from("subscriptions")
         .update({ status: "expired" })
         .eq("id", sub.id);
 
       // Check if user has other active subscriptions
-      const { data: otherSubs } = await this.supabase
+      const { data: otherSubs } = await this.getSupabase()
         .from("subscriptions")
         .select("id")
         .eq("user_id", sub.user_id)
@@ -140,7 +146,7 @@ export class SubscriptionService {
         .limit(1);
 
       if (!otherSubs || otherSubs.length === 0) {
-        await this.supabase
+        await this.getSupabase()
           .from("profiles")
           .update({
             has_active_subscription: false,

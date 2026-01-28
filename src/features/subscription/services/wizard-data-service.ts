@@ -2,11 +2,17 @@ import { createClient } from "@/lib/supabase/client";
 import type { WizardData } from "../types";
 
 export class WizardDataService {
-  private supabase = createClient();
+  private getSupabase() {
+    const supabase = createClient();
+    if (!supabase) {
+      throw new Error("Supabase not initialized");
+    }
+    return supabase;
+  }
 
   async saveWizardData(userId: string, data: Record<string, unknown>): Promise<WizardData> {
     // Check if wizard data already exists
-    const { data: existing } = await this.supabase
+    const { data: existing } = await this.getSupabase()
       .from("wizard_data")
       .select("id")
       .eq("user_id", userId)
@@ -14,7 +20,7 @@ export class WizardDataService {
 
     if (existing) {
       // Update existing
-      const { data: updated, error } = await this.supabase
+      const { data: updated, error } = await this.getSupabase()
         .from("wizard_data")
         .update({ data })
         .eq("user_id", userId)
@@ -27,7 +33,7 @@ export class WizardDataService {
     }
 
     // Create new
-    const { data: created, error } = await this.supabase
+    const { data: created, error } = await this.getSupabase()
       .from("wizard_data")
       .insert({ user_id: userId, data })
       .select()
@@ -39,7 +45,7 @@ export class WizardDataService {
   }
 
   async getWizardData(userId: string): Promise<WizardData | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.getSupabase()
       .from("wizard_data")
       .select("*")
       .eq("user_id", userId)

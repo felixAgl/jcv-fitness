@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import type { User, Session } from "@supabase/supabase-js";
+import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
 
@@ -32,9 +32,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  const supabase = createClient();
-
   useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) {
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
     const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
@@ -70,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event: AuthChangeEvent, session: Session | null) => {
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -103,6 +107,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    const supabase = createClient();
+    if (!supabase) return { error: new Error("Supabase not initialized") };
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -111,6 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
+    const supabase = createClient();
+    if (!supabase) return { error: new Error("Supabase not initialized"), user: null };
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -124,10 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    const supabase = createClient();
+    if (!supabase) return;
     await supabase.auth.signOut();
   };
 
   const signInWithMagicLink = async (email: string) => {
+    const supabase = createClient();
+    if (!supabase) return { error: new Error("Supabase not initialized") };
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
@@ -138,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshSession = async () => {
+    const supabase = createClient();
+    if (!supabase) return;
     const { data: { session } } = await supabase.auth.refreshSession();
     if (session?.user) {
       const { data: profile } = await supabase
