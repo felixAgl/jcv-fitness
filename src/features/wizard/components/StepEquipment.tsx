@@ -30,15 +30,15 @@ const QUICK_OPTIONS: QuickOption[] = [
     id: "casa_basico",
     label: "Casa Básico",
     emoji: "🏠",
-    description: "Sin equipo, solo tu cuerpo",
+    description: "Solo tu cuerpo, sin equipo",
     equipment: ["sin_equipo"],
   },
   {
     id: "casa_equipado",
     label: "Casa Equipado",
     emoji: "🏡",
-    description: "Mancuernas y bandas",
-    equipment: ["sin_equipo", "mancuernas", "bandas"],
+    description: "Mancuernas y bandas en casa",
+    equipment: ["mancuernas", "bandas"],
   },
 ];
 
@@ -65,14 +65,33 @@ export function StepEquipment() {
   const { equipment, toggleEquipment, setEquipment, nextStep, prevStep, canProceed } = useWizardStore();
 
   const handleToggle = (value: EquipmentType) => {
-    toggleEquipment(value);
+    if (value === "sin_equipo") {
+      if (equipment.includes("sin_equipo")) {
+        setEquipment([]);
+      } else {
+        setEquipment(["sin_equipo"]);
+      }
+    } else {
+      const withoutSinEquipo = equipment.filter(e => e !== "sin_equipo");
+      const exists = withoutSinEquipo.includes(value);
+      if (exists) {
+        setEquipment(withoutSinEquipo.filter(e => e !== value));
+      } else {
+        setEquipment([...withoutSinEquipo, value]);
+      }
+    }
+  };
+
+  const isQuickOptionSelected = (option: QuickOption) => {
+    return option.equipment.length === equipment.length
+      && option.equipment.every(eq => equipment.includes(eq));
   };
 
   const handleQuickSelect = (equipmentList: EquipmentType[]) => {
-    const isAllSelected = equipmentList.every(eq => equipment.includes(eq))
-      && equipment.length === equipmentList.length;
+    const alreadySelected = equipmentList.length === equipment.length
+      && equipmentList.every(eq => equipment.includes(eq));
 
-    if (isAllSelected) {
+    if (alreadySelected) {
       setEquipment([]);
     } else {
       setEquipment(equipmentList);
@@ -92,7 +111,7 @@ export function StepEquipment() {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {QUICK_OPTIONS.map((option) => {
-          const isAllSelected = option.equipment.every(eq => equipment.includes(eq));
+          const selected = isQuickOptionSelected(option);
           return (
             <button
               key={option.id}
@@ -101,7 +120,7 @@ export function StepEquipment() {
               className={cn(
                 "p-5 rounded-xl border-2 transition-all duration-300 text-center",
                 "hover:scale-[1.02] active:scale-[0.98]",
-                isAllSelected
+                selected
                   ? "border-accent-green bg-accent-green/20 ring-2 ring-accent-green"
                   : "border-gray-600 bg-gradient-to-br from-gray-800/80 to-gray-900/80 hover:border-accent-cyan/50"
               )}
@@ -109,7 +128,7 @@ export function StepEquipment() {
               <span className="text-4xl block mb-2">{option.emoji}</span>
               <span className={cn(
                 "text-base font-bold block",
-                isAllSelected ? "text-accent-green" : "text-white"
+                selected ? "text-accent-green" : "text-white"
               )}>
                 {option.label}
               </span>

@@ -82,8 +82,10 @@ export function CheckoutModal({
 
       const preference = await response.json();
 
-      // Use sandbox URL for testing, production URL otherwise
-      const checkoutUrl = preference.sandboxInitPoint || preference.initPoint;
+      const isSandbox = process.env.NEXT_PUBLIC_MP_SANDBOX === "true";
+      const checkoutUrl = isSandbox
+        ? preference.sandboxInitPoint
+        : preference.initPoint;
       window.location.href = checkoutUrl;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Error procesando pago con MercadoPago";

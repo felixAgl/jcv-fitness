@@ -36,6 +36,7 @@ jobs:
         env:
           NEXT_PUBLIC_MP_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_MP_PUBLIC_KEY }}
           NEXT_PUBLIC_MP_WORKER_URL: ${{ secrets.NEXT_PUBLIC_MP_WORKER_URL }}
+          NEXT_PUBLIC_MP_SANDBOX: "false"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
