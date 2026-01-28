@@ -45,7 +45,7 @@ const initialState: WizardState = {
   level: null,
   goal: null,
   time: 30,
-  equipment: ["sin_equipo"],
+  equipment: [],
   duration: null,
   selectedExercises: [],
   selectedFoods: [],
@@ -77,7 +77,7 @@ export const useWizardStore = create<WizardState & WizardActions>()(
       const exists = state.equipment.includes(equipment);
       if (exists) {
         const filtered = state.equipment.filter((e) => e !== equipment);
-        return { equipment: filtered.length > 0 ? filtered : ["sin_equipo"] };
+        return { equipment: filtered };
       }
       return { equipment: [...state.equipment, equipment] };
     }),
