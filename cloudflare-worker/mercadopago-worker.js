@@ -12,6 +12,8 @@
  */
 
 const ALLOWED_ORIGINS = [
+  'https://jcv24fitness.com',
+  'https://www.jcv24fitness.com',
   'https://felixagl.github.io',
   'http://localhost:3000',
   'http://localhost:5173',
@@ -65,9 +67,9 @@ export default {
           unit_price: item.unitPrice,
         })),
         back_urls: backUrls || {
-          success: `${origin}/jcv-fitness/payment/success`,
-          failure: `${origin}/jcv-fitness/payment/failure`,
-          pending: `${origin}/jcv-fitness/payment/pending`,
+          success: `${origin}/payment/success`,
+          failure: `${origin}/payment/failure`,
+          pending: `${origin}/payment/pending`,
         },
         auto_return: 'approved',
         statement_descriptor: 'JCV FITNESS',

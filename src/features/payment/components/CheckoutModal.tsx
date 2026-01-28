@@ -68,9 +68,9 @@ export function CheckoutModal({
           items: [product],
           payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
           backUrls: {
-            success: `${window.location.origin}/jcv-fitness/payment/success`,
-            failure: `${window.location.origin}/jcv-fitness/payment/failure`,
-            pending: `${window.location.origin}/jcv-fitness/payment/pending`,
+            success: `${window.location.origin}/payment/success`,
+            failure: `${window.location.origin}/payment/failure`,
+            pending: `${window.location.origin}/payment/pending`,
           },
         }),
       });
