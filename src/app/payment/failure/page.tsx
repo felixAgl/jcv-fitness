@@ -33,7 +33,7 @@ function FailureContent() {
           </h1>
 
           <p className="text-gray-400 mb-6">
-            Lo sentimos, no pudimos procesar tu pago. Por favor intenta nuevamente o usa otro metodo de pago.
+            Lo sentimos, no pudimos procesar tu pago. Por favor intenta nuevamente o usa otro método de pago.
           </p>
 
           {paymentId && (
@@ -61,7 +61,7 @@ function FailureContent() {
         </div>
 
         <p className="text-xs text-gray-600 mt-8">
-          Necesitas ayuda? Contactanos por WhatsApp: 314 382 64 30
+          ¿Necesitas ayuda? Contáctanos por WhatsApp: 314 382 64 30
         </p>
       </div>
     </div>

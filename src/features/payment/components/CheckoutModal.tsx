@@ -120,7 +120,7 @@ export function CheckoutModal({
           if (result.transaction.status === "APPROVED") {
             onPaymentSuccess?.(result.transaction.id, "wompi");
           } else if (result.transaction.status === "DECLINED") {
-            setError("Pago rechazado. Por favor intenta con otro metodo.");
+            setError("Pago rechazado. Por favor intenta con otro método.");
             onPaymentError?.("Payment declined");
           } else if (result.transaction.status === "PENDING") {
             setError("Pago pendiente. Te notificaremos cuando se confirme.");
@@ -183,8 +183,10 @@ export function CheckoutModal({
             {isLoading && selectedProvider === "mercadopago" ? (
               <span className="animate-spin">⏳</span>
             ) : (
-              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="currentColor">
-                <path d="M16 0C7.163 0 0 7.163 0 16s7.163 16 16 16 16-7.163 16-16S24.837 0 16 0zm6.5 22.5c-.276.138-.586.207-.896.207-.621 0-1.226-.276-1.638-.793l-2.966-3.828-2.966 3.828c-.413.517-1.017.793-1.638.793-.31 0-.621-.069-.896-.207-.862-.431-1.241-1.448-.862-2.31L14.5 16l-3.862-4.19c-.379-.862 0-1.879.862-2.31.276-.138.586-.207.896-.207.621 0 1.226.276 1.638.793L17 13.914l2.966-3.828c.413-.517 1.017-.793 1.638-.793.31 0 .621.069.896.207.862.431 1.241 1.448.862 2.31L19.5 16l3.862 4.19c.379.862 0 1.879-.862 2.31z"/>
+              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z" fill="none"/>
+                <rect x="4" y="4" width="16" height="16" rx="3" fill="white" opacity="0.2"/>
+                <text x="12" y="16" textAnchor="middle" fill="white" fontSize="11" fontWeight="bold">MP</text>
               </svg>
             )}
             Pagar con Mercado Pago
@@ -215,7 +217,7 @@ export function CheckoutModal({
           <p className="text-xs text-gray-500 text-center">
             Pago seguro procesado por pasarelas certificadas.
             <br />
-            Tus datos estan protegidos.
+            Tus datos están protegidos.
           </p>
         </div>
       </div>

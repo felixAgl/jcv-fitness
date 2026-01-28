@@ -105,7 +105,7 @@ export function StepSummary() {
     console.log(`Pago exitoso: ${transactionId} via ${provider}`);
     setPaymentSuccess(true);
     setShowCheckout(false);
-    // Generar PDF automaticamente tras pago exitoso
+    // Generar PDF automáticamente tras pago exitoso
     await handleGeneratePDF();
   };
 
@@ -125,11 +125,11 @@ export function StepSummary() {
           Pago Exitoso
         </h2>
         <p className="text-gray-400">
-          Tu PDF ha sido generado y descargado automaticamente.
+          Tu PDF ha sido generado y descargado automáticamente.
         </p>
         <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
           <p className="text-gray-300 text-sm">
-            Revisa tu carpeta de descargas. Si tienes dudas, contactanos:
+            Revisa tu carpeta de descargas. Si tienes dudas, contáctanos:
           </p>
           <p className="text-accent-cyan font-bold mt-2">WhatsApp: 314 382 64 30</p>
         </div>
@@ -145,7 +145,7 @@ export function StepSummary() {
             Completa tu compra
           </h2>
           <p className="text-gray-400">
-            Elige tu metodo de pago preferido
+            Elige tu método de pago preferido
           </p>
         </div>
 
@@ -302,13 +302,13 @@ export function StepSummary() {
         <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
           <h3 className="text-lg font-bold text-accent-cyan mb-4">Datos Corporales</h3>
           <SummarySection
-            title="Genero"
+            title="Género"
             value={userBodyData.gender === "masculino" ? "Masculino" : "Femenino"}
             icon="👤"
           />
           <SummarySection
             title="Edad"
-            value={`${userBodyData.age} anos`}
+            value={`${userBodyData.age} años`}
             icon="🎂"
           />
           <SummarySection
@@ -404,7 +404,7 @@ export function StepSummary() {
           </div>
         ) : (
           <p className="text-gray-500 text-center py-4">
-            No has seleccionado alimentos. Se generara un plan basico con alimentos recomendados.
+            No has seleccionado alimentos. Se generará un plan básico con alimentos recomendados.
           </p>
         )}
       </div>
@@ -412,7 +412,7 @@ export function StepSummary() {
       <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
         <p className="text-center text-gray-300">
           Al finalizar, podras generar tu <span className="text-accent-cyan font-bold">PDF personalizado</span> con
-          tu rutina de entrenamiento y guia alimenticia basica.
+          tu rutina de entrenamiento y guía alimenticia básica.
         </p>
       </div>
 

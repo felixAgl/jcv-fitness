@@ -6,24 +6,24 @@ import { PricingCard } from "./PricingCard";
 
 const pricingPlans = [
   {
-    name: "Basico",
+    name: "Básico",
     price: "149.000",
     features: [
-      "Plan de alimentacion personalizado",
+      "Plan de alimentación personalizado",
       "Rutina de ejercicios para casa",
-      "Acceso a videos de tecnica",
+      "Acceso a videos de técnica",
       "Soporte por WhatsApp",
     ],
   },
   {
-    name: "Transformacion",
+    name: "Transformación",
     price: "249.000",
     highlighted: true,
     features: [
-      "Todo lo del plan Basico",
+      "Todo lo del plan Básico",
       "Rutina de gimnasio completa",
       "Tabla de intercambios de alimentos",
-      "Plan de suplementacion",
+      "Plan de suplementación",
       "Seguimiento semanal",
       "Grupo exclusivo de Telegram",
     ],
@@ -32,7 +32,7 @@ const pricingPlans = [
     name: "Elite",
     price: "399.000",
     features: [
-      "Todo lo del plan Transformacion",
+      "Todo lo del plan Transformación",
       "Coaching 1 a 1 semanal",
       "Ajustes ilimitados de dieta",
       "Programa de cardio personalizado",
@@ -44,7 +44,7 @@ const pricingPlans = [
 export function PaymentSection() {
   const handleSelectPlan = (planName: string) => {
     console.log(`Plan seleccionado: ${planName}`);
-    alert(`Proximamente: Pago con Mercado Pago o Wompi para ${planName}`);
+    alert(`Próximamente: Pago con Mercado Pago o Wompi para ${planName}`);
   };
 
   return (
@@ -52,11 +52,11 @@ export function PaymentSection() {
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Invierte en tu <span className="text-primary">Transformacion</span>
+            Invierte en tu <span className="text-primary">Transformación</span>
           </h2>
           <p className="text-foreground/60 max-w-2xl mx-auto">
             Elige el plan que mejor se adapte a tus objetivos.
-            Todos incluyen garantia de satisfaccion de 30 dias.
+            Todos incluyen garantía de satisfacción de 30 días.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export function PaymentSection() {
               </div>
               <div>
                 <h3 className="font-bold">Pago Seguro</h3>
-                <p className="text-sm text-foreground/60">Encriptacion SSL</p>
+                <p className="text-sm text-foreground/60">Encriptación SSL</p>
               </div>
             </div>
             <div className="h-px md:h-12 md:w-px bg-border w-full md:w-auto" />
@@ -97,8 +97,8 @@ export function PaymentSection() {
                 <Sparkles className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <h3 className="font-bold">Proximamente</h3>
-                <p className="text-sm text-foreground/60">Integracion en progreso</p>
+                <h3 className="font-bold">Próximamente</h3>
+                <p className="text-sm text-foreground/60">Integración en progreso</p>
               </div>
             </div>
           </div>

@@ -65,7 +65,7 @@ function SuccessContent() {
         </div>
 
         <p className="text-xs text-gray-600 mt-8">
-          Si tienes alguna pregunta, contactanos por WhatsApp: 314 382 64 30
+          Si tienes alguna pregunta, contáctanos por WhatsApp: 314 382 64 30
         </p>
       </div>
     </div>

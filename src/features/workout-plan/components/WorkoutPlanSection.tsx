@@ -40,8 +40,8 @@ export function WorkoutPlanSection({ gymPlan, homePlan }: WorkoutPlanSectionProp
             Plan de <span className="text-accent">Entrenamiento</span>
           </h2>
           <p className="text-foreground/60 max-w-2xl mx-auto">
-            Elige entre nuestro plan de gimnasio de {gymPlan.daysPerWeek} dias o el plan para casa
-            de {homePlan.daysPerWeek} dias. Ambos diseñados para maximizar resultados.
+            Elige entre nuestro plan de gimnasio de {gymPlan.daysPerWeek} días o el plan para casa
+            de {homePlan.daysPerWeek} días. Ambos diseñados para maximizar resultados.
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan }: WorkoutPlanSectionProp
             className="gap-2"
           >
             <Dumbbell className="h-4 w-4" />
-            Gimnasio ({gymPlan.daysPerWeek} dias)
+            Gimnasio ({gymPlan.daysPerWeek} días)
           </Button>
           <Button
             variant={activeType === "home" ? "secondary" : "outline"}
@@ -60,7 +60,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan }: WorkoutPlanSectionProp
             className="gap-2"
           >
             <Home className="h-4 w-4" />
-            Casa ({homePlan.daysPerWeek} dias)
+            Casa ({homePlan.daysPerWeek} días)
           </Button>
         </div>
 

@@ -56,7 +56,7 @@ export function TransformationGallery() {
               dynamicBullets: true,
             }}
             navigation={true}
-            loop={true}
+            loop={false}
             className="transformation-swiper"
           >
             {transformationImages.map((image) => (
@@ -96,7 +96,7 @@ export function TransformationGallery() {
             <div className="w-px h-12 bg-gray-800 hidden sm:block" />
             <div className="text-center">
               <div className="text-4xl font-black text-accent-green">40</div>
-              <div className="text-sm text-gray-500">Dias de programa</div>
+              <div className="text-sm text-gray-500">Días de programa</div>
             </div>
             <div className="w-px h-12 bg-gray-800 hidden sm:block" />
             <div className="text-center">

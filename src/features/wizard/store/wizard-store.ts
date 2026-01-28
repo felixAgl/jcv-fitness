@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type {
   WizardState,
   TrainingLevel,
@@ -60,7 +61,9 @@ const ACTIVITY_MULTIPLIERS = {
   muy_activo: 1.9,
 } as const;
 
-export const useWizardStore = create<WizardState & WizardActions>((set, get) => ({
+export const useWizardStore = create<WizardState & WizardActions>()(
+  persist(
+    (set, get) => ({
   ...initialState,
 
   setLevel: (level) => set({ level }),
@@ -171,12 +174,14 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
 
     const { currentWeight, height, age, gender, activityLevel, weightGoal } = userBodyData;
 
-    // Harris-Benedict BMR formula
+    // Harris-Benedict BMR formula (GEB)
+    // Hombres: GEB = 66.5 + (13.75 x peso) + (5.003 x altura) - (6.755 x edad)
+    // Mujeres: GEB = 655.1 + (9.563 x peso) + (1.850 x altura) - (4.676 x edad)
     let bmr: number;
     if (gender === "masculino") {
-      bmr = 88.362 + (13.397 * currentWeight) + (4.799 * height) - (5.677 * age);
+      bmr = 66.5 + (13.75 * currentWeight) + (5.003 * height) - (6.755 * age);
     } else {
-      bmr = 447.593 + (9.247 * currentWeight) + (3.098 * height) - (4.330 * age);
+      bmr = 655.1 + (9.563 * currentWeight) + (1.850 * height) - (4.676 * age);
     }
 
     const tdee = bmr * ACTIVITY_MULTIPLIERS[activityLevel];
@@ -199,4 +204,21 @@ export const useWizardStore = create<WizardState & WizardActions>((set, get) => 
       target: Math.round(target),
     };
   },
-}));
+}),
+    {
+      name: "jcv-wizard-state",
+      partialize: (state) => ({
+        currentStep: state.currentStep,
+        level: state.level,
+        goal: state.goal,
+        time: state.time,
+        equipment: state.equipment,
+        duration: state.duration,
+        selectedExercises: state.selectedExercises,
+        selectedFoods: state.selectedFoods,
+        userName: state.userName,
+        userBodyData: state.userBodyData,
+      }),
+    }
+  )
+);

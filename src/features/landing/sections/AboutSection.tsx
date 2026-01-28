@@ -63,20 +63,20 @@ export function AboutSection() {
 
           <div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Por que <span className="text-primary">JCV 24 Fitness</span>?
+              ¿Por qué <span className="text-primary">JCV 24 Fitness</span>?
             </h2>
             <p className="text-foreground/60 mb-6 text-lg">
               No vendemos milagros. Ofrecemos ciencia aplicada, disciplina guiada y
-              un sistema probado para transformar tu fisico y tu salud.
+              un sistema probado para transformar tu físico y tu salud.
             </p>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-accent-green" />
-                <span className="text-foreground/80">Mas de 500 clientes transformados</span>
+                <span className="text-foreground/80">Más de 500 clientes transformados</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-accent-green" />
-                <span className="text-foreground/80">Metodologia basada en ciencia</span>
+                <span className="text-foreground/80">Metodología basada en ciencia</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-accent-green" />

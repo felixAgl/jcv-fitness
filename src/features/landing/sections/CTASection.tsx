@@ -25,10 +25,10 @@ export function CTASection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="text-center lg:text-left">
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Listo para comenzar tu <span className="text-primary">transformacion</span>?
+              ¿Listo para comenzar tu <span className="text-primary">transformación</span>?
             </h2>
             <p className="text-xl text-foreground/70 mb-8">
-              No dejes pasar mas tiempo. Tu mejor version te esta esperando.
+              No dejes pasar más tiempo. Tu mejor versión te está esperando.
               Comienza hoy con <span className="inline-flex items-center gap-1"><JCVLogo variant="cyan" size="sm" showText={false} /></span> JCV 24 Fitness.
             </p>
             <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4">

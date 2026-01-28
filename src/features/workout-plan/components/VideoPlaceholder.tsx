@@ -18,7 +18,7 @@ export function VideoPlaceholder({ exerciseName, videoUrl }: VideoPlaceholderPro
         className="flex items-center gap-2 text-sm text-accent hover:text-accent-dark transition-colors"
       >
         <Youtube className="h-4 w-4" />
-        <span>Ver tecnica</span>
+        <span>Ver técnica</span>
       </a>
     );
   }

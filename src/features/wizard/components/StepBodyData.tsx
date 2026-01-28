@@ -1,47 +1,82 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useWizardStore } from "../store/wizard-store";
 import { NavigationButtons } from "./NavigationButtons";
 import { ACTIVITY_LEVELS, WEIGHT_GOALS } from "../types";
 import { cn } from "@/shared/utils/cn";
 
-const DEFAULT_BODY_DATA = {
-  currentWeight: 70,
-  targetWeight: 70,
-  height: 170,
-  age: 25,
-  gender: "masculino" as const,
-  activityLevel: "moderado" as const,
-  weightGoal: "mantener" as const,
-};
-
 export function StepBodyData() {
   const { userBodyData, setUserBodyData, updateBodyDataField, nextStep, prevStep, canProceed, calculateCalories } =
     useWizardStore();
 
-  // Inicializar datos si no existen para que canProceed() funcione
+  // Local state for controlled inputs (allows empty values while typing)
+  const [localValues, setLocalValues] = useState({
+    age: "",
+    height: "",
+    currentWeight: "",
+    targetWeight: "",
+  });
+
+  // Initialize local values from store when component mounts
   useEffect(() => {
-    if (!userBodyData) {
-      setUserBodyData(DEFAULT_BODY_DATA);
+    if (userBodyData) {
+      setLocalValues({
+        age: userBodyData.age > 0 ? String(userBodyData.age) : "",
+        height: userBodyData.height > 0 ? String(userBodyData.height) : "",
+        currentWeight: userBodyData.currentWeight > 0 ? String(userBodyData.currentWeight) : "",
+        targetWeight: userBodyData.targetWeight > 0 ? String(userBodyData.targetWeight) : "",
+      });
     }
-  }, [userBodyData, setUserBodyData]);
+  }, []);
+
+  const handleNumericChange = (field: "age" | "height" | "currentWeight" | "targetWeight", value: string) => {
+    // Allow empty string for clearing the input
+    setLocalValues(prev => ({ ...prev, [field]: value }));
+
+    // Update store with parsed value (0 if empty)
+    const numValue = value === "" ? 0 : parseFloat(value);
+    if (!isNaN(numValue)) {
+      updateBodyDataField(field, numValue);
+    }
+  };
+
+  const handleGenderSelect = (gender: "masculino" | "femenino") => {
+    if (!userBodyData) {
+      setUserBodyData({
+        currentWeight: 0,
+        targetWeight: 0,
+        height: 0,
+        age: 0,
+        gender,
+        activityLevel: "moderado",
+        weightGoal: "mantener",
+      });
+    } else {
+      updateBodyDataField("gender", gender);
+    }
+  };
 
   const calories = calculateCalories();
 
-  const currentData = userBodyData || DEFAULT_BODY_DATA;
+  // Use safe defaults for display
+  const currentData = userBodyData || {
+    gender: null as "masculino" | "femenino" | null,
+    activityLevel: "moderado" as const,
+    weightGoal: "mantener" as const,
+  };
 
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
-          Cuentanos sobre ti
+          Cuéntanos sobre ti
         </h2>
         <p className="text-gray-400">
-          Estos datos nos ayudan a personalizar tu plan de alimentacion
+          Estos datos nos ayudan a personalizar tu plan de alimentación
         </p>
         <p className="text-xs text-gray-500 mt-2">
-          Nota: Esto es orientativo. No somos nutricionistas, pero te damos una guia basica.
+          Nota: Esto es orientativo. No somos nutricionistas, pero te damos una guía básica.
         </p>
       </div>
 
@@ -49,7 +84,7 @@ export function StepBodyData() {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Genero
+              Género
             </label>
             <div className="flex gap-3">
               {[
@@ -59,7 +94,7 @@ export function StepBodyData() {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => updateBodyDataField("gender", option.value as "masculino" | "femenino")}
+                  onClick={() => handleGenderSelect(option.value as "masculino" | "femenino")}
                   className={cn(
                     "flex-1 p-3 rounded-lg border-2 transition-all",
                     currentData.gender === option.value
@@ -82,9 +117,10 @@ export function StepBodyData() {
               type="number"
               min={15}
               max={80}
-              value={currentData.age}
-              onChange={(e) => updateBodyDataField("age", Number(e.target.value))}
-              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white focus:border-accent-cyan focus:outline-none"
+              placeholder="Ej: 25"
+              value={localValues.age}
+              onChange={(e) => handleNumericChange("age", e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none"
             />
           </div>
 
@@ -96,9 +132,10 @@ export function StepBodyData() {
               type="number"
               min={120}
               max={230}
-              value={currentData.height}
-              onChange={(e) => updateBodyDataField("height", Number(e.target.value))}
-              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white focus:border-accent-cyan focus:outline-none"
+              placeholder="Ej: 170"
+              value={localValues.height}
+              onChange={(e) => handleNumericChange("height", e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none"
             />
           </div>
 
@@ -110,10 +147,11 @@ export function StepBodyData() {
               type="number"
               min={30}
               max={200}
-              step={0.5}
-              value={currentData.currentWeight}
-              onChange={(e) => updateBodyDataField("currentWeight", Number(e.target.value))}
-              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white focus:border-accent-cyan focus:outline-none"
+              step={0.1}
+              placeholder="Ej: 70"
+              value={localValues.currentWeight}
+              onChange={(e) => handleNumericChange("currentWeight", e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none"
             />
           </div>
 
@@ -125,10 +163,11 @@ export function StepBodyData() {
               type="number"
               min={30}
               max={200}
-              step={0.5}
-              value={currentData.targetWeight}
-              onChange={(e) => updateBodyDataField("targetWeight", Number(e.target.value))}
-              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white focus:border-accent-cyan focus:outline-none"
+              step={0.1}
+              placeholder="Ej: 70"
+              value={localValues.targetWeight}
+              onChange={(e) => handleNumericChange("targetWeight", e.target.value)}
+              className="w-full p-3 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-cyan focus:outline-none"
             />
           </div>
         </div>
@@ -184,15 +223,15 @@ export function StepBodyData() {
         </div>
       </div>
 
-      {calories && (
+      {calories && calories.bmr > 0 && (
         <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-blue/10 rounded-xl p-6 border border-accent-cyan/30">
           <h3 className="text-lg font-bold text-white mb-4 text-center">
-            Tu estimacion de calorias diarias
+            Tu estimación de calorías diarias
           </h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-gray-400">{calories.bmr}</div>
-              <div className="text-xs text-gray-500">Metabolismo Basal</div>
+              <div className="text-xs text-gray-500">Metabolismo Basal (GEB)</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-white">{calories.tdee}</div>
@@ -200,11 +239,11 @@ export function StepBodyData() {
             </div>
             <div>
               <div className="text-3xl font-bold text-accent-cyan">{calories.target}</div>
-              <div className="text-xs text-accent-cyan">Calorias Objetivo</div>
+              <div className="text-xs text-accent-cyan">Calorías Objetivo</div>
             </div>
           </div>
           <p className="text-xs text-gray-500 text-center mt-4">
-            Estimacion basada en la formula Harris-Benedict. Consulta un nutricionista para un plan personalizado.
+            Estimación basada en la fórmula Harris-Benedict. Consulta un nutricionista para un plan personalizado.
           </p>
         </div>
       )}

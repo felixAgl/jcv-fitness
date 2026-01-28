@@ -17,7 +17,7 @@ export const transformationImages: TransformationImage[] = [
   {
     id: "promo-40dias",
     url: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&h=1000&fit=crop",
-    alt: "Entrena conmigo por 40 dias - Promocion JCV",
+    alt: "Entrena conmigo por 40 días - Promoción JCV",
     type: "promo",
   },
   {

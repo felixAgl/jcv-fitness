@@ -50,9 +50,9 @@ const GOAL_OPTIONS: GoalOption[] = [
   },
   {
     value: "energia",
-    label: "Mas Energia",
+    label: "Más Energía",
     emoji: "⚡",
-    description: "Sentirte con mas vitalidad en el dia a dia",
+    description: "Sentirte con más vitalidad en el día a día",
     color: "yellow",
   },
   {

@@ -204,7 +204,7 @@ export function StepExercises() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="text-accent-green text-sm font-bold">Recomendados por JCV</span>
-              <span className="text-xs text-gray-500">- Los basicos que no pueden faltar</span>
+              <span className="text-xs text-gray-500">- Los básicos que no pueden faltar</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {recommendedForCategory.map((exercise) => (

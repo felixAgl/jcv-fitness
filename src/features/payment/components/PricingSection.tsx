@@ -23,11 +23,11 @@ const plans: PricingPlan[] = [
   {
     id: "basic",
     planType: "PLAN_BASICO",
-    name: "Basico",
+    name: "Básico",
     price: "49.900",
     period: "COP/mes",
     features: [
-      "Plan de alimentacion 7 dias",
+      "Plan de alimentación 7 días",
       "Rutina de entrenamiento casa",
       "Acceso a la app",
       "Soporte por email",
@@ -40,7 +40,7 @@ const plans: PricingPlan[] = [
     price: "89.900",
     period: "COP/mes",
     features: [
-      "Plan de alimentacion personalizado",
+      "Plan de alimentación personalizado",
       "Rutina gimnasio + casa",
       "Videos de ejercicios",
       "Soporte prioritario",
@@ -113,7 +113,7 @@ export function PricingSection() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-background text-xs font-bold rounded-full">
-                    Mas popular
+                    Más popular
                   </div>
                 )}
                 <CardHeader className="text-center">
