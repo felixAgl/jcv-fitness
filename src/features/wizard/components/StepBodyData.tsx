@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useWizardStore } from "../store/wizard-store";
 import { NavigationButtons } from "./NavigationButtons";
 import { ACTIVITY_LEVELS, WEIGHT_GOALS } from "../types";
@@ -11,24 +11,13 @@ export function StepBodyData() {
     useWizardStore();
 
   // Local state for controlled inputs (allows empty values while typing)
-  const [localValues, setLocalValues] = useState({
-    age: "",
-    height: "",
-    currentWeight: "",
-    targetWeight: "",
-  });
-
-  // Initialize local values from store when component mounts
-  useEffect(() => {
-    if (userBodyData) {
-      setLocalValues({
-        age: userBodyData.age > 0 ? String(userBodyData.age) : "",
-        height: userBodyData.height > 0 ? String(userBodyData.height) : "",
-        currentWeight: userBodyData.currentWeight > 0 ? String(userBodyData.currentWeight) : "",
-        targetWeight: userBodyData.targetWeight > 0 ? String(userBodyData.targetWeight) : "",
-      });
-    }
-  }, []);
+  // Initialize from store data
+  const [localValues, setLocalValues] = useState(() => ({
+    age: userBodyData?.age && userBodyData.age > 0 ? String(userBodyData.age) : "",
+    height: userBodyData?.height && userBodyData.height > 0 ? String(userBodyData.height) : "",
+    currentWeight: userBodyData?.currentWeight && userBodyData.currentWeight > 0 ? String(userBodyData.currentWeight) : "",
+    targetWeight: userBodyData?.targetWeight && userBodyData.targetWeight > 0 ? String(userBodyData.targetWeight) : "",
+  }));
 
   const handleNumericChange = (field: "age" | "height" | "currentWeight" | "targetWeight", value: string) => {
     // Allow empty string for clearing the input
