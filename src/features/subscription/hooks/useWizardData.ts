@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/features/auth";
 import { wizardDataService } from "../services/wizard-data-service";
 import type { WizardData } from "../types";
+import type { Json } from "@/lib/supabase/database.types";
 
 export function useWizardData() {
   const { user } = useAuth();
@@ -29,7 +30,7 @@ export function useWizardData() {
           setWizardData({
             id: "anonymous",
             user_id: "anonymous",
-            data: anonymousData,
+            data: anonymousData as Json,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });
@@ -59,7 +60,7 @@ export function useWizardData() {
         setWizardData({
           id: "anonymous",
           user_id: "anonymous",
-          data,
+          data: data as Json,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
