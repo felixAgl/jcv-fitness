@@ -12,13 +12,14 @@ import { SUBSCRIPTION_PLANS, type PlanType } from "@/features/subscription";
 
 export function PricingSection() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("PLAN_PRO");
 
   const handleSelectPlan = (planType: PlanType) => {
     setSelectedPlan(planType);
+    if (isLoading) return;
     if (isAuthenticated) {
       setIsCheckoutOpen(true);
     } else {

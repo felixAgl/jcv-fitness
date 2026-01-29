@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { useAuth, AuthModal } from "@/features/auth";
@@ -11,13 +12,15 @@ import { JCVLogoMini } from "@/shared/components/JCVLogo";
 import { cn } from "@/shared/lib/cn";
 
 export default function PricingPage() {
-  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
 
   const handleSelectPlan = (planId: PlanType) => {
     setSelectedPlan(planId);
+    if (isLoading) return;
     if (isAuthenticated) {
       setShowCheckout(true);
     } else {
@@ -28,6 +31,17 @@ export default function PricingPage() {
   const handleAuthSuccess = () => {
     setShowAuth(false);
     setShowCheckout(true);
+  };
+
+  const handlePaymentSuccess = (transactionId: string, provider: string) => {
+    setShowCheckout(false);
+    const params = new URLSearchParams({
+      payment_id: transactionId,
+      status: "approved",
+      external_reference: `JCV-${Date.now()}-${selectedPlan}`,
+      provider: provider,
+    });
+    router.push(`/payment/success?${params.toString()}`);
   };
 
   return (
@@ -110,10 +124,7 @@ export default function PricingPage() {
           onClose={() => setShowCheckout(false)}
           selectedPlan={selectedPlan}
           customerEmail={user?.email}
-          onPaymentSuccess={(id) => {
-            console.log("Payment successful:", id);
-            setShowCheckout(false);
-          }}
+          onPaymentSuccess={handlePaymentSuccess}
         />
       )}
 
