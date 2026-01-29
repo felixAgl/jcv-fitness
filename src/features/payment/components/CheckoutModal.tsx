@@ -66,6 +66,7 @@ export function CheckoutModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           items: [product],
+          planType: selectedPlan,
           payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
           backUrls: {
             success: `${window.location.origin}/payment/success`,

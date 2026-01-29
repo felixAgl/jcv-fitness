@@ -14,6 +14,8 @@
 const ALLOWED_ORIGINS = [
   'https://jcv24fitness.com',
   'https://www.jcv24fitness.com',
+  'https://jcv-fitness.pages.dev',
+  'https://staging.jcv-fitness.pages.dev',
   'https://felixagl.github.io',
   'http://localhost:3000',
   'http://localhost:5173',
@@ -47,7 +49,7 @@ export default {
 
     try {
       const body = await request.json();
-      const { items, payer, backUrls } = body;
+      const { items, payer, backUrls, planType } = body;
 
       if (!items || !Array.isArray(items) || items.length === 0) {
         return new Response(JSON.stringify({ error: 'Items are required' }), {
@@ -73,7 +75,7 @@ export default {
         },
         auto_return: 'approved',
         statement_descriptor: 'JCV FITNESS',
-        external_reference: `JCV-${Date.now()}`,
+        external_reference: `JCV-${Date.now()}-${planType || 'PLAN_PRO'}`,
       };
 
       if (payer?.email) {
