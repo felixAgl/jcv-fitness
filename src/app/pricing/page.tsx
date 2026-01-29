@@ -38,11 +38,10 @@ export default function PricingPage() {
 
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-white mb-4">
-            Elige tu Plan
+            Elige tu <span className="text-accent-cyan">Plan</span>
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Selecciona el plan que mejor se adapte a tus objetivos.
-            Todos incluyen plan de alimentacion y rutina de ejercicios personalizada.
+            Invierte en tu salud. Elige el plan que mejor se adapte a tus objetivos.
           </p>
         </div>
 
@@ -68,10 +67,8 @@ export default function PricingPage() {
                 <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
                 <div className="mb-2">
                   <span className="text-4xl font-black text-accent-cyan">{plan.priceDisplay}</span>
+                  <span className="text-gray-400 text-sm ml-1">COP/mes</span>
                 </div>
-                <p className="text-gray-500 text-sm">
-                  {plan.durationMonths} {plan.durationMonths === 1 ? "mes" : "meses"} de acceso
-                </p>
               </div>
 
               <ul className="space-y-3 mb-6">
@@ -102,7 +99,7 @@ export default function PricingPage() {
 
         <div className="mt-12 text-center">
           <p className="text-gray-500 text-sm">
-            Todos los pagos son procesados de forma segura por MercadoPago.
+            Pago seguro con Mercado Pago o Wompi.
             <br />
             Puedes pagar con tarjeta, PSE, Nequi o efectivo.
           </p>
