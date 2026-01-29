@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/shared/components/ui";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
+import { useAuth } from "@/features/auth";
 
 const navLinks = [
   { href: "#meal-plan", label: "Alimentacion" },
@@ -15,6 +16,7 @@ const navLinks = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, signOut } = useAuth();
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -38,7 +40,29 @@ export function Header() {
                 {link.label}
               </a>
             ))}
-            <Button size="sm">Comenzar</Button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-foreground/70 hover:text-primary transition-colors"
+                >
+                  <User className="h-4 w-4" />
+                  Mi Panel
+                </Link>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => signOut()}
+                  className="flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link href="#pricing">
+                <Button size="sm">Comenzar</Button>
+              </Link>
+            )}
           </nav>
 
           <button
@@ -53,7 +77,7 @@ export function Header() {
         <div
           className={cn(
             "md:hidden overflow-hidden transition-all duration-300",
-            isOpen ? "max-h-64 pb-4" : "max-h-0"
+            isOpen ? "max-h-80 pb-4" : "max-h-0"
           )}
         >
           <nav className="flex flex-col gap-4">
@@ -67,7 +91,34 @@ export function Header() {
                 {link.label}
               </a>
             ))}
-            <Button size="sm" className="w-fit">Comenzar</Button>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 text-foreground/70 hover:text-primary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <User className="h-4 w-4" />
+                  Mi Panel
+                </Link>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    signOut();
+                    setIsOpen(false);
+                  }}
+                  className="w-fit flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Salir
+                </Button>
+              </>
+            ) : (
+              <a href="#pricing" onClick={() => setIsOpen(false)}>
+                <Button size="sm" className="w-fit">Comenzar</Button>
+              </a>
+            )}
           </nav>
         </div>
       </div>

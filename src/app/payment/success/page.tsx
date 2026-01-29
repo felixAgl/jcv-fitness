@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense, useCallback } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuth, AuthModal } from "@/features/auth";
-import { useSubscription, useWizardData } from "@/features/subscription";
+import { useSubscription, useWizardData, SUBSCRIPTION_PLANS } from "@/features/subscription";
 import type { PlanType, PaymentProvider } from "@/features/subscription";
 
 function SuccessContent() {
@@ -21,9 +21,11 @@ function SuccessContent() {
   const paymentId = searchParams.get("payment_id") || searchParams.get("collection_id");
   const status = searchParams.get("status") || searchParams.get("collection_status");
   const externalReference = searchParams.get("external_reference");
+  const providerParam = searchParams.get("provider") as PaymentProvider | null;
 
   // Extract plan info from external reference (format: JCV-timestamp-PLAN_TYPE)
   const planType = (externalReference?.split("-")[2] as PlanType) || "PLAN_PRO";
+  const paymentProvider: PaymentProvider = providerParam || "mercadopago";
   const amountPaid = getPlanAmount(planType);
 
   const handleCreateSubscription = useCallback(async () => {
@@ -35,7 +37,7 @@ function SuccessContent() {
     try {
       await createSubscription({
         planType,
-        paymentProvider: "mercadopago" as PaymentProvider,
+        paymentProvider,
         paymentReference: paymentId || "",
         amountPaid,
       });
@@ -189,12 +191,8 @@ function SuccessContent() {
 }
 
 function getPlanAmount(planType: PlanType): number {
-  const amounts: Record<PlanType, number> = {
-    PLAN_BASICO: 50000,
-    PLAN_PRO: 80000,
-    PLAN_PREMIUM: 100000,
-  };
-  return amounts[planType] || 80000;
+  const plan = SUBSCRIPTION_PLANS.find(p => p.id === planType);
+  return plan?.price ?? 89900;
 }
 
 export default function PaymentSuccessPage() {
