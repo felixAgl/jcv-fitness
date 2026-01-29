@@ -33,8 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
-    const supabase = createClient();
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (error) {
+      console.error("Failed to create Supabase client:", error);
+      setState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
     if (!supabase) {
+      console.warn("Supabase client not available");
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }

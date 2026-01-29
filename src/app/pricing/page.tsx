@@ -20,7 +20,7 @@ export default function PricingPage() {
 
   const handleSelectPlan = (planId: PlanType) => {
     setSelectedPlan(planId);
-    if (isLoading) return;
+    // If still loading auth state, show auth modal anyway - it will handle the loading state
     if (isAuthenticated) {
       setShowCheckout(true);
     } else {
