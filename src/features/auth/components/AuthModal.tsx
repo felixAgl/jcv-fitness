@@ -10,6 +10,8 @@ interface AuthModalProps {
   defaultMode?: "login" | "register";
   defaultEmail?: string;
   onSuccess?: () => void;
+  showStepIndicator?: boolean;
+  planName?: string;
 }
 
 export function AuthModal({
@@ -18,6 +20,8 @@ export function AuthModal({
   defaultMode = "login",
   defaultEmail,
   onSuccess,
+  showStepIndicator = false,
+  planName,
 }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register">(defaultMode);
 
@@ -43,6 +47,27 @@ export function AuthModal({
           </svg>
         </button>
 
+        {showStepIndicator && (
+          <div className="mb-6">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-accent-cyan text-black font-bold flex items-center justify-center text-sm">
+                  1
+                </div>
+                <span className="text-white text-sm font-medium">Cuenta</span>
+              </div>
+              <div className="w-8 h-0.5 bg-gray-700" />
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gray-700 text-gray-400 font-bold flex items-center justify-center text-sm">
+                  2
+                </div>
+                <span className="text-gray-500 text-sm">Pago</span>
+              </div>
+            </div>
+            <p className="text-center text-xs text-gray-500">Paso 1 de 2</p>
+          </div>
+        )}
+
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-white mb-2">
             {mode === "login" ? "Iniciar sesion" : "Crear cuenta"}
@@ -50,7 +75,9 @@ export function AuthModal({
           <p className="text-gray-400">
             {mode === "login"
               ? "Accede a tu plan personalizado"
-              : "Comienza tu transformacion"}
+              : planName
+                ? `Continua para obtener ${planName}`
+                : "Comienza tu transformacion"}
           </p>
         </div>
 

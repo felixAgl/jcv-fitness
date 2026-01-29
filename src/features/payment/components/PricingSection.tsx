@@ -121,6 +121,7 @@ export function PricingSection() {
         customerEmail={user?.email}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentError={handlePaymentError}
+        showStepIndicator={true}
       />
 
       <AuthModal
@@ -128,6 +129,8 @@ export function PricingSection() {
         onClose={() => setShowAuth(false)}
         defaultMode="register"
         onSuccess={handleAuthSuccess}
+        showStepIndicator={true}
+        planName={SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.name}
       />
     </>
   );

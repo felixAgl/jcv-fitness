@@ -125,6 +125,7 @@ export default function PricingPage() {
           selectedPlan={selectedPlan}
           customerEmail={user?.email}
           onPaymentSuccess={handlePaymentSuccess}
+          showStepIndicator={true}
         />
       )}
 
@@ -133,6 +134,8 @@ export default function PricingPage() {
         onClose={() => setShowAuth(false)}
         defaultMode="register"
         onSuccess={handleAuthSuccess}
+        showStepIndicator={true}
+        planName={selectedPlan ? SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.name : undefined}
       />
     </div>
   );
