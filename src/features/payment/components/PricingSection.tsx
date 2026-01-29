@@ -6,6 +6,7 @@ import { Check } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { CheckoutModal } from "./CheckoutModal";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
+import { useAuth, AuthModal } from "@/features/auth";
 
 type PlanType = "PLAN_BASICO" | "PLAN_PRO" | "PLAN_PREMIUM";
 
@@ -65,11 +66,22 @@ const plans: PricingPlan[] = [
 ];
 
 export function PricingSection() {
+  const { isAuthenticated, user } = useAuth();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("PLAN_PRO");
 
   const handleSelectPlan = (planType: PlanType) => {
     setSelectedPlan(planType);
+    if (isAuthenticated) {
+      setIsCheckoutOpen(true);
+    } else {
+      setShowAuth(true);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuth(false);
     setIsCheckoutOpen(true);
   };
 
@@ -153,8 +165,16 @@ export function PricingSection() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         selectedPlan={selectedPlan}
+        customerEmail={user?.email}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentError={handlePaymentError}
+      />
+
+      <AuthModal
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        defaultMode="register"
+        onSuccess={handleAuthSuccess}
       />
     </>
   );
