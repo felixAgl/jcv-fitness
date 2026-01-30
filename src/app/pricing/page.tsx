@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check } from "lucide-react";
@@ -20,13 +20,31 @@ export default function PricingPage() {
 
   const handleSelectPlan = (planId: PlanType) => {
     setSelectedPlan(planId);
-    // If still loading auth state, show auth modal anyway - it will handle the loading state
+
+    // Wait for auth state to load before deciding
+    if (isLoading) {
+      // If still loading, don't show any modal yet
+      // The effect below will handle it once loaded
+      return;
+    }
+
     if (isAuthenticated) {
       setShowCheckout(true);
     } else {
       setShowAuth(true);
     }
   };
+
+  // Handle plan selection after auth state loads
+  useEffect(() => {
+    if (!isLoading && selectedPlan && !showCheckout && !showAuth) {
+      if (isAuthenticated) {
+        setShowCheckout(true);
+      } else {
+        setShowAuth(true);
+      }
+    }
+  }, [isLoading, isAuthenticated, selectedPlan, showCheckout, showAuth]);
 
   const handleAuthSuccess = () => {
     setShowAuth(false);
