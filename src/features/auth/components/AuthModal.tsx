@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
 
@@ -25,6 +25,13 @@ export function AuthModal({
 }: AuthModalProps) {
   const [mode, setMode] = useState<"login" | "register">(defaultMode);
 
+  // Sync mode with defaultMode when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setMode(defaultMode);
+    }
+  }, [isOpen, defaultMode]);
+
   if (!isOpen) return null;
 
   const handleSuccess = () => {
@@ -33,8 +40,8 @@ export function AuthModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={onClose} />
 
       <div className="relative bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <button

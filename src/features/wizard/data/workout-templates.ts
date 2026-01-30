@@ -92,13 +92,13 @@ const WORKOUT_SPLITS = {
   ],
 };
 
-// Ejercicios por grupo muscular
+// Ejercicios por grupo muscular - IDs must match exercises.ts
 const EXERCISES_BY_MUSCLE: Record<string, { id: string; baseSets: number; baseReps: string }[]> = {
   pecho: [
     { id: "press_banca", baseSets: 4, baseReps: "8-12" },
     { id: "press_inclinado", baseSets: 3, baseReps: "10-12" },
     { id: "aperturas", baseSets: 3, baseReps: "12-15" },
-    { id: "fondos", baseSets: 3, baseReps: "8-12" },
+    { id: "fondos_pecho", baseSets: 3, baseReps: "8-12" },
   ],
   espalda: [
     { id: "dominadas", baseSets: 4, baseReps: "6-10" },
@@ -110,54 +110,54 @@ const EXERCISES_BY_MUSCLE: Record<string, { id: string; baseSets: number; baseRe
     { id: "sentadilla", baseSets: 4, baseReps: "8-12" },
     { id: "peso_muerto", baseSets: 4, baseReps: "6-10" },
     { id: "zancadas", baseSets: 3, baseReps: "10-12" },
-    { id: "prensa_pierna", baseSets: 3, baseReps: "12-15" },
+    { id: "prensa", baseSets: 3, baseReps: "12-15" },
   ],
   cuadriceps: [
     { id: "sentadilla", baseSets: 4, baseReps: "8-12" },
-    { id: "prensa_pierna", baseSets: 4, baseReps: "10-15" },
-    { id: "extension_cuadriceps", baseSets: 3, baseReps: "12-15" },
+    { id: "prensa", baseSets: 4, baseReps: "10-15" },
+    { id: "extension_pierna", baseSets: 3, baseReps: "12-15" },
     { id: "sentadilla_bulgara", baseSets: 3, baseReps: "10-12" },
   ],
   femoral: [
     { id: "peso_muerto_rumano", baseSets: 4, baseReps: "8-12" },
     { id: "curl_femoral", baseSets: 3, baseReps: "10-15" },
-    { id: "buenos_dias", baseSets: 3, baseReps: "10-12" },
+    { id: "puente_gluteo", baseSets: 3, baseReps: "10-12" },
   ],
   gluteos: [
     { id: "hip_thrust", baseSets: 4, baseReps: "10-15" },
     { id: "patada_gluteo", baseSets: 3, baseReps: "12-15" },
-    { id: "peso_muerto_sumo", baseSets: 3, baseReps: "8-12" },
+    { id: "sentadilla_sumo", baseSets: 3, baseReps: "8-12" },
   ],
   hombros: [
-    { id: "press_hombro", baseSets: 4, baseReps: "8-12" },
+    { id: "press_militar", baseSets: 4, baseReps: "8-12" },
     { id: "elevaciones_laterales", baseSets: 3, baseReps: "12-15" },
     { id: "elevaciones_frontales", baseSets: 3, baseReps: "12-15" },
     { id: "face_pull", baseSets: 3, baseReps: "15-20" },
   ],
   biceps: [
-    { id: "curl_biceps", baseSets: 3, baseReps: "10-12" },
+    { id: "curl_bicep", baseSets: 3, baseReps: "10-12" },
     { id: "curl_martillo", baseSets: 3, baseReps: "10-12" },
     { id: "curl_concentrado", baseSets: 3, baseReps: "12-15" },
   ],
   triceps: [
-    { id: "extension_triceps", baseSets: 3, baseReps: "10-12" },
-    { id: "fondos_banco", baseSets: 3, baseReps: "10-15" },
+    { id: "extension_tricep", baseSets: 3, baseReps: "10-12" },
+    { id: "tricep_fondos", baseSets: 3, baseReps: "10-15" },
     { id: "press_frances", baseSets: 3, baseReps: "10-12" },
   ],
   core: [
     { id: "plancha", baseSets: 3, baseReps: "30-60s" },
     { id: "crunch", baseSets: 3, baseReps: "15-20" },
-    { id: "mountain_climber", baseSets: 3, baseReps: "20-30" },
-    { id: "elevacion_piernas", baseSets: 3, baseReps: "12-15" },
+    { id: "crunch_bicicleta", baseSets: 3, baseReps: "20-30" },
+    { id: "crunch_inverso", baseSets: 3, baseReps: "12-15" },
   ],
   pantorrillas: [
-    { id: "elevacion_pantorrillas", baseSets: 4, baseReps: "15-20" },
-    { id: "pantorrillas_sentado", baseSets: 3, baseReps: "15-20" },
+    { id: "elevacion_talones", baseSets: 4, baseReps: "15-20" },
+    { id: "elevacion_talones", baseSets: 3, baseReps: "15-20" },
   ],
   cardio: [
     { id: "burpees", baseSets: 3, baseReps: "10-15" },
     { id: "jumping_jacks", baseSets: 3, baseReps: "30-45s" },
-    { id: "saltos_cuerda", baseSets: 3, baseReps: "60s" },
+    { id: "sentadilla_salto", baseSets: 3, baseReps: "15-20" },
   ],
   trapecios: [
     { id: "encogimientos", baseSets: 3, baseReps: "12-15" },
