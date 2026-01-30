@@ -1,25 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/features/auth";
 import { exercises } from "@/features/wizard/data/exercises";
-import { foods, FOOD_TRANSLATIONS, type FoodCategory } from "@/features/wizard/data/foods";
-import { TRANSLATIONS } from "@/features/wizard/types";
+import { foods } from "@/features/wizard/data/foods";
+import { TRANSLATIONS, type TrainingLevel, type TrainingGoal, type WorkoutDay, type MealPlanDay } from "@/features/wizard/types";
+import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
+import { generateMealPlan } from "@/features/wizard/data/meal-templates";
 import type { UserPlan } from "../types";
 
-type TabType = "resumen" | "ejercicios" | "alimentacion";
+type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
 
 interface PlanViewerProps {
   plan: UserPlan & { isExpired: boolean; daysRemaining: number };
 }
 
+const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+
 export function PlanViewer({ plan }: PlanViewerProps) {
+  const router = useRouter();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("resumen");
+  const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
+  const [selectedMealDay, setSelectedMealDay] = useState(0);
 
   const planData = plan.planData;
   const hasSubscription = profile?.has_active_subscription ?? false;
+
+  // Generate workout plan based on user selections
+  const workoutPlan: WorkoutDay[] = useMemo(() => {
+    if (!planData.level || !planData.goal) return [];
+    return generateWorkoutPlan(
+      planData.level,
+      planData.goal,
+      planData.selectedExercises,
+      planData.time
+    );
+  }, [planData.level, planData.goal, planData.selectedExercises, planData.time]);
+
+  // Generate meal plan based on calorie target
+  const mealPlan: MealPlanDay[] = useMemo(() => {
+    if (!planData.userBodyData) return [];
+    // Calculate target calories (simplified - in real app use the calculateCalories function)
+    const { currentWeight, targetWeight, height, age, gender, activityLevel } = planData.userBodyData;
+
+    // Harris-Benedict BMR
+    const bmr = gender === "masculino"
+      ? 88.362 + (13.397 * currentWeight) + (4.799 * height) - (5.677 * age)
+      : 447.593 + (9.247 * currentWeight) + (3.098 * height) - (4.330 * age);
+
+    const activityMultipliers: Record<string, number> = {
+      sedentario: 1.2,
+      ligero: 1.375,
+      moderado: 1.55,
+      activo: 1.725,
+      muy_activo: 1.9,
+    };
+
+    const tdee = Math.round(bmr * (activityMultipliers[activityLevel] || 1.55));
+    let targetCalories = tdee;
+
+    if (targetWeight < currentWeight) {
+      targetCalories = tdee - 500; // Deficit for weight loss
+    } else if (targetWeight > currentWeight) {
+      targetCalories = tdee + 300; // Surplus for weight gain
+    }
+
+    return generateMealPlan(targetCalories, planData.userBodyData.weightGoal, 7);
+  }, [planData.userBodyData]);
+
+  // Get exercise details by ID
+  const getExerciseById = (exerciseId: string) => {
+    return exercises.find((ex) => ex.id === exerciseId);
+  };
 
   const selectedExercises = exercises.filter((ex) =>
     planData.selectedExercises.includes(ex.id)
@@ -29,46 +84,33 @@ export function PlanViewer({ plan }: PlanViewerProps) {
     planData.selectedFoods.includes(food.id)
   );
 
-  const groupedExercises = selectedExercises.reduce(
-    (acc, exercise) => {
-      if (!acc[exercise.category]) {
-        acc[exercise.category] = [];
-      }
-      acc[exercise.category].push(exercise);
-      return acc;
-    },
-    {} as Record<string, typeof selectedExercises>
-  );
-
-  const groupedFoods = selectedFoods.reduce(
-    (acc, food) => {
-      if (!acc[food.category]) {
-        acc[food.category] = [];
-      }
-      acc[food.category].push(food);
-      return acc;
-    },
-    {} as Record<FoodCategory, typeof selectedFoods>
-  );
-
   const tabs: { id: TabType; label: string; icon: string }[] = [
     { id: "resumen", label: "Resumen", icon: "📋" },
-    { id: "ejercicios", label: "Ejercicios", icon: "💪" },
-    { id: "alimentacion", label: "Alimentacion", icon: "🥗" },
+    { id: "rutina", label: "Rutina Semanal", icon: "💪" },
+    { id: "alimentacion", label: "Plan Alimenticio", icon: "🥗" },
+    { id: "calendario", label: "Calendario", icon: "📅" },
   ];
+
+  // Current workout day details
+  const currentWorkout = workoutPlan[selectedWorkoutDay];
+  const currentMealDay = mealPlan[selectedMealDay];
 
   return (
     <div className="py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <Link href="/dashboard" className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors"
+            >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
               Volver
-            </Link>
+            </button>
             <h1 className="text-2xl md:text-3xl font-bold text-white">
               {planData.userName ? `Plan de ${planData.userName}` : "Tu Plan de Entrenamiento"}
             </h1>
@@ -122,6 +164,7 @@ export function PlanViewer({ plan }: PlanViewerProps) {
 
         {/* Tab Content */}
         <div className="space-y-6">
+          {/* RESUMEN TAB */}
           {activeTab === "resumen" && (
             <>
               {/* Plan Overview */}
@@ -185,13 +228,17 @@ export function PlanViewer({ plan }: PlanViewerProps) {
               )}
 
               {/* Quick Stats */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
-                  <div className="text-4xl font-bold text-accent-cyan">{selectedExercises.length}</div>
+                  <div className="text-3xl font-bold text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
+                  <div className="text-gray-400 text-sm">Dias de Entreno</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-xl p-6 border border-purple-500/30">
+                  <div className="text-3xl font-bold text-purple-400">{selectedExercises.length}</div>
                   <div className="text-gray-400 text-sm">Ejercicios</div>
                 </div>
                 <div className="bg-gradient-to-br from-accent-green/20 to-accent-green/5 rounded-xl p-6 border border-accent-green/30">
-                  <div className="text-4xl font-bold text-accent-green">{selectedFoods.length}</div>
+                  <div className="text-3xl font-bold text-accent-green">{selectedFoods.length}</div>
                   <div className="text-gray-400 text-sm">Alimentos</div>
                 </div>
               </div>
@@ -232,79 +279,317 @@ export function PlanViewer({ plan }: PlanViewerProps) {
             </>
           )}
 
-          {activeTab === "ejercicios" && (
+          {/* RUTINA TAB */}
+          {activeTab === "rutina" && (
             <div className="space-y-6">
-              {Object.entries(groupedExercises).length > 0 ? (
-                Object.entries(groupedExercises).map(([category, exList]) => (
-                  <div key={category} className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-                    <h3 className="text-lg font-bold text-accent-cyan mb-4 flex items-center gap-2">
-                      {TRANSLATIONS.categories[category as keyof typeof TRANSLATIONS.categories]}
-                      <span className="text-sm font-normal text-gray-500">({exList.length})</span>
-                    </h3>
-                    <div className="grid gap-3">
-                      {exList.map((exercise) => (
-                        <div
-                          key={exercise.id}
-                          className="bg-gray-800/50 rounded-lg p-4 flex items-start gap-4"
-                        >
-                          <span className="text-2xl">{exercise.emoji}</span>
-                          <div className="flex-1">
-                            <div className="font-medium text-white">{exercise.name}</div>
-                            <div className="text-sm text-gray-500">{exercise.altName}</div>
-                            <div className="text-xs text-gray-600 mt-1">{exercise.muscle}</div>
-                          </div>
+              {/* Day Selector */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {workoutPlan.map((day, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedWorkoutDay(index)}
+                    className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedWorkoutDay === index
+                        ? day.restDay
+                          ? "bg-gray-600 text-white"
+                          : "bg-accent-cyan text-black"
+                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    }`}
+                  >
+                    <div className="text-xs opacity-70">{DAYS_OF_WEEK[index]}</div>
+                    <div className="font-semibold">{day.restDay ? "Descanso" : `Dia ${index + 1}`}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Current Day Workout */}
+              {currentWorkout && (
+                <div className="bg-gray-900/50 rounded-xl border border-gray-800 overflow-hidden">
+                  <div className="bg-gray-800/50 px-6 py-4 border-b border-gray-700">
+                    <h3 className="text-xl font-bold text-white">{currentWorkout.name}</h3>
+                    {!currentWorkout.restDay && (
+                      <div className="flex gap-4 mt-2 text-sm text-gray-400">
+                        <span>Duracion: ~{currentWorkout.duration} min</span>
+                        <span>Ejercicios: {currentWorkout.exercises.length}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {currentWorkout.restDay ? (
+                    <div className="p-8 text-center">
+                      <div className="text-6xl mb-4">😴</div>
+                      <h4 className="text-xl font-bold text-white mb-2">Dia de Descanso</h4>
+                      <p className="text-gray-400">
+                        El descanso es esencial para la recuperacion muscular. Aprovecha para hacer estiramientos suaves o caminatas.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-6 space-y-4">
+                      {/* Muscle groups */}
+                      {currentWorkout.muscleGroups.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {currentWorkout.muscleGroups.map((muscle) => (
+                            <span key={muscle} className="px-3 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-medium">
+                              {muscle.charAt(0).toUpperCase() + muscle.slice(1)}
+                            </span>
+                          ))}
                         </div>
-                      ))}
+                      )}
+
+                      {/* Exercise List */}
+                      <div className="space-y-3">
+                        {currentWorkout.exercises.map((exercise, idx) => {
+                          const exerciseDetails = getExerciseById(exercise.exerciseId);
+                          return (
+                            <div
+                              key={idx}
+                              className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-accent-cyan/20 flex items-center justify-center text-lg shrink-0">
+                                  {exerciseDetails?.emoji || "🏋️"}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <h4 className="font-semibold text-white truncate">
+                                      {exerciseDetails?.name || exercise.exerciseId}
+                                    </h4>
+                                    <div className="flex gap-2 shrink-0">
+                                      <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded text-xs font-medium">
+                                        {exercise.sets} series
+                                      </span>
+                                      <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
+                                        {exercise.reps} reps
+                                      </span>
+                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
+                                        {exercise.rest}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {exerciseDetails?.altName && (
+                                    <p className="text-sm text-gray-500 mt-1">{exerciseDetails.altName}</p>
+                                  )}
+                                  {exercise.notes && (
+                                    <p className="text-sm text-gray-400 mt-2 italic">
+                                      Tip: {exercise.notes}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {currentWorkout.exercises.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          No hay ejercicios asignados para este dia.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ALIMENTACION TAB */}
+          {activeTab === "alimentacion" && (
+            <div className="space-y-6">
+              {/* Day Selector */}
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {mealPlan.map((day, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedMealDay(index)}
+                    className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                      selectedMealDay === index
+                        ? "bg-accent-green text-black"
+                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                    }`}
+                  >
+                    <div className="text-xs opacity-70">{DAYS_OF_WEEK[index]}</div>
+                    <div className="font-semibold">Dia {index + 1}</div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Current Day Meal Plan */}
+              {currentMealDay && (
+                <div className="space-y-4">
+                  {/* Daily Summary */}
+                  <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                      <h3 className="text-lg font-bold text-white">{DAYS_OF_WEEK[selectedMealDay]} - Resumen Nutricional</h3>
+                      <div className="flex gap-4">
+                        <div className="text-center">
+                          <div className="text-2xl font-bold text-accent-green">{currentMealDay.totalCalories}</div>
+                          <div className="text-xs text-gray-500">kcal</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-blue-400">{currentMealDay.macros.protein}g</div>
+                          <div className="text-xs text-gray-500">Proteina</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-yellow-400">{currentMealDay.macros.carbs}g</div>
+                          <div className="text-xs text-gray-500">Carbos</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-orange-400">{currentMealDay.macros.fat}g</div>
+                          <div className="text-xs text-gray-500">Grasas</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                ))
-              ) : (
+
+                  {/* Meals */}
+                  <div className="grid gap-4">
+                    {currentMealDay.meals.map((meal, mealIdx) => (
+                      <div key={mealIdx} className="bg-gray-900/50 rounded-xl border border-gray-800 overflow-hidden">
+                        <div className="bg-gray-800/50 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">
+                              {meal.name === "Desayuno" ? "🌅" :
+                               meal.name === "Almuerzo" ? "☀️" :
+                               meal.name === "Cena" ? "🌙" : "🥤"}
+                            </span>
+                            <div>
+                              <h4 className="font-semibold text-white">{meal.name}</h4>
+                              <span className="text-xs text-gray-500">{meal.time}</span>
+                            </div>
+                          </div>
+                          <div className="text-accent-green font-bold">{meal.calories} kcal</div>
+                        </div>
+                        <div className="p-4">
+                          <div className="space-y-2">
+                            {meal.foods.map((food, foodIdx) => (
+                              <div key={foodIdx} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                                <div>
+                                  <span className="text-white">{food.name}</span>
+                                  <span className="text-gray-500 text-sm ml-2">({food.portion})</span>
+                                </div>
+                                <div className="flex gap-3 text-xs">
+                                  <span className="text-gray-400">{food.calories} kcal</span>
+                                  <span className="text-blue-400">P:{food.protein}g</span>
+                                  <span className="text-yellow-400">C:{food.carbs}g</span>
+                                  <span className="text-orange-400">G:{food.fat}g</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {mealPlan.length === 0 && (
                 <div className="bg-gray-900/50 rounded-xl p-8 border border-gray-800 text-center">
                   <p className="text-gray-500">
-                    No hay ejercicios seleccionados. Se generara una rutina automatica basada en tu nivel y objetivo.
+                    No se pudo generar el plan alimenticio. Asegurate de completar tus datos corporales.
                   </p>
                 </div>
               )}
             </div>
           )}
 
-          {activeTab === "alimentacion" && (
+          {/* CALENDARIO TAB */}
+          {activeTab === "calendario" && (
             <div className="space-y-6">
-              {Object.entries(groupedFoods).length > 0 ? (
-                Object.entries(groupedFoods).map(([category, foodList]) => (
-                  <div key={category} className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-                    <h3 className="text-lg font-bold text-accent-green mb-4 flex items-center gap-2">
-                      {FOOD_TRANSLATIONS[category as FoodCategory]}
-                      <span className="text-sm font-normal text-gray-500">({foodList.length})</span>
-                    </h3>
-                    <div className="grid gap-3">
-                      {foodList.map((food) => (
-                        <div
-                          key={food.id}
-                          className="bg-gray-800/50 rounded-lg p-4 flex items-start gap-4"
-                        >
-                          <span className="text-2xl">{food.emoji}</span>
-                          <div className="flex-1">
-                            <div className="font-medium text-white">{food.name}</div>
-                            <div className="flex gap-4 mt-1 text-xs text-gray-500">
-                              <span>{food.calories} kcal</span>
-                              <span>P: {food.protein}g</span>
-                              <span>C: {food.carbs}g</span>
-                              <span>G: {food.fat}g</span>
-                            </div>
-                          </div>
+              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+                <h2 className="text-lg font-bold text-accent-cyan mb-4">Vista Semanal</h2>
+                <div className="grid grid-cols-7 gap-2">
+                  {DAYS_OF_WEEK.map((day, index) => {
+                    const workout = workoutPlan[index];
+                    return (
+                      <div
+                        key={day}
+                        className={`rounded-lg p-3 text-center border ${
+                          workout?.restDay
+                            ? "bg-gray-800/30 border-gray-700"
+                            : "bg-accent-cyan/10 border-accent-cyan/30"
+                        }`}
+                      >
+                        <div className="text-xs text-gray-400 mb-1">{day.substring(0, 3)}</div>
+                        <div className="text-2xl mb-1">{workout?.restDay ? "😴" : "💪"}</div>
+                        <div className={`text-xs font-medium ${workout?.restDay ? "text-gray-500" : "text-accent-cyan"}`}>
+                          {workout?.restDay ? "Descanso" : `${workout?.exercises.length || 0} ejerc.`}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="bg-gray-900/50 rounded-xl p-8 border border-gray-800 text-center">
-                  <p className="text-gray-500">
-                    No hay alimentos seleccionados. Se generara un plan basico con alimentos recomendados.
-                  </p>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              </div>
+
+              {/* Weekly Summary */}
+              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+                <h2 className="text-lg font-bold text-accent-cyan mb-4">Resumen Semanal</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-accent-cyan">
+                      {workoutPlan.filter(d => !d.restDay).length}
+                    </div>
+                    <div className="text-gray-400 text-sm">Dias de entreno</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-gray-400">
+                      {workoutPlan.filter(d => d.restDay).length}
+                    </div>
+                    <div className="text-gray-400 text-sm">Dias de descanso</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-purple-400">
+                      {workoutPlan.reduce((sum, d) => sum + d.exercises.length, 0)}
+                    </div>
+                    <div className="text-gray-400 text-sm">Ejercicios totales</div>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-orange-400">
+                      ~{workoutPlan.reduce((sum, d) => sum + d.duration, 0)}
+                    </div>
+                    <div className="text-gray-400 text-sm">Min/semana</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Training Focus by Day */}
+              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
+                <h2 className="text-lg font-bold text-accent-cyan mb-4">Enfoque por Dia</h2>
+                <div className="space-y-3">
+                  {workoutPlan.map((day, index) => (
+                    <div
+                      key={index}
+                      className={`flex items-center justify-between p-3 rounded-lg ${
+                        day.restDay ? "bg-gray-800/30" : "bg-gray-800/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-400 text-sm w-20">{DAYS_OF_WEEK[index]}</span>
+                        <span className={`font-medium ${day.restDay ? "text-gray-500" : "text-white"}`}>
+                          {day.name}
+                        </span>
+                      </div>
+                      {!day.restDay && (
+                        <div className="flex gap-2">
+                          {day.muscleGroups.slice(0, 3).map((muscle) => (
+                            <span key={muscle} className="px-2 py-1 bg-accent-cyan/10 text-accent-cyan rounded text-xs">
+                              {muscle}
+                            </span>
+                          ))}
+                          {day.muscleGroups.length > 3 && (
+                            <span className="px-2 py-1 bg-gray-700 text-gray-400 rounded text-xs">
+                              +{day.muscleGroups.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
         </div>

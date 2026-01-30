@@ -109,12 +109,13 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={() => router.back()}
             className="text-foreground/40 hover:text-foreground text-sm transition-colors"
           >
-            Volver al inicio
-          </Link>
+            Volver
+          </button>
         </div>
       </div>
 
