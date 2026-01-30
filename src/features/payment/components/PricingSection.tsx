@@ -1,81 +1,46 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui";
 import { Check } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { CheckoutModal } from "./CheckoutModal";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
-
-type PlanType = "PLAN_BASICO" | "PLAN_PRO" | "PLAN_PREMIUM";
-
-interface PricingPlan {
-  id: string;
-  planType: PlanType;
-  name: string;
-  price: string;
-  period: string;
-  features: string[];
-  popular?: boolean;
-}
-
-const plans: PricingPlan[] = [
-  {
-    id: "basic",
-    planType: "PLAN_BASICO",
-    name: "Básico",
-    price: "49.900",
-    period: "COP/mes",
-    features: [
-      "Plan de alimentación 7 días",
-      "Rutina de entrenamiento casa",
-      "Acceso a la app",
-      "Soporte por email",
-    ],
-  },
-  {
-    id: "pro",
-    planType: "PLAN_PRO",
-    name: "Pro",
-    price: "89.900",
-    period: "COP/mes",
-    features: [
-      "Plan de alimentación personalizado",
-      "Rutina gimnasio + casa",
-      "Videos de ejercicios",
-      "Soporte prioritario",
-      "Seguimiento semanal",
-    ],
-    popular: true,
-  },
-  {
-    id: "premium",
-    planType: "PLAN_PREMIUM",
-    name: "Premium",
-    price: "149.900",
-    period: "COP/mes",
-    features: [
-      "Todo lo del plan Pro",
-      "Coaching 1 a 1",
-      "Ajustes mensuales",
-      "Acceso a comunidad VIP",
-      "Garantia de resultados",
-    ],
-  },
-];
+import { useAuth, AuthModal } from "@/features/auth";
+import { SUBSCRIPTION_PLANS, type PlanType } from "@/features/subscription";
 
 export function PricingSection() {
+  const router = useRouter();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("PLAN_PRO");
 
   const handleSelectPlan = (planType: PlanType) => {
     setSelectedPlan(planType);
+    // If still loading auth state, show auth modal anyway - it will handle the loading state
+    if (isAuthenticated) {
+      setIsCheckoutOpen(true);
+    } else {
+      setShowAuth(true);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setShowAuth(false);
     setIsCheckoutOpen(true);
   };
 
   const handlePaymentSuccess = (transactionId: string, provider: string) => {
-    console.log(`Pago exitoso: ${transactionId} via ${provider}`);
     setIsCheckoutOpen(false);
+    const params = new URLSearchParams({
+      payment_id: transactionId,
+      status: "approved",
+      external_reference: `JCV-${Date.now()}-${selectedPlan}`,
+      provider: provider,
+    });
+    router.push(`/payment/success?${params.toString()}`);
   };
 
   const handlePaymentError = (error: string) => {
@@ -103,7 +68,7 @@ export function PricingSection() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {plans.map((plan) => (
+            {SUBSCRIPTION_PLANS.map((plan) => (
               <Card
                 key={plan.id}
                 className={cn(
@@ -113,14 +78,14 @@ export function PricingSection() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-background text-xs font-bold rounded-full">
-                    Más popular
+                    Mas popular
                   </div>
                 )}
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold">${plan.price}</span>
-                    <span className="text-foreground/60 ml-1">{plan.period}</span>
+                    <span className="text-4xl font-bold">{plan.priceDisplay}</span>
+                    <span className="text-foreground/60 ml-1">COP/mes</span>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -135,7 +100,7 @@ export function PricingSection() {
                   <Button
                     variant={plan.popular ? "primary" : "outline"}
                     className="w-full"
-                    onClick={() => handleSelectPlan(plan.planType)}
+                    onClick={() => handleSelectPlan(plan.id)}
                   >
                     Seleccionar plan
                   </Button>
@@ -153,8 +118,19 @@ export function PricingSection() {
         isOpen={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
         selectedPlan={selectedPlan}
+        customerEmail={user?.email}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentError={handlePaymentError}
+        showStepIndicator={true}
+      />
+
+      <AuthModal
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        defaultMode="register"
+        onSuccess={handleAuthSuccess}
+        showStepIndicator={true}
+        planName={SUBSCRIPTION_PLANS.find(p => p.id === selectedPlan)?.name}
       />
     </>
   );

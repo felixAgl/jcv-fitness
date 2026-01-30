@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ProtectedRoute } from "@/features/auth";
 import { SubscriptionCard, QuickActions, UserProfile } from "@/features/dashboard";
+import { PlanStatusCard } from "@/features/plans/components/PlanStatusCard";
 
 export default function DashboardPage() {
   return (
@@ -18,11 +19,12 @@ export default function DashboardPage() {
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">Mi Panel</h2>
-            <p className="text-gray-400">Gestiona tu suscripcion y accede a tu plan personalizado</p>
+            <p className="text-gray-400">Gestiona tu plan y suscripcion</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              <PlanStatusCard />
               <SubscriptionCard />
               <div>
                 <h3 className="text-lg font-semibold text-white mb-4">Acciones rapidas</h3>
@@ -39,7 +41,7 @@ export default function DashboardPage() {
                   Nuestro equipo esta disponible para ayudarte con cualquier pregunta.
                 </p>
                 <a
-                  href="https://wa.me/573001234567"
+                  href="https://wa.me/573143826430"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 font-medium text-center transition-colors text-sm"
