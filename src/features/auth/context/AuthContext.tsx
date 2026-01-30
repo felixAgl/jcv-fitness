@@ -24,25 +24,25 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Global cache for auth state to persist across navigations
-const authCache: { initialized: boolean; state: AuthState | null } = {
+const authCache: { initialized: boolean; state: AuthState } = {
   initialized: false,
-  state: null,
+  state: {
+    user: null,
+    session: null,
+    profile: null,
+    isLoading: true,
+    isAuthenticated: false,
+  },
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Use cached state if available, otherwise start with loading
-  const [state, setState] = useState<AuthState>(() => {
-    if (authCache.initialized && authCache.state) {
-      return authCache.state;
-    }
-    return {
-      user: null,
-      session: null,
-      profile: null,
-      isLoading: true,
-      isAuthenticated: false,
-    };
-  });
+  // Always use the cached state - it persists between navigations
+  const [state, setState] = useState<AuthState>(authCache.state);
+
+  // Keep cache in sync with state changes
+  useEffect(() => {
+    authCache.state = state;
+  }, [state]);
 
   useEffect(() => {
     let supabase;
@@ -61,15 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const initAuth = async () => {
-      // If already initialized, skip re-fetching
-      if (authCache.initialized) {
+      // If already initialized and not loading, skip re-fetching
+      if (authCache.initialized && !authCache.state.isLoading) {
         return;
       }
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        let newState: AuthState;
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -77,27 +76,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("id", session.user.id)
             .single();
 
-          newState = {
+          setState({
             user: session.user,
             session,
             profile,
             isLoading: false,
             isAuthenticated: true,
-          };
+          });
         } else {
-          newState = {
+          setState({
             user: null,
             session: null,
             profile: null,
             isLoading: false,
             isAuthenticated: false,
-          };
+          });
         }
 
-        // Cache the state for future navigations
         authCache.initialized = true;
-        authCache.state = newState;
-        setState(newState);
       } catch {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -107,8 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
-        let newState: AuthState;
-
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -116,27 +110,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("id", session.user.id)
             .single();
 
-          newState = {
+          setState({
             user: session.user,
             session,
             profile,
             isLoading: false,
             isAuthenticated: true,
-          };
+          });
         } else {
-          newState = {
+          setState({
             user: null,
             session: null,
             profile: null,
             isLoading: false,
             isAuthenticated: false,
-          };
+          });
         }
 
-        // Update cache
         authCache.initialized = true;
-        authCache.state = newState;
-        setState(newState);
       }
     );
 
