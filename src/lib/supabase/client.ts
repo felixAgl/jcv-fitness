@@ -1,9 +1,13 @@
+import { createBrowserClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-let client: SupabaseClient | null = null;
+// Use global to persist singleton across hot reloads in development
+const globalForSupabase = globalThis as unknown as {
+  supabaseClient: SupabaseClient | undefined;
+};
 
 export function createClient(): SupabaseClient | null {
   // During SSG/build time without env vars, return null
@@ -16,12 +20,21 @@ export function createClient(): SupabaseClient | null {
     );
   }
 
-  if (!client) {
-    // Dynamic import to avoid validation at module load time
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { createBrowserClient } = require("@supabase/ssr");
-    client = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  if (!globalForSupabase.supabaseClient) {
+    globalForSupabase.supabaseClient = createBrowserClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        auth: {
+          // Disable auto-refresh to avoid AbortError race conditions
+          // We'll manually handle session refresh
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+        },
+      }
+    );
   }
 
-  return client;
+  return globalForSupabase.supabaseClient;
 }
