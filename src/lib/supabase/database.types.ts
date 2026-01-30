@@ -9,6 +9,7 @@ export type Json =
 export type PlanType = "PLAN_BASICO" | "PLAN_PRO" | "PLAN_PREMIUM";
 export type SubscriptionStatus = "active" | "expired" | "cancelled";
 export type PaymentProvider = "mercadopago" | "wompi";
+export type UserPlanType = "free" | "paid";
 
 export interface Database {
   public: {
@@ -21,6 +22,9 @@ export interface Database {
           has_active_subscription: boolean;
           current_plan: PlanType | null;
           subscription_end_date: string | null;
+          has_free_plan_used: boolean;
+          free_plan_expires_at: string | null;
+          active_plan_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -31,6 +35,9 @@ export interface Database {
           has_active_subscription?: boolean;
           current_plan?: PlanType | null;
           subscription_end_date?: string | null;
+          has_free_plan_used?: boolean;
+          free_plan_expires_at?: string | null;
+          active_plan_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -41,6 +48,43 @@ export interface Database {
           has_active_subscription?: boolean;
           current_plan?: PlanType | null;
           subscription_end_date?: string | null;
+          has_free_plan_used?: boolean;
+          free_plan_expires_at?: string | null;
+          active_plan_id?: string | null;
+          updated_at?: string;
+        };
+      };
+      user_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan_data: Json;
+          plan_type: UserPlanType;
+          created_at: string;
+          expires_at: string;
+          is_active: boolean;
+          download_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan_data: Json;
+          plan_type?: UserPlanType;
+          created_at?: string;
+          expires_at: string;
+          is_active?: boolean;
+          download_count?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan_data?: Json;
+          plan_type?: UserPlanType;
+          expires_at?: string;
+          is_active?: boolean;
+          download_count?: number;
           updated_at?: string;
         };
       };
@@ -155,6 +199,35 @@ export interface Database {
       expire_old_subscriptions: {
         Args: Record<string, never>;
         Returns: number;
+      };
+      can_create_plan: {
+        Args: { user_uuid: string };
+        Returns: { can_create: boolean; reason: string | null }[];
+      };
+      get_active_plan: {
+        Args: { user_uuid: string };
+        Returns: {
+          id: string;
+          plan_data: Json;
+          plan_type: UserPlanType;
+          created_at: string;
+          expires_at: string;
+          is_expired: boolean;
+          days_remaining: number;
+          download_count: number;
+        }[];
+      };
+      create_user_plan: {
+        Args: { user_uuid: string; p_plan_data: Json; p_plan_type?: string };
+        Returns: string;
+      };
+      expire_old_plans: {
+        Args: Record<string, never>;
+        Returns: number;
+      };
+      register_plan_download: {
+        Args: { plan_uuid: string };
+        Returns: boolean;
       };
     };
     Enums: {
