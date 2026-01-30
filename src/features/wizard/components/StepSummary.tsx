@@ -390,7 +390,7 @@ export function StepSummary() {
         <button
           type="button"
           onClick={handleFinalize}
-          disabled={isSaving || isPlanLoading}
+          disabled={isSaving || (isAuthenticated && isPlanLoading)}
           className="px-8 py-3 rounded-lg font-bold bg-accent-green text-black hover:shadow-lg hover:shadow-accent-green/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
