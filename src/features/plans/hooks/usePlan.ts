@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/features/auth";
+import { createClient } from "@/lib/supabase/client";
 import { planService } from "../services/plan-service";
 import type { UserPlan, PlanType } from "../types";
 import type { WizardState } from "@/features/wizard/types";
@@ -96,11 +97,27 @@ export function usePlan(): UsePlanState & UsePlanActions {
 
   const createPlan = useCallback(
     async (planData: WizardState, planType: PlanType = "free") => {
-      if (!user?.id) {
+      // Try to get user from context, if not available get directly from Supabase
+      // This handles the race condition after login when context hasn't updated yet
+      let userId = user?.id;
+
+      if (!userId) {
+        try {
+          const supabase = createClient();
+          if (supabase) {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            userId = currentUser?.id;
+          }
+        } catch {
+          // Ignore errors, will be handled below
+        }
+      }
+
+      if (!userId) {
         return { success: false, error: "Usuario no autenticado" };
       }
 
-      const result = await planService.createPlan(user.id, planData, planType);
+      const result = await planService.createPlan(userId, planData, planType);
 
       if (result.success) {
         // Refresh plan data after creation
