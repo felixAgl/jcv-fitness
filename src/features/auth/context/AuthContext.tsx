@@ -23,51 +23,38 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Global cache for auth state to persist across navigations
-const authCache: { initialized: boolean; state: AuthState } = {
-  initialized: false,
-  state: {
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthState>({
     user: null,
     session: null,
     profile: null,
     isLoading: true,
     isAuthenticated: false,
-  },
-};
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  // Always use the cached state - it persists between navigations
-  const [state, setState] = useState<AuthState>(authCache.state);
-
-  // Keep cache in sync with state changes
-  useEffect(() => {
-    authCache.state = state;
-  }, [state]);
+  });
 
   useEffect(() => {
     let supabase;
+    let isMounted = true;
+
     try {
       supabase = createClient();
     } catch (error) {
       console.error("Failed to create Supabase client:", error);
-      setState(prev => ({ ...prev, isLoading: false }));
+      if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
     if (!supabase) {
       console.warn("Supabase client not available");
-      setState(prev => ({ ...prev, isLoading: false }));
+      if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
     const initAuth = async () => {
-      // If already initialized and not loading, skip re-fetching
-      if (authCache.initialized && !authCache.state.isLoading) {
-        return;
-      }
-
       try {
         const { data: { session } } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
 
         if (session?.user) {
           const { data: profile } = await supabase
@@ -76,26 +63,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("id", session.user.id)
             .single();
 
-          setState({
-            user: session.user,
-            session,
-            profile,
-            isLoading: false,
-            isAuthenticated: true,
-          });
+          if (isMounted) {
+            setState({
+              user: session.user,
+              session,
+              profile,
+              isLoading: false,
+              isAuthenticated: true,
+            });
+          }
         } else {
-          setState({
-            user: null,
-            session: null,
-            profile: null,
-            isLoading: false,
-            isAuthenticated: false,
-          });
+          if (isMounted) {
+            setState({
+              user: null,
+              session: null,
+              profile: null,
+              isLoading: false,
+              isAuthenticated: false,
+            });
+          }
         }
-
-        authCache.initialized = true;
       } catch {
-        setState(prev => ({ ...prev, isLoading: false }));
+        if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
       }
     };
 
@@ -103,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event: AuthChangeEvent, session: Session | null) => {
+        if (!isMounted) return;
+
         if (session?.user) {
           const { data: profile } = await supabase
             .from("profiles")
@@ -110,28 +101,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .eq("id", session.user.id)
             .single();
 
-          setState({
-            user: session.user,
-            session,
-            profile,
-            isLoading: false,
-            isAuthenticated: true,
-          });
+          if (isMounted) {
+            setState({
+              user: session.user,
+              session,
+              profile,
+              isLoading: false,
+              isAuthenticated: true,
+            });
+          }
         } else {
-          setState({
-            user: null,
-            session: null,
-            profile: null,
-            isLoading: false,
-            isAuthenticated: false,
-          });
+          if (isMounted) {
+            setState({
+              user: null,
+              session: null,
+              profile: null,
+              isLoading: false,
+              isAuthenticated: false,
+            });
+          }
         }
-
-        authCache.initialized = true;
       }
     );
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
   }, []);

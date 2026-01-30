@@ -56,11 +56,11 @@ export function CheckoutModal({
     setSelectedProvider("mercadopago");
 
     try {
-      // Use Cloudflare Worker for static hosting (GitHub Pages)
+      // Use Cloudflare Worker for static hosting
       const workerUrl = process.env.NEXT_PUBLIC_MP_WORKER_URL;
 
       if (!workerUrl) {
-        throw new Error("Worker URL not configured. Set NEXT_PUBLIC_MP_WORKER_URL in .env.local");
+        throw new Error("Pago no disponible temporalmente. Intenta con Wompi.");
       }
 
       const response = await fetch(workerUrl, {
@@ -144,7 +144,7 @@ export function CheckoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full p-6 shadow-2xl">
