@@ -6,7 +6,7 @@ import { Button } from "@/shared/components/ui";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
-import { useAuth } from "@/features/auth";
+import { useAuth, AuthModal } from "@/features/auth";
 
 const navLinks = [
   { href: "#meal-plan", label: "Alimentacion" },
@@ -16,7 +16,21 @@ const navLinks = [
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { isAuthenticated, signOut } = useAuth();
+
+  const openLogin = () => {
+    setAuthMode("login");
+    setShowAuth(true);
+    setIsOpen(false);
+  };
+
+  const openRegister = () => {
+    setAuthMode("register");
+    setShowAuth(true);
+    setIsOpen(false);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
@@ -59,9 +73,18 @@ export function Header() {
                 </Button>
               </div>
             ) : (
-              <Link href="#pricing">
-                <Button size="sm">Comenzar</Button>
-              </Link>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={openLogin}
+                  className="text-foreground/70 hover:text-primary transition-colors text-sm font-medium"
+                >
+                  Iniciar sesion
+                </button>
+                <Button size="sm" onClick={openRegister}>
+                  Registrarse
+                </Button>
+              </div>
             )}
           </nav>
 
@@ -115,13 +138,29 @@ export function Header() {
                 </Button>
               </>
             ) : (
-              <a href="#pricing" onClick={() => setIsOpen(false)}>
-                <Button size="sm" className="w-fit">Comenzar</Button>
-              </a>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={openLogin}
+                  className="text-foreground/70 hover:text-primary transition-colors text-sm font-medium text-left"
+                >
+                  Iniciar sesion
+                </button>
+                <Button size="sm" className="w-fit" onClick={openRegister}>
+                  Registrarse
+                </Button>
+              </div>
             )}
           </nav>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={showAuth}
+        onClose={() => setShowAuth(false)}
+        defaultMode={authMode}
+        onSuccess={() => setShowAuth(false)}
+      />
     </header>
   );
 }
