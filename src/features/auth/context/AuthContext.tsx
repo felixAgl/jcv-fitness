@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let authStateReceived = false;
     const supabase = createClient();
 
     if (!supabase) {
@@ -64,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Helper to update state with session
     const updateAuthState = async (session: Session | null) => {
       if (!isMounted) return;
+      authStateReceived = true;
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
@@ -89,6 +91,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
+    // Timeout fallback: if no auth state received in 3 seconds, assume no session
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !authStateReceived) {
+        setState({
+          user: null,
+          session: null,
+          profile: null,
+          isLoading: false,
+          isAuthenticated: false,
+        });
+      }
+    }, 3000);
+
     // Only set up subscription once (module-level singleton)
     if (!authInitialized) {
       authInitialized = true;
@@ -105,14 +120,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
       authSubscription = subscription;
     } else {
-      // If already initialized, just get current session synchronously
+      // If already initialized, just get current session
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (isMounted) {
           updateAuthState(session);
         }
       }).catch(() => {
-        // Ignore AbortError and other errors on subsequent mounts
-        if (isMounted) {
+        // Ignore AbortError and other errors
+        if (isMounted && !authStateReceived) {
           setState(prev => ({ ...prev, isLoading: false }));
         }
       });
@@ -120,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       isMounted = false;
-      // Don't unsubscribe on unmount - keep the subscription alive
+      clearTimeout(timeoutId);
     };
   }, []);
 
