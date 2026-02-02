@@ -56,41 +56,64 @@ export function CheckoutModal({
     setSelectedProvider("mercadopago");
 
     try {
-      // Use Cloudflare Worker for static hosting (GitHub Pages)
+      // Use Cloudflare Worker for static hosting
       const workerUrl = process.env.NEXT_PUBLIC_MP_WORKER_URL;
 
+      console.log("[MP] Worker URL:", workerUrl);
+      console.log("[MP] Product:", product);
+
       if (!workerUrl) {
-        throw new Error("Worker URL not configured. Set NEXT_PUBLIC_MP_WORKER_URL in .env.local");
+        console.error("[MP] Missing NEXT_PUBLIC_MP_WORKER_URL");
+        throw new Error("Pago no disponible temporalmente. Intenta con Wompi.");
       }
+
+      const requestBody = {
+        items: [product],
+        planType: selectedPlan,
+        payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
+        backUrls: {
+          success: `${window.location.origin}/payment/success`,
+          failure: `${window.location.origin}/payment/failure`,
+          pending: `${window.location.origin}/payment/pending`,
+        },
+      };
+
+      console.log("[MP] Request body:", requestBody);
 
       const response = await fetch(workerUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [product],
-          planType: selectedPlan,
-          payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
-          backUrls: {
-            success: `${window.location.origin}/payment/success`,
-            failure: `${window.location.origin}/payment/failure`,
-            pending: `${window.location.origin}/payment/pending`,
-          },
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log("[MP] Response status:", response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || "Error al crear preferencia de pago");
+        console.error("[MP] Error response:", errorData);
+        throw new Error(errorData.error || `Error ${response.status}: Error al crear preferencia de pago`);
       }
 
       const preference = await response.json();
+      console.log("[MP] Preference created:", preference);
 
-      const isSandbox = process.env.NEXT_PUBLIC_MP_SANDBOX === "true";
+      // Default to sandbox in development, production otherwise
+      const isSandbox = process.env.NEXT_PUBLIC_MP_SANDBOX === "true" ||
+        (typeof window !== "undefined" && window.location.hostname === "localhost");
+
       const checkoutUrl = isSandbox
-        ? preference.sandboxInitPoint
-        : preference.initPoint;
+        ? preference.sandboxInitPoint || preference.sandbox_init_point
+        : preference.initPoint || preference.init_point;
+
+      console.log("[MP] Redirecting to:", checkoutUrl, "(sandbox:", isSandbox, ")");
+
+      if (!checkoutUrl) {
+        throw new Error("No se recibio URL de pago. Verifica la configuracion del servidor.");
+      }
+
       window.location.href = checkoutUrl;
     } catch (err) {
+      console.error("[MP] Error:", err);
       const message = err instanceof Error ? err.message : "Error procesando pago con MercadoPago";
       setError(message);
       onPaymentError?.(message);
@@ -144,7 +167,7 @@ export function CheckoutModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full p-6 shadow-2xl">
