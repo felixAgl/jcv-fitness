@@ -18,19 +18,26 @@ export default function PricingPage() {
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
 
+  // Debug: show auth state on page
+  useEffect(() => {
+    console.log("[Pricing] Auth state:", { isLoading, isAuthenticated, user: user?.email });
+  }, [isLoading, isAuthenticated, user]);
+
   const handleSelectPlan = (planId: PlanType) => {
+    console.log("[Pricing] Plan selected:", planId, "isLoading:", isLoading, "isAuthenticated:", isAuthenticated);
     setSelectedPlan(planId);
 
-    // Wait for auth state to load before deciding
+    // If auth is still loading, the effect below will handle it once loaded
     if (isLoading) {
-      // If still loading, don't show any modal yet
-      // The effect below will handle it once loaded
+      console.log("[Pricing] Auth still loading, waiting...");
       return;
     }
 
     if (isAuthenticated) {
+      console.log("[Pricing] User authenticated, showing checkout");
       setShowCheckout(true);
     } else {
+      console.log("[Pricing] User not authenticated, showing auth modal");
       setShowAuth(true);
     }
   };
@@ -38,6 +45,7 @@ export default function PricingPage() {
   // Handle plan selection after auth state loads
   useEffect(() => {
     if (!isLoading && selectedPlan && !showCheckout && !showAuth) {
+      console.log("[Pricing] Auth loaded, showing modal. isAuthenticated:", isAuthenticated);
       if (isAuthenticated) {
         setShowCheckout(true);
       } else {
