@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -23,10 +23,6 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Module-level tracking to handle StrictMode double-mount
-let authSubscription: { unsubscribe: () => void } | null = null;
-let authInitialized = false;
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -36,36 +32,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
+  // Fetch profile helper - stable reference
+  const fetchProfile = useCallback(async (userId: string): Promise<Tables<"profiles"> | null> => {
+    const supabase = createClient();
+    if (!supabase) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
-    let isMounted = true;
-    let authStateReceived = false;
     const supabase = createClient();
 
+    // No Supabase client (missing env vars during SSG)
     if (!supabase) {
+      console.log("[Auth] No supabase client, setting isLoading=false");
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
 
-    // Helper to fetch profile
-    const fetchProfile = async (userId: string): Promise<Tables<"profiles"> | null> => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .single();
+    let isMounted = true;
 
-        if (error) return null;
-        return data;
-      } catch {
-        return null;
-      }
-    };
-
-    // Helper to update state with session
-    const updateAuthState = async (session: Session | null) => {
+    // Handler for auth state changes
+    const handleAuthChange = async (session: Session | null) => {
       if (!isMounted) return;
-      authStateReceived = true;
+
+      console.log("[Auth] handleAuthChange:", session ? "has session" : "no session");
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
@@ -91,53 +93,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Timeout fallback: if no auth state received in 3 seconds, assume no session
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event: AuthChangeEvent, session: Session | null) => {
+        console.log("[Auth] onAuthStateChange event:", _event);
+        await handleAuthChange(session);
+      }
+    );
+
+    // Timeout fallback - if no auth event fires within 2 seconds, force loading to false
     const timeoutId = setTimeout(() => {
-      if (isMounted && !authStateReceived) {
-        setState({
-          user: null,
-          session: null,
-          profile: null,
-          isLoading: false,
-          isAuthenticated: false,
+      if (isMounted) {
+        setState(prev => {
+          if (prev.isLoading) {
+            console.log("[Auth] Timeout reached, forcing isLoading=false");
+            return { ...prev, isLoading: false };
+          }
+          return prev;
         });
       }
-    }, 3000);
+    }, 2000);
 
-    // Only set up subscription once (module-level singleton)
-    if (!authInitialized) {
-      authInitialized = true;
-
-      // Clean up any existing subscription
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        async (event: AuthChangeEvent, session: Session | null) => {
-          await updateAuthState(session);
-        }
-      );
-      authSubscription = subscription;
-    } else {
-      // If already initialized, just get current session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (isMounted) {
-          updateAuthState(session);
-        }
-      }).catch(() => {
-        // Ignore AbortError and other errors
-        if (isMounted && !authStateReceived) {
-          setState(prev => ({ ...prev, isLoading: false }));
-        }
-      });
-    }
-
+    // Cleanup
     return () => {
+      console.log("[Auth] Cleanup - unmounting");
       isMounted = false;
       clearTimeout(timeoutId);
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
   const signIn = async (email: string, password: string) => {
     const supabase = createClient();
@@ -187,11 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     const { data: { session } } = await supabase.auth.refreshSession();
     if (session?.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", session.user.id)
-        .single();
+      const profile = await fetchProfile(session.user.id);
 
       setState({
         user: session.user,
