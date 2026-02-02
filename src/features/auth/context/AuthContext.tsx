@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -23,6 +23,10 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Module-level tracking to handle StrictMode double-mount
+let authSubscription: { unsubscribe: () => void } | null = null;
+let authInitialized = false;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -32,20 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  // Track if we've already initialized to prevent StrictMode double-init issues
-  const initCompleted = useRef(false);
-
   useEffect(() => {
-    // Skip if already initialized (handles StrictMode double-mount)
-    if (initCompleted.current) {
-      return;
-    }
-
     let isMounted = true;
     const supabase = createClient();
 
     if (!supabase) {
-      console.warn("[Auth] Supabase client not available");
       setState(prev => ({ ...prev, isLoading: false }));
       return;
     }
@@ -59,24 +54,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq("id", userId)
           .single();
 
-        if (error) {
-          console.warn("[Auth] Profile fetch error:", error.message);
-          return null;
-        }
+        if (error) return null;
         return data;
-      } catch (err) {
-        console.warn("[Auth] Profile fetch exception:", err);
+      } catch {
         return null;
       }
     };
 
     // Helper to update state with session
-    const updateAuthState = async (session: Session | null, source: string) => {
+    const updateAuthState = async (session: Session | null) => {
       if (!isMounted) return;
 
       if (session?.user) {
         const profile = await fetchProfile(session.user.id);
-
         if (isMounted) {
           setState({
             user: session.user,
@@ -99,22 +89,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Use onAuthStateChange for EVERYTHING including initial session
-    // This avoids AbortError issues with getSession() in StrictMode
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event: AuthChangeEvent, session: Session | null) => {
-        // Mark initialization as complete on first event
-        if (!initCompleted.current) {
-          initCompleted.current = true;
-        }
+    // Only set up subscription once (module-level singleton)
+    if (!authInitialized) {
+      authInitialized = true;
 
-        await updateAuthState(session, `Auth event: ${event}`);
+      // Clean up any existing subscription
+      if (authSubscription) {
+        authSubscription.unsubscribe();
       }
-    );
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event: AuthChangeEvent, session: Session | null) => {
+          await updateAuthState(session);
+        }
+      );
+      authSubscription = subscription;
+    } else {
+      // If already initialized, just get current session synchronously
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (isMounted) {
+          updateAuthState(session);
+        }
+      }).catch(() => {
+        // Ignore AbortError and other errors on subsequent mounts
+        if (isMounted) {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
+      });
+    }
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
+      // Don't unsubscribe on unmount - keep the subscription alive
     };
   }, []);
 
