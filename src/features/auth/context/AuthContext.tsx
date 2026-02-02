@@ -101,7 +101,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    // Timeout fallback - if no auth event fires within 2 seconds, force loading to false
+    // Also explicitly get session (onAuthStateChange may not fire INITIAL_SESSION immediately)
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        console.log("[Auth] getSession result:", session ? "has session" : "no session");
+        if (isMounted) {
+          handleAuthChange(session);
+        }
+      })
+      .catch((error) => {
+        // Ignore AbortError from StrictMode, handle other errors
+        if (error?.name !== "AbortError") {
+          console.error("[Auth] getSession error:", error);
+        }
+        // Don't set loading false here - let timeout handle it
+      });
+
+    // Timeout fallback - if no auth event fires within 3 seconds, force loading to false
     const timeoutId = setTimeout(() => {
       if (isMounted) {
         setState(prev => {
@@ -112,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return prev;
         });
       }
-    }, 2000);
+    }, 3000);
 
     // Cleanup
     return () => {
