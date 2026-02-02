@@ -172,29 +172,29 @@ export function PlanViewer({ plan }: PlanViewerProps) {
                 <h2 className="text-lg font-bold text-accent-cyan mb-4">Configuracion del Programa</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="bg-gray-800/50 rounded-lg p-4">
-                    <div className="text-gray-500 text-xs mb-1">Nivel</div>
+                    <div className="text-gray-300 text-xs mb-1">Nivel</div>
                     <div className="text-white font-medium">
                       {planData.level ? TRANSLATIONS.levels[planData.level] : "-"}
                     </div>
                   </div>
                   <div className="bg-gray-800/50 rounded-lg p-4">
-                    <div className="text-gray-500 text-xs mb-1">Objetivo</div>
+                    <div className="text-gray-300 text-xs mb-1">Objetivo</div>
                     <div className="text-white font-medium">
                       {planData.goal ? TRANSLATIONS.goals[planData.goal] : "-"}
                     </div>
                   </div>
                   <div className="bg-gray-800/50 rounded-lg p-4">
-                    <div className="text-gray-500 text-xs mb-1">Duracion</div>
+                    <div className="text-gray-300 text-xs mb-1">Duracion</div>
                     <div className="text-white font-medium">
                       {planData.duration ? TRANSLATIONS.durations[planData.duration] : "-"}
                     </div>
                   </div>
                   <div className="bg-gray-800/50 rounded-lg p-4">
-                    <div className="text-gray-500 text-xs mb-1">Tiempo/sesion</div>
+                    <div className="text-gray-300 text-xs mb-1">Tiempo/sesion</div>
                     <div className="text-white font-medium">{planData.time} min</div>
                   </div>
                   <div className="bg-gray-800/50 rounded-lg p-4 col-span-2">
-                    <div className="text-gray-500 text-xs mb-1">Equipo</div>
+                    <div className="text-gray-300 text-xs mb-1">Equipo</div>
                     <div className="text-white font-medium text-sm">
                       {planData.equipment.map((e) => TRANSLATIONS.equipment[e]).join(", ")}
                     </div>
@@ -209,19 +209,19 @@ export function PlanViewer({ plan }: PlanViewerProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-white">{planData.userBodyData.currentWeight}</div>
-                      <div className="text-gray-500 text-xs">kg actuales</div>
+                      <div className="text-gray-300 text-xs">kg actuales</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-accent-green">{planData.userBodyData.targetWeight}</div>
-                      <div className="text-gray-500 text-xs">kg objetivo</div>
+                      <div className="text-gray-300 text-xs">kg objetivo</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-white">{planData.userBodyData.height}</div>
-                      <div className="text-gray-500 text-xs">cm altura</div>
+                      <div className="text-gray-300 text-xs">cm altura</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-white">{planData.userBodyData.age}</div>
-                      <div className="text-gray-500 text-xs">años</div>
+                      <div className="text-gray-300 text-xs">años</div>
                     </div>
                   </div>
                 </div>

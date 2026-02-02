@@ -138,17 +138,17 @@ export function PlanStatusCard() {
             <div className="text-white font-semibold">
               {planData.level ? TRANSLATIONS.levels[planData.level].slice(0, 4) : "-"}
             </div>
-            <div className="text-gray-500 text-xs">Nivel</div>
+            <div className="text-gray-300 text-xs">Nivel</div>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-2">
             <div className="text-white font-semibold">{planData.time}min</div>
-            <div className="text-gray-500 text-xs">Sesion</div>
+            <div className="text-gray-300 text-xs">Sesion</div>
           </div>
           <div className="bg-gray-800/50 rounded-lg p-2">
             <div className="text-white font-semibold">
               {planData.duration ? TRANSLATIONS.durations[planData.duration].replace(/\s/g, "") : "-"}
             </div>
-            <div className="text-gray-500 text-xs">Duracion</div>
+            <div className="text-gray-300 text-xs">Duracion</div>
           </div>
         </div>
 
