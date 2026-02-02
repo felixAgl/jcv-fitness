@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, type ReactNode } from "react";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -32,17 +32,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  useEffect(() => {
-    let isMounted = true;
-    let supabase: ReturnType<typeof createClient>;
+  // Track if we've already initialized to prevent StrictMode double-init issues
+  const initCompleted = useRef(false);
 
-    try {
-      supabase = createClient();
-    } catch (error) {
-      console.error("[Auth] Failed to create Supabase client:", error);
-      setState(prev => ({ ...prev, isLoading: false }));
+  useEffect(() => {
+    // Skip if already initialized (handles StrictMode double-mount)
+    if (initCompleted.current) {
       return;
     }
+
+    let isMounted = true;
+    const supabase = createClient();
 
     if (!supabase) {
       console.warn("[Auth] Supabase client not available");
@@ -50,29 +50,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Helper to fetch profile
+    const fetchProfile = async (userId: string): Promise<Tables<"profiles"> | null> => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+
+        if (error) {
+          console.warn("[Auth] Profile fetch error:", error.message);
+          return null;
+        }
+        return data;
+      } catch (err) {
+        console.warn("[Auth] Profile fetch exception:", err);
+        return null;
+      }
+    };
+
     // Helper to update state with session
     const updateAuthState = async (session: Session | null, source: string) => {
       if (!isMounted) return;
 
-      console.log(`[Auth] ${source}:`, session ? "Has session" : "No session");
-
       if (session?.user) {
-        let profile: Tables<"profiles"> | null = null;
-        try {
-          const { data, error: profileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", session.user.id)
-            .single();
-
-          if (profileError) {
-            console.warn("[Auth] Profile fetch error:", profileError.message);
-          } else {
-            profile = data;
-          }
-        } catch (profileErr) {
-          console.warn("[Auth] Profile fetch exception:", profileErr);
-        }
+        const profile = await fetchProfile(session.user.id);
 
         if (isMounted) {
           setState({
@@ -96,33 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Initial session check
-    const initAuth = async () => {
-      try {
-        console.log("[Auth] Starting session check...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError) {
-          console.error("[Auth] Session error:", sessionError);
-          if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
-          return;
-        }
-
-        await updateAuthState(session, "Initial session");
-      } catch (error) {
-        console.error("[Auth] initAuth exception:", error);
-        if (isMounted) setState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    // Start auth initialization
-    initAuth();
-
-    // Set up auth state change listener
+    // Use onAuthStateChange for EVERYTHING including initial session
+    // This avoids AbortError issues with getSession() in StrictMode
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
-        // Skip INITIAL_SESSION as we handle it in initAuth
-        if (event === "INITIAL_SESSION") return;
+        // Mark initialization as complete on first event
+        if (!initCompleted.current) {
+          initCompleted.current = true;
+        }
 
         await updateAuthState(session, `Auth event: ${event}`);
       }
