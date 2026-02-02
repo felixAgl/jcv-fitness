@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from "react";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -31,6 +31,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading: true,
     isAuthenticated: false,
   });
+
+  // Track if we've already processed initial auth to avoid double processing
+  const initialAuthProcessed = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch profile helper - stable reference
   const fetchProfile = useCallback(async (userId: string): Promise<Tables<"profiles"> | null> => {
@@ -63,78 +67,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let isMounted = true;
 
-    // Handler for auth state changes
-    const handleAuthChange = async (session: Session | null) => {
-      if (!isMounted) return;
-
-      console.log("[Auth] handleAuthChange:", session ? "has session" : "no session");
-
-      if (session?.user) {
-        const profile = await fetchProfile(session.user.id);
-        if (isMounted) {
-          setState({
-            user: session.user,
-            session,
-            profile,
-            isLoading: false,
-            isAuthenticated: true,
-          });
-        }
-      } else {
-        if (isMounted) {
-          setState({
-            user: null,
-            session: null,
-            profile: null,
-            isLoading: false,
-            isAuthenticated: false,
-          });
-        }
+    // Clear timeout helper
+    const clearAuthTimeout = () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
     };
 
-    // Set up auth state listener
+    // Handler for auth state changes - SET USER IMMEDIATELY, profile loads async
+    const handleAuthChange = async (session: Session | null, source: string) => {
+      if (!isMounted) return;
+
+      // Avoid processing multiple times for same session
+      if (initialAuthProcessed.current && source !== "sign_out") {
+        console.log("[Auth] Already processed initial auth, skipping:", source);
+        return;
+      }
+
+      console.log("[Auth] handleAuthChange from", source, ":", session ? "has session" : "no session");
+
+      // Clear timeout since we got a response
+      clearAuthTimeout();
+
+      if (session?.user) {
+        initialAuthProcessed.current = true;
+
+        // SET USER IMMEDIATELY - don't wait for profile
+        setState({
+          user: session.user,
+          session,
+          profile: null, // Will be loaded async
+          isLoading: false,
+          isAuthenticated: true,
+        });
+        console.log("[Auth] User authenticated immediately:", session.user.email);
+
+        // Load profile in background (non-blocking)
+        fetchProfile(session.user.id).then(profile => {
+          if (isMounted && profile) {
+            setState(prev => ({ ...prev, profile }));
+            console.log("[Auth] Profile loaded");
+          }
+        });
+      } else {
+        initialAuthProcessed.current = true;
+        setState({
+          user: null,
+          session: null,
+          profile: null,
+          isLoading: false,
+          isAuthenticated: false,
+        });
+        console.log("[Auth] No session, user logged out");
+      }
+    };
+
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: AuthChangeEvent, session: Session | null) => {
-        console.log("[Auth] onAuthStateChange event:", _event);
-        await handleAuthChange(session);
+      async (event: AuthChangeEvent, session: Session | null) => {
+        console.log("[Auth] onAuthStateChange event:", event);
+
+        // Handle sign out specially
+        if (event === "SIGNED_OUT") {
+          initialAuthProcessed.current = false;
+          await handleAuthChange(null, "sign_out");
+        } else {
+          await handleAuthChange(session, `onAuthStateChange:${event}`);
+        }
       }
     );
 
-    // Also explicitly get session (onAuthStateChange may not fire INITIAL_SESSION immediately)
+    // Also get session explicitly (for cases where onAuthStateChange doesn't fire immediately)
     supabase.auth.getSession()
       .then(({ data: { session } }) => {
         console.log("[Auth] getSession result:", session ? "has session" : "no session");
-        if (isMounted) {
-          handleAuthChange(session);
-        }
+        handleAuthChange(session, "getSession");
       })
       .catch((error) => {
-        // Ignore AbortError from StrictMode, handle other errors
         if (error?.name !== "AbortError") {
           console.error("[Auth] getSession error:", error);
         }
-        // Don't set loading false here - let timeout handle it
       });
 
-    // Timeout fallback - if no auth event fires within 3 seconds, force loading to false
-    const timeoutId = setTimeout(() => {
-      if (isMounted) {
-        setState(prev => {
-          if (prev.isLoading) {
-            console.log("[Auth] Timeout reached, forcing isLoading=false");
-            return { ...prev, isLoading: false };
-          }
-          return prev;
+    // Timeout fallback - only if nothing has processed yet
+    timeoutRef.current = setTimeout(() => {
+      if (isMounted && !initialAuthProcessed.current) {
+        console.log("[Auth] Timeout reached, forcing isLoading=false");
+        initialAuthProcessed.current = true;
+        setState({
+          user: null,
+          session: null,
+          profile: null,
+          isLoading: false,
+          isAuthenticated: false,
         });
       }
-    }, 3000);
+    }, 5000);
 
     // Cleanup
     return () => {
       console.log("[Auth] Cleanup - unmounting");
       isMounted = false;
-      clearTimeout(timeoutId);
+      clearAuthTimeout();
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
@@ -167,6 +202,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const supabase = createClient();
     if (!supabase) return;
+    // Reset the processed flag so we can process the sign out
+    initialAuthProcessed.current = false;
     await supabase.auth.signOut();
   };
 
