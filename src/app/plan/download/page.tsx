@@ -141,7 +141,7 @@ export default function DownloadPlanPage() {
             </button>
           </div>
 
-          <p className="text-center text-gray-500 text-xs mt-6">
+          <p className="text-center text-gray-300 text-xs mt-6">
             Al descargar, aceptas que este contenido es para uso personal.
             <br />
             La distribucion no autorizada esta prohibida.
