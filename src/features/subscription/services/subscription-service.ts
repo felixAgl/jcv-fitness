@@ -20,9 +20,13 @@ export class SubscriptionService {
       .gte("end_date", new Date().toISOString())
       .order("end_date", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    // maybeSingle returns null when no rows found (instead of error 406)
+    if (error) {
+      console.error("[SubscriptionService] Error fetching subscription:", error);
+      return null;
+    }
     return data;
   }
 
