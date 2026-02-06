@@ -164,8 +164,6 @@ export function CheckoutModal({
     }
   };
 
-  if (!isOpen) return null;
-
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -185,6 +183,8 @@ export function CheckoutModal({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, isLoading, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
