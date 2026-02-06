@@ -222,7 +222,7 @@ describe("PlanViewer", () => {
 
       expect(screen.getByText("Configuracion del Programa")).toBeInTheDocument();
       expect(screen.getByText("Intermedio")).toBeInTheDocument();
-      expect(screen.getByText("Ganar Musculo")).toBeInTheDocument();
+      expect(screen.getByText("Ganar Músculo")).toBeInTheDocument();
       expect(screen.getByText("60 min")).toBeInTheDocument();
     });
 

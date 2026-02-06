@@ -40,9 +40,9 @@ export function JCVLogo({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* J letter */}
+        {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
         <path
-          d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+          d="M0 0h16v4h-4v20c0 4.5-3.5 8-8 8H0v-4h4c2.5 0 4-1.5 4-4V4H0V0z"
           fill={color}
         />
         {/* C letter */}
@@ -92,9 +92,9 @@ export function JCVLogoMini({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* J letter - Modern bold sans-serif */}
+      {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
       <path
-        d="M2 0h10v22c0 3 1.5 5 5 5h1v5h-2c-6 0-9-3.5-9-10V5H2V0z"
+        d="M2 0h16v5h-6v17c0 6.5-3 10-9 10H1v-5h2c3.5 0 5-2 5-5V5H2V0z"
         fill={color}
       />
       {/* C letter - Modern bold sans-serif */}
@@ -138,9 +138,9 @@ export function JCVLogoAnimated({
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
         </defs>
-        {/* J letter - Modern bold sans-serif */}
+        {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
         <path
-          d="M2 0h10v22c0 3 1.5 5 5 5h1v5h-2c-6 0-9-3.5-9-10V5H2V0z"
+          d="M2 0h16v5h-6v17c0 6.5-3 10-9 10H1v-5h2c3.5 0 5-2 5-5V5H2V0z"
           fill={color}
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />

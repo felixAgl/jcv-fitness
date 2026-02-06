@@ -13,7 +13,7 @@ describe("Wizard Store", () => {
       expect(state.level).toBeNull();
       expect(state.goal).toBeNull();
       expect(state.time).toBe(30);
-      expect(state.equipment).toEqual(["sin_equipo"]);
+      expect(state.equipment).toEqual([]);
       expect(state.duration).toBeNull();
       expect(state.selectedExercises).toEqual([]);
       expect(state.userName).toBe("");
@@ -54,9 +54,10 @@ describe("Wizard Store", () => {
       expect(useWizardStore.getState().equipment).not.toContain("mancuernas");
     });
 
-    it("should keep sin_equipo when all removed", () => {
-      useWizardStore.getState().toggleEquipment("sin_equipo");
-      expect(useWizardStore.getState().equipment).toEqual(["sin_equipo"]);
+    it("should have empty array when all equipment removed", () => {
+      useWizardStore.getState().toggleEquipment("mancuernas");
+      useWizardStore.getState().toggleEquipment("mancuernas");
+      expect(useWizardStore.getState().equipment).toEqual([]);
     });
   });
 
@@ -98,11 +99,11 @@ describe("Wizard Store", () => {
       expect(useWizardStore.getState().currentStep).toBe(1);
     });
 
-    it("should not go above step 8", () => {
-      for (let i = 0; i < 10; i++) {
+    it("should not go above step 9", () => {
+      for (let i = 0; i < 12; i++) {
         useWizardStore.getState().nextStep();
       }
-      expect(useWizardStore.getState().currentStep).toBe(8);
+      expect(useWizardStore.getState().currentStep).toBe(9);
     });
 
     it("should go to specific step", () => {
