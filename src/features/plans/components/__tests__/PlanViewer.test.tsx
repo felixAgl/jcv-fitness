@@ -113,12 +113,13 @@ const createMockPlan = (overrides = {}) => ({
   downloadCount: 0,
   updatedAt: new Date(),
   planData: {
+    currentStep: 9,
     userName: "Juan",
     level: "intermedio" as const,
     goal: "ganar_musculo" as const,
     duration: "3_meses" as const,
     time: 60,
-    equipment: ["mancuernas", "barra"] as const[],
+    equipment: ["mancuernas", "barra"] as ("mancuernas" | "barra")[],
     selectedExercises: ["bench_press", "pull_ups"],
     selectedFoods: ["chicken", "rice"],
     userBodyData: {
@@ -212,7 +213,8 @@ describe("PlanViewer", () => {
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Vista Semanal")).toBeInTheDocument();
+      // TrackingCalendar component shows week selector
+      expect(screen.getByText("Seleccionar Semana")).toBeInTheDocument();
     });
   });
 
@@ -329,32 +331,30 @@ describe("PlanViewer", () => {
   });
 
   describe("Calendario Tab", () => {
-    it("should show weekly view", async () => {
+    it("should render tracking calendar component", async () => {
       render(<PlanViewer plan={createMockPlan()} />);
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Vista Semanal")).toBeInTheDocument();
-      expect(screen.getByText("Lun")).toBeInTheDocument();
-      expect(screen.getByText("Mar")).toBeInTheDocument();
+      // TrackingCalendar shows progress stats and week selector
+      expect(screen.getByText("Seleccionar Semana")).toBeInTheDocument();
     });
 
-    it("should show weekly summary", async () => {
+    it("should show progress stats", async () => {
       render(<PlanViewer plan={createMockPlan()} />);
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Resumen Semanal")).toBeInTheDocument();
-      expect(screen.getByText("Dias de entreno")).toBeInTheDocument();
-      expect(screen.getByText("Dias de descanso")).toBeInTheDocument();
+      expect(screen.getByText("Entrenamientos")).toBeInTheDocument();
+      expect(screen.getByText("Racha actual")).toBeInTheDocument();
     });
 
-    it("should show training focus by day", async () => {
+    it("should show week details section", async () => {
       render(<PlanViewer plan={createMockPlan()} />);
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Enfoque por Dia")).toBeInTheDocument();
+      expect(screen.getByText("Detalle de la Semana")).toBeInTheDocument();
     });
   });
 
