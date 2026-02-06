@@ -92,19 +92,20 @@ export function JCVLogoMini({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* J letter */}
+      {/* J letter - Modern bold sans-serif */}
       <path
-        d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+        d="M2 0h10v22c0 3 1.5 5 5 5h1v5h-2c-6 0-9-3.5-9-10V5H2V0z"
         fill={color}
       />
-      {/* C letter */}
+      {/* C letter - Modern bold sans-serif */}
       <path
-        d="M24 0h20v8h-4V4H28v24h12v-4h4v8H24V0z"
+        d="M26 0h16v5H31v22h11v5H26V0z M42 0h5v11h-5V0z M42 21h5v11h-5V21z"
         fill={color}
+        fillRule="evenodd"
       />
-      {/* V letter */}
+      {/* V letter - Modern bold sans-serif */}
       <path
-        d="M52 0h6l8 22 8-22h6L66 32h-4L48 0h4z"
+        d="M52 0h5l9 24L75 0h5L68 32h-4L52 0z"
         fill={color}
       />
     </svg>
@@ -137,21 +138,22 @@ export function JCVLogoAnimated({
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
         </defs>
-        {/* J letter */}
+        {/* J letter - Modern bold sans-serif */}
         <path
-          d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+          d="M2 0h10v22c0 3 1.5 5 5 5h1v5h-2c-6 0-9-3.5-9-10V5H2V0z"
           fill={color}
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />
-        {/* C letter */}
+        {/* C letter - Modern bold sans-serif */}
         <path
-          d="M24 0h20v8h-4V4H28v24h12v-4h4v8H24V0z"
+          d="M26 0h16v5H31v22h11v5H26V0z M42 0h5v11h-5V0z M42 21h5v11h-5V21z"
           fill={color}
+          fillRule="evenodd"
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />
-        {/* V letter */}
+        {/* V letter - Modern bold sans-serif */}
         <path
-          d="M52 0h6l8 22 8-22h6L66 32h-4L48 0h4z"
+          d="M52 0h5l9 24L75 0h5L68 32h-4L52 0z"
           fill={color}
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />

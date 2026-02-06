@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/shared/components/ui";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
@@ -15,10 +16,16 @@ const navLinks = [
 ];
 
 export function Header() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { isAuthenticated, signOut } = useAuth();
+
+  const handleAuthSuccess = () => {
+    setShowAuth(false);
+    router.push("/dashboard");
+  };
 
   const openLogin = () => {
     setAuthMode("login");
@@ -159,7 +166,7 @@ export function Header() {
         isOpen={showAuth}
         onClose={() => setShowAuth(false)}
         defaultMode={authMode}
-        onSuccess={() => setShowAuth(false)}
+        onSuccess={handleAuthSuccess}
       />
     </header>
   );

@@ -103,12 +103,15 @@ vi.mock("@/features/wizard/data/foods", () => ({
 // Create mock plan
 const createMockPlan = (overrides = {}) => ({
   id: "plan-123",
+  userId: "user-123",
   planType: "paid" as const,
-  createdAt: new Date().toISOString(),
-  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  createdAt: new Date(),
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  isActive: true,
   isExpired: false,
   daysRemaining: 30,
   downloadCount: 0,
+  updatedAt: new Date(),
   planData: {
     userName: "Juan",
     level: "intermedio" as const,
