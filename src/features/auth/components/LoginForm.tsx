@@ -9,12 +9,13 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
-  const { signIn, signInWithMagicLink } = useAuth();
+  const { signIn, signInWithMagicLink, resetPassword } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [resetLinkSent, setResetLinkSent] = useState(false);
   const [authMethod, setAuthMethod] = useState<"password" | "magic">("password");
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -50,6 +51,50 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
     setMagicLinkSent(true);
     setIsLoading(false);
   };
+
+  const handleResetPassword = async () => {
+    if (!email) {
+      setError("Ingresa tu correo electronico primero");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+
+    const { error } = await resetPassword(email);
+
+    if (error) {
+      setError(error.message);
+      setIsLoading(false);
+      return;
+    }
+
+    setResetLinkSent(true);
+    setIsLoading(false);
+  };
+
+  if (resetLinkSent) {
+    return (
+      <div className="text-center py-8">
+        <div className="w-16 h-16 bg-accent-cyan/20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg className="w-8 h-8 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+          </svg>
+        </div>
+        <h3 className="text-xl font-bold text-white mb-2">Revisa tu correo</h3>
+        <p className="text-gray-400 mb-4">
+          Enviamos un enlace para restablecer tu contrasena a<br />
+          <span className="text-accent-cyan font-medium">{email}</span>
+        </p>
+        <button
+          type="button"
+          onClick={() => setResetLinkSent(false)}
+          className="text-gray-400 hover:text-white text-sm transition-colors"
+        >
+          Volver a iniciar sesion
+        </button>
+      </div>
+    );
+  }
 
   if (magicLinkSent) {
     return (
@@ -121,9 +166,18 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
           {authMethod === "password" && (
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
-                Contrasena
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-400">
+                  Contrasena
+                </label>
+                <button
+                  type="button"
+                  onClick={handleResetPassword}
+                  className="text-xs text-accent-cyan hover:underline"
+                >
+                  Olvidaste tu contrasena?
+                </button>
+              </div>
               <input
                 id="password"
                 type="password"
