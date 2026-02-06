@@ -110,7 +110,7 @@ export function TransformationGallery() {
           <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="w-20 h-20 rounded-full overflow-hidden flex-shrink-0 ring-4 ring-accent-cyan">
               <Image
-                src={transformationImages[2].url}
+                src={transformationImages[0].url}
                 alt="JCV - Entrenador Personal"
                 width={80}
                 height={80}
