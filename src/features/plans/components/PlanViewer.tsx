@@ -9,7 +9,8 @@ import { foods } from "@/features/wizard/data/foods";
 import { TRANSLATIONS, type TrainingLevel, type TrainingGoal, type WorkoutDay, type MealPlanDay } from "@/features/wizard/types";
 import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
 import { generateMealPlan } from "@/features/wizard/data/meal-templates";
-import type { UserPlan } from "../types";
+import { TrackingCalendar } from "./TrackingCalendar";
+import type { UserPlan, PlanDataWithProgress } from "../types";
 
 type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
 
@@ -498,99 +499,13 @@ export function PlanViewer({ plan }: PlanViewerProps) {
 
           {/* CALENDARIO TAB */}
           {activeTab === "calendario" && (
-            <div className="space-y-6">
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-bold text-accent-cyan mb-4">Vista Semanal</h2>
-                <div className="grid grid-cols-7 gap-2">
-                  {DAYS_OF_WEEK.map((day, index) => {
-                    const workout = workoutPlan[index];
-                    return (
-                      <div
-                        key={day}
-                        className={`rounded-lg p-3 text-center border ${
-                          workout?.restDay
-                            ? "bg-gray-800/30 border-gray-700"
-                            : "bg-accent-cyan/10 border-accent-cyan/30"
-                        }`}
-                      >
-                        <div className="text-xs text-gray-400 mb-1">{day.substring(0, 3)}</div>
-                        <div className="text-2xl mb-1">{workout?.restDay ? "😴" : "💪"}</div>
-                        <div className={`text-xs font-medium ${workout?.restDay ? "text-gray-500" : "text-accent-cyan"}`}>
-                          {workout?.restDay ? "Descanso" : `${workout?.exercises.length || 0} ejerc.`}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Weekly Summary */}
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-bold text-accent-cyan mb-4">Resumen Semanal</h2>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-3xl font-bold text-accent-cyan">
-                      {workoutPlan.filter(d => !d.restDay).length}
-                    </div>
-                    <div className="text-gray-400 text-sm">Dias de entreno</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-3xl font-bold text-gray-400">
-                      {workoutPlan.filter(d => d.restDay).length}
-                    </div>
-                    <div className="text-gray-400 text-sm">Dias de descanso</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-3xl font-bold text-purple-400">
-                      {workoutPlan.reduce((sum, d) => sum + d.exercises.length, 0)}
-                    </div>
-                    <div className="text-gray-400 text-sm">Ejercicios totales</div>
-                  </div>
-                  <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                    <div className="text-3xl font-bold text-orange-400">
-                      ~{workoutPlan.reduce((sum, d) => sum + d.duration, 0)}
-                    </div>
-                    <div className="text-gray-400 text-sm">Min/semana</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Training Focus by Day */}
-              <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-                <h2 className="text-lg font-bold text-accent-cyan mb-4">Enfoque por Dia</h2>
-                <div className="space-y-3">
-                  {workoutPlan.map((day, index) => (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-3 rounded-lg ${
-                        day.restDay ? "bg-gray-800/30" : "bg-gray-800/50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-gray-400 text-sm w-20">{DAYS_OF_WEEK[index]}</span>
-                        <span className={`font-medium ${day.restDay ? "text-gray-500" : "text-white"}`}>
-                          {day.name}
-                        </span>
-                      </div>
-                      {!day.restDay && (
-                        <div className="flex gap-2">
-                          {day.muscleGroups.slice(0, 3).map((muscle) => (
-                            <span key={muscle} className="px-2 py-1 bg-accent-cyan/10 text-accent-cyan rounded text-xs">
-                              {muscle}
-                            </span>
-                          ))}
-                          {day.muscleGroups.length > 3 && (
-                            <span className="px-2 py-1 bg-gray-700 text-gray-400 rounded text-xs">
-                              +{day.muscleGroups.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <TrackingCalendar
+              planId={plan.id}
+              planData={planData as PlanDataWithProgress}
+              workoutPlan={workoutPlan}
+              planStartDate={plan.createdAt}
+              daysRemaining={plan.daysRemaining}
+            />
           )}
         </div>
       </div>

@@ -3,6 +3,7 @@ export * from "./types";
 
 // Services
 export { planService } from "./services/plan-service";
+export { progressService } from "./services/progress-service";
 export type {
   CreatePlanResult,
   GetActivePlanResult,
@@ -16,3 +17,4 @@ export { usePlan } from "./hooks/usePlan";
 export { PlanViewer } from "./components/PlanViewer";
 export { PlanExpiredOverlay } from "./components/PlanExpiredOverlay";
 export { PlanStatusCard } from "./components/PlanStatusCard";
+export { TrackingCalendar } from "./components/TrackingCalendar";

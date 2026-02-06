@@ -40,9 +40,9 @@ export function JCVLogo({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* J letter */}
+        {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
         <path
-          d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+          d="M0 0h16v4h-4v20c0 4.5-3.5 8-8 8H0v-4h4c2.5 0 4-1.5 4-4V4H0V0z"
           fill={color}
         />
         {/* C letter */}
@@ -92,19 +92,20 @@ export function JCVLogoMini({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* J letter */}
+      {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
       <path
-        d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+        d="M2 0h16v5h-6v17c0 6.5-3 10-9 10H1v-5h2c3.5 0 5-2 5-5V5H2V0z"
         fill={color}
       />
-      {/* C letter */}
+      {/* C letter - Modern bold sans-serif */}
       <path
-        d="M24 0h20v8h-4V4H28v24h12v-4h4v8H24V0z"
+        d="M26 0h16v5H31v22h11v5H26V0z M42 0h5v11h-5V0z M42 21h5v11h-5V21z"
         fill={color}
+        fillRule="evenodd"
       />
-      {/* V letter */}
+      {/* V letter - Modern bold sans-serif */}
       <path
-        d="M52 0h6l8 22 8-22h6L66 32h-4L48 0h4z"
+        d="M52 0h5l9 24L75 0h5L68 32h-4L52 0z"
         fill={color}
       />
     </svg>
@@ -137,21 +138,22 @@ export function JCVLogoAnimated({
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
         </defs>
-        {/* J letter */}
+        {/* J letter - barra arriba a la derecha, curva abajo a la izquierda */}
         <path
-          d="M0 0h16v4H4v20c0 2.5 1.5 4 4 4h8v4H8c-4.5 0-8-3.5-8-8V0z"
+          d="M2 0h16v5h-6v17c0 6.5-3 10-9 10H1v-5h2c3.5 0 5-2 5-5V5H2V0z"
           fill={color}
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />
-        {/* C letter */}
+        {/* C letter - Modern bold sans-serif */}
         <path
-          d="M24 0h20v8h-4V4H28v24h12v-4h4v8H24V0z"
+          d="M26 0h16v5H31v22h11v5H26V0z M42 0h5v11h-5V0z M42 21h5v11h-5V21z"
           fill={color}
+          fillRule="evenodd"
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />
-        {/* V letter */}
+        {/* V letter - Modern bold sans-serif */}
         <path
-          d="M52 0h6l8 22 8-22h6L66 32h-4L48 0h4z"
+          d="M52 0h5l9 24L75 0h5L68 32h-4L52 0z"
           fill={color}
           className="group-hover:fill-[url(#jcvGradient)] transition-all duration-300"
         />

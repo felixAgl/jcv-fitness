@@ -24,17 +24,18 @@ export default function PricingPage() {
   }, [isLoading, isAuthenticated, user]);
 
   const handleSelectPlan = (planId: PlanType) => {
-    console.log("[Pricing] Plan selected:", planId, "isLoading:", isLoading, "isAuthenticated:", isAuthenticated);
+    console.log("[Pricing] Plan selected:", planId, "isLoading:", isLoading, "isAuthenticated:", isAuthenticated, "user:", user?.email);
     setSelectedPlan(planId);
 
     // If auth is still loading, the effect below will handle it once loaded
     if (isLoading) {
-      console.log("[Pricing] Auth still loading, waiting...");
+      console.log("[Pricing] Auth still loading, waiting for useEffect...");
       return;
     }
 
-    if (isAuthenticated) {
-      console.log("[Pricing] User authenticated, showing checkout");
+    // Check both isAuthenticated and user to be safe
+    if (isAuthenticated && user) {
+      console.log("[Pricing] User authenticated, showing checkout for:", user.email);
       setShowCheckout(true);
     } else {
       console.log("[Pricing] User not authenticated, showing auth modal");
@@ -44,15 +45,29 @@ export default function PricingPage() {
 
   // Handle plan selection after auth state loads
   useEffect(() => {
+    // Only trigger when we have a selected plan and no modal is showing
     if (!isLoading && selectedPlan && !showCheckout && !showAuth) {
-      console.log("[Pricing] Auth loaded, showing modal. isAuthenticated:", isAuthenticated);
-      if (isAuthenticated) {
+      console.log("[Pricing] useEffect triggered - isAuthenticated:", isAuthenticated, "user:", user?.email);
+
+      // Double-check auth state with user object
+      if (isAuthenticated && user) {
+        console.log("[Pricing] User confirmed authenticated, showing checkout");
         setShowCheckout(true);
       } else {
+        console.log("[Pricing] User not authenticated, showing auth modal");
         setShowAuth(true);
       }
     }
-  }, [isLoading, isAuthenticated, selectedPlan, showCheckout, showAuth]);
+  }, [isLoading, isAuthenticated, user, selectedPlan, showCheckout, showAuth]);
+
+  // If user becomes authenticated while auth modal is open, switch to checkout
+  useEffect(() => {
+    if (showAuth && isAuthenticated && user && selectedPlan) {
+      console.log("[Pricing] User authenticated while auth modal open, switching to checkout");
+      setShowAuth(false);
+      setShowCheckout(true);
+    }
+  }, [showAuth, isAuthenticated, user, selectedPlan]);
 
   const handleAuthSuccess = () => {
     setShowAuth(false);
@@ -148,7 +163,10 @@ export default function PricingPage() {
       {selectedPlan && (
         <CheckoutModal
           isOpen={showCheckout}
-          onClose={() => setShowCheckout(false)}
+          onClose={() => {
+            setShowCheckout(false);
+            setSelectedPlan(null);
+          }}
           selectedPlan={selectedPlan}
           customerEmail={user?.email}
           onPaymentSuccess={handlePaymentSuccess}
@@ -158,7 +176,10 @@ export default function PricingPage() {
 
       <AuthModal
         isOpen={showAuth}
-        onClose={() => setShowAuth(false)}
+        onClose={() => {
+          setShowAuth(false);
+          setSelectedPlan(null);
+        }}
         defaultMode="register"
         onSuccess={handleAuthSuccess}
         showStepIndicator={true}

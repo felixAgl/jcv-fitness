@@ -18,6 +18,7 @@ interface AuthContextType extends AuthState {
   signUp: (email: string, password: string, fullName?: string) => Promise<{ error: Error | null; user: User | null }>;
   signOut: () => Promise<void>;
   signInWithMagicLink: (email: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   refreshSession: () => Promise<void>;
 }
 
@@ -219,6 +220,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
+  const resetPassword = async (email: string) => {
+    const supabase = createClient();
+    if (!supabase) return { error: new Error("Supabase not initialized") };
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    });
+    return { error: error as Error | null };
+  };
+
   const refreshSession = async () => {
     const supabase = createClient();
     if (!supabase) return;
@@ -244,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signUp,
         signOut,
         signInWithMagicLink,
+        resetPassword,
         refreshSession,
       }}
     >

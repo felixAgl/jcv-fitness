@@ -11,12 +11,12 @@ export class WizardDataService {
   }
 
   async saveWizardData(userId: string, data: Record<string, unknown>): Promise<WizardData> {
-    // Check if wizard data already exists
+    // Check if wizard data already exists (maybeSingle to avoid 406 when no data)
     const { data: existing } = await this.getSupabase()
       .from("wizard_data")
       .select("id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
       // Update existing
@@ -49,9 +49,12 @@ export class WizardDataService {
       .from("wizard_data")
       .select("*")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (error || !data) return null;
+    if (error) {
+      console.error("[WizardDataService] Error fetching wizard data:", error);
+      return null;
+    }
     return data;
   }
 
