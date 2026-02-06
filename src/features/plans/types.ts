@@ -4,10 +4,44 @@ export type PlanType = "free" | "paid";
 
 export type PlanStatus = "active" | "expired";
 
+// Progress tracking types
+export interface DayProgress {
+  date: string; // ISO date string YYYY-MM-DD
+  workoutCompleted: boolean;
+  mealsTracked: boolean;
+  notes?: string;
+  exercisesCompleted?: string[]; // IDs of exercises completed
+  rating?: 1 | 2 | 3 | 4 | 5; // How did you feel?
+}
+
+export interface WeekProgress {
+  weekNumber: number;
+  startDate: string;
+  endDate: string;
+  days: Record<string, DayProgress>; // key is YYYY-MM-DD
+}
+
+export interface PlanProgress {
+  totalWeeks: number;
+  currentWeek: number;
+  weeks: WeekProgress[];
+  stats: {
+    totalWorkoutsCompleted: number;
+    totalWorkoutsPlanned: number;
+    currentStreak: number;
+    longestStreak: number;
+    completionRate: number;
+  };
+}
+
+export interface PlanDataWithProgress extends WizardState {
+  progress?: PlanProgress;
+}
+
 export interface UserPlan {
   id: string;
   userId: string;
-  planData: WizardState;
+  planData: PlanDataWithProgress;
   planType: PlanType;
   createdAt: Date;
   expiresAt: Date;
@@ -19,7 +53,7 @@ export interface UserPlan {
 export interface UserPlanRow {
   id: string;
   user_id: string;
-  plan_data: WizardState;
+  plan_data: PlanDataWithProgress;
   plan_type: PlanType;
   created_at: string;
   expires_at: string;
@@ -30,7 +64,7 @@ export interface UserPlanRow {
 
 export interface ActivePlanResult {
   id: string;
-  plan_data: WizardState;
+  plan_data: PlanDataWithProgress;
   plan_type: PlanType;
   created_at: string;
   expires_at: string;

@@ -9,26 +9,14 @@ export interface TransformationImage {
 export const transformationImages: TransformationImage[] = [
   {
     id: "jcv-physique-1",
-    url: "/images/transformations/result-1.jpg",
+    url: "/images/transformations/result-2.jpg",
     alt: "JCV Fitness - Resultados reales",
     type: "progress",
   },
   {
     id: "jcv-physique-2",
-    url: "/images/transformations/result-2.jpg",
-    alt: "Entrena conmigo por 40 dias - Promocion JCV",
-    type: "promo",
-  },
-  {
-    id: "jcv-gym-1",
-    url: "/images/transformations/result-1.jpg",
-    alt: "JCV en el gym - Entrenamiento",
-    type: "gym",
-  },
-  {
-    id: "jcv-gym-2",
-    url: "/images/transformations/result-2.jpg",
-    alt: "JCV Fitness - Resultados de entrenamiento",
-    type: "gym",
+    url: "/images/transformations/result-3.jpg",
+    alt: "JCV Fitness - Definicion muscular",
+    type: "progress",
   },
 ];
