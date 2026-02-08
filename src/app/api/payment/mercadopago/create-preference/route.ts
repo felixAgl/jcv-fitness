@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const preference = new Preference(client);
 
-    const baseUrl = process.env.NEXT_PUBLIC_URL || "https://jcvfitness.com";
+    const baseUrl = process.env.NEXT_PUBLIC_URL || "https://jcv24fitness.com";
 
     const result = await preference.create({
       body: {
