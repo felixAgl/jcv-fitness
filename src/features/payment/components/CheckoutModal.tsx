@@ -22,6 +22,7 @@ interface CheckoutModalProps {
   selectedPlan?: PlanType;
   customerEmail?: string;
   customerName?: string;
+  userId?: string;
   onPaymentSuccess?: (transactionId: string, provider: PaymentProvider) => void;
   onPaymentError?: (error: string) => void;
   showStepIndicator?: boolean;
@@ -33,6 +34,7 @@ export function CheckoutModal({
   selectedPlan = "PLAN_PRO",
   customerEmail = "",
   customerName = "",
+  userId,
   onPaymentSuccess,
   onPaymentError,
   showStepIndicator = false,
@@ -70,6 +72,7 @@ export function CheckoutModal({
       const requestBody = {
         items: [product],
         planType: selectedPlan,
+        userId: userId,
         payer: customerEmail ? { email: customerEmail, name: customerName } : undefined,
         backUrls: {
           success: `${window.location.origin}/payment/success`,

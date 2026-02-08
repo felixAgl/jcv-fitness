@@ -169,6 +169,7 @@ export default function PricingPage() {
           }}
           selectedPlan={selectedPlan}
           customerEmail={user?.email}
+          userId={user?.id}
           onPaymentSuccess={handlePaymentSuccess}
           showStepIndicator={true}
         />

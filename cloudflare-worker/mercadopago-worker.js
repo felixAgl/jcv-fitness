@@ -49,7 +49,7 @@ export default {
 
     try {
       const body = await request.json();
-      const { items, payer, backUrls, planType } = body;
+      const { items, payer, backUrls, planType, userId } = body;
 
       if (!items || !Array.isArray(items) || items.length === 0) {
         return new Response(JSON.stringify({ error: 'Items are required' }), {
@@ -57,6 +57,10 @@ export default {
           headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
         });
       }
+
+      // Determine the base URL for webhooks and redirects
+      const isProduction = origin.includes('jcv24fitness.com');
+      const baseUrl = isProduction ? 'https://jcv24fitness.com' : origin;
 
       // Create MercadoPago preference
       const preferenceData = {
@@ -69,13 +73,24 @@ export default {
           unit_price: item.unitPrice,
         })),
         back_urls: backUrls || {
-          success: `${origin}/payment/success`,
-          failure: `${origin}/payment/failure`,
-          pending: `${origin}/payment/pending`,
+          success: `${baseUrl}/payment/success`,
+          failure: `${baseUrl}/payment/failure`,
+          pending: `${baseUrl}/payment/pending`,
         },
         auto_return: 'approved',
         statement_descriptor: 'JCV FITNESS',
-        external_reference: `JCV-${Date.now()}-${planType || 'PLAN_PRO'}`,
+        // Include userId in external_reference for webhook processing
+        external_reference: userId
+          ? `JCV-${Date.now()}-${userId}`
+          : `JCV-${Date.now()}`,
+        // Webhook URL for automatic subscription activation
+        notification_url: `${baseUrl}/api/webhooks/mercadopago`,
+        // Metadata for additional context
+        metadata: {
+          user_id: userId || null,
+          plan_type: planType || 'PLAN_BASICO',
+          origin: origin,
+        },
       };
 
       if (payer?.email) {

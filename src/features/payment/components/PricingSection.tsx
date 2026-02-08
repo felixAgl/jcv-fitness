@@ -119,6 +119,7 @@ export function PricingSection() {
         onClose={() => setIsCheckoutOpen(false)}
         selectedPlan={selectedPlan}
         customerEmail={user?.email}
+        userId={user?.id}
         onPaymentSuccess={handlePaymentSuccess}
         onPaymentError={handlePaymentError}
         showStepIndicator={true}
