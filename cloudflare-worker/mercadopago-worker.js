@@ -57,11 +57,12 @@ export default {
   },
 };
 
-/**
- * Handle MercadoPago webhook notifications
- */
+// ============================================================================
+// WEBHOOK HANDLER WITH FULL LOGGING
+// ============================================================================
+
 async function handleWebhook(request, env, origin) {
-  // Webhooks come from MercadoPago, not browser - allow any origin
+  const startTime = Date.now();
   const headers = {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
@@ -81,16 +82,35 @@ async function handleWebhook(request, env, origin) {
     });
   }
 
-  try {
-    const body = await request.json();
-    console.log('[Webhook] Received:', JSON.stringify(body));
+  let logId = null;
+  let body = null;
 
+  try {
+    body = await request.json();
     const { type, data, action } = body;
 
-    // Only process payment notifications
+    // STEP 1: Log webhook receipt immediately
+    logId = await logWebhook(env, {
+      status: 'received',
+      webhook_type: type || 'unknown',
+      webhook_action: action,
+      raw_payload: body,
+      headers: Object.fromEntries(request.headers),
+      payment_id: data?.id ? parseInt(data.id) : null,
+    });
+
+    console.log(`[Webhook] Received and logged: ${logId}`);
+
+    // STEP 2: Validate notification type
     if (type !== 'payment' && action !== 'payment.updated' && action !== 'payment.created') {
-      console.log('[Webhook] Ignoring non-payment notification:', type, action);
-      return new Response(JSON.stringify({ received: true, ignored: true }), {
+      await updateWebhookLog(env, logId, {
+        status: 'ignored',
+        error_message: `Ignored non-payment notification: type=${type}, action=${action}`,
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+
+      return new Response(JSON.stringify({ received: true, ignored: true, log_id: logId }), {
         status: 200,
         headers,
       });
@@ -98,51 +118,124 @@ async function handleWebhook(request, env, origin) {
 
     const paymentId = data?.id;
     if (!paymentId) {
-      console.error('[Webhook] No payment ID');
-      return new Response(JSON.stringify({ error: 'No payment ID' }), {
+      await updateWebhookLog(env, logId, {
+        status: 'failed',
+        error_message: 'No payment ID in webhook payload',
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+
+      return new Response(JSON.stringify({ error: 'No payment ID', log_id: logId }), {
         status: 400,
         headers,
       });
     }
 
-    // Fetch payment details from MercadoPago
-    const payment = await fetchPaymentDetails(paymentId, env.MP_ACCESS_TOKEN);
-    if (!payment) {
-      console.error('[Webhook] Could not fetch payment');
-      return new Response(JSON.stringify({ error: 'Could not fetch payment' }), {
-        status: 500,
-        headers,
+    // STEP 3: Check for duplicate webhook (idempotency)
+    const existingLog = await checkDuplicateWebhook(env, paymentId, action);
+    if (existingLog) {
+      await updateWebhookLog(env, logId, {
+        status: 'ignored',
+        is_duplicate: true,
+        duplicate_of: existingLog.id,
+        error_message: 'Duplicate webhook - already processed',
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
       });
-    }
 
-    console.log('[Webhook] Payment:', {
-      id: payment.id,
-      status: payment.status,
-      amount: payment.transaction_amount,
-      external_reference: payment.external_reference,
-      payer_email: payment.payer?.email,
-    });
-
-    // Only process approved payments
-    if (payment.status !== 'approved') {
-      console.log('[Webhook] Payment not approved:', payment.status);
       return new Response(JSON.stringify({
         received: true,
-        status: payment.status,
-        message: 'Payment not approved yet'
+        duplicate: true,
+        original_log_id: existingLog.id,
+        log_id: logId
       }), {
         status: 200,
         headers,
       });
     }
 
-    // Activate subscription
-    const result = await activateSubscription(payment, env);
+    // STEP 4: Mark as processing
+    await updateWebhookLog(env, logId, { status: 'processing' });
+
+    // STEP 5: Fetch payment details from MercadoPago
+    const payment = await fetchPaymentDetails(paymentId, env.MP_ACCESS_TOKEN);
+    if (!payment) {
+      await updateWebhookLog(env, logId, {
+        status: 'failed',
+        error_message: 'Could not fetch payment from MercadoPago API',
+        error_details: { payment_id: paymentId },
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+
+      return new Response(JSON.stringify({ error: 'Could not fetch payment', log_id: logId }), {
+        status: 500,
+        headers,
+      });
+    }
+
+    // STEP 6: Log payment details
+    await updateWebhookLog(env, logId, {
+      payment_status: payment.status,
+      payment_amount: payment.transaction_amount,
+      user_email: payment.payer?.email,
+      mp_api_response: {
+        id: payment.id,
+        status: payment.status,
+        status_detail: payment.status_detail,
+        amount: payment.transaction_amount,
+        external_reference: payment.external_reference,
+        payer: payment.payer,
+        metadata: payment.metadata,
+      },
+    });
+
+    console.log('[Webhook] Payment details:', {
+      id: payment.id,
+      status: payment.status,
+      amount: payment.transaction_amount,
+      payer_email: payment.payer?.email,
+    });
+
+    // STEP 7: Only process approved payments
+    if (payment.status !== 'approved') {
+      await updateWebhookLog(env, logId, {
+        status: 'ignored',
+        error_message: `Payment not approved: ${payment.status} (${payment.status_detail})`,
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+
+      return new Response(JSON.stringify({
+        received: true,
+        status: payment.status,
+        status_detail: payment.status_detail,
+        message: 'Payment not approved yet',
+        log_id: logId
+      }), {
+        status: 200,
+        headers,
+      });
+    }
+
+    // STEP 8: Activate subscription
+    const result = await activateSubscription(payment, env, logId);
+
+    // STEP 9: Mark as success
+    await updateWebhookLog(env, logId, {
+      status: 'success',
+      user_id: result.user_id,
+      subscription_id: result.subscription_id,
+      plan_type: result.plan_type,
+      processed_at: new Date().toISOString(),
+      processing_time_ms: Date.now() - startTime,
+    });
 
     return new Response(JSON.stringify({
       received: true,
       processed: true,
-      subscription: result
+      subscription: result,
+      log_id: logId
     }), {
       status: 200,
       headers,
@@ -150,16 +243,114 @@ async function handleWebhook(request, env, origin) {
 
   } catch (error) {
     console.error('[Webhook] Error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', message: error.message }), {
+
+    if (logId) {
+      await updateWebhookLog(env, logId, {
+        status: 'failed',
+        error_message: error.message,
+        error_details: {
+          stack: error.stack,
+          name: error.name,
+        },
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+    }
+
+    return new Response(JSON.stringify({
+      error: 'Internal server error',
+      message: error.message,
+      log_id: logId
+    }), {
       status: 500,
       headers,
     });
   }
 }
 
-/**
- * Fetch payment details from MercadoPago API
- */
+// ============================================================================
+// LOGGING HELPERS
+// ============================================================================
+
+async function logWebhook(env, data) {
+  try {
+    const response = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/webhook_logs`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({
+          ...data,
+          received_at: new Date().toISOString(),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      console.error('[Log] Failed to create webhook log:', await response.text());
+      return null;
+    }
+
+    const result = await response.json();
+    return result?.[0]?.id || null;
+  } catch (error) {
+    console.error('[Log] Error creating webhook log:', error);
+    return null;
+  }
+}
+
+async function updateWebhookLog(env, logId, data) {
+  if (!logId) return;
+
+  try {
+    await fetch(
+      `${env.SUPABASE_URL}/rest/v1/webhook_logs?id=eq.${logId}`,
+      {
+        method: 'PATCH',
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      }
+    );
+  } catch (error) {
+    console.error('[Log] Error updating webhook log:', error);
+  }
+}
+
+async function checkDuplicateWebhook(env, paymentId, action) {
+  try {
+    const response = await fetch(
+      `${env.SUPABASE_URL}/rest/v1/webhook_logs?payment_id=eq.${paymentId}&webhook_action=eq.${action}&status=eq.success&limit=1`,
+      {
+        headers: {
+          'apikey': env.SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+        },
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data?.[0] || null;
+  } catch (error) {
+    console.error('[Log] Error checking duplicate:', error);
+    return null;
+  }
+}
+
+// ============================================================================
+// MERCADOPAGO API
+// ============================================================================
+
 async function fetchPaymentDetails(paymentId, accessToken) {
   if (!accessToken) {
     console.error('[Webhook] MP_ACCESS_TOKEN not configured');
@@ -188,15 +379,16 @@ async function fetchPaymentDetails(paymentId, accessToken) {
   }
 }
 
-/**
- * Activate subscription in Supabase
- */
-async function activateSubscription(payment, env) {
+// ============================================================================
+// SUBSCRIPTION ACTIVATION
+// ============================================================================
+
+async function activateSubscription(payment, env, webhookLogId) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseKey = env.SUPABASE_SERVICE_KEY;
+  const operations = [];
 
   if (!supabaseUrl || !supabaseKey) {
-    console.error('[Webhook] Supabase credentials not configured');
     throw new Error('Supabase not configured');
   }
 
@@ -212,44 +404,83 @@ async function activateSubscription(payment, env) {
     userIdFromRef = refParts.slice(2).join('-');
   }
 
-  // Find user by: 1) metadata user_id, 2) external_reference user_id, 3) payer email
+  // Find user by multiple methods
   let user = null;
+  let userLookupMethod = null;
 
   if (userId) {
     user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${userId}`);
+    if (user) userLookupMethod = 'metadata_user_id';
+    operations.push({ op: 'user_lookup_metadata', success: !!user, value: userId });
   }
 
   if (!user && userIdFromRef) {
     user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${userIdFromRef}`);
+    if (user) userLookupMethod = 'external_reference';
+    operations.push({ op: 'user_lookup_ref', success: !!user, value: userIdFromRef });
   }
 
   if (!user && payerEmail) {
     user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `email=eq.${payerEmail}`);
+    if (user) userLookupMethod = 'payer_email';
+    operations.push({ op: 'user_lookup_email', success: !!user, value: payerEmail });
   }
 
   if (!user) {
-    console.error('[Webhook] User not found:', { external_reference: externalRef, payer_email: payerEmail, metadata_user_id: userId });
-    throw new Error('User not found');
+    const errorMsg = `User not found. Tried: metadata=${userId}, ref=${userIdFromRef}, email=${payerEmail}`;
+    operations.push({ op: 'user_lookup_failed', error: errorMsg });
+
+    if (webhookLogId) {
+      await updateWebhookLog(env, webhookLogId, {
+        supabase_operations: operations,
+        error_details: { user_lookup_failed: true, metadata: userId, ref: userIdFromRef, email: payerEmail },
+      });
+    }
+
+    throw new Error(errorMsg);
   }
 
-  console.log('[Webhook] Found user:', user.email);
+  console.log(`[Webhook] Found user via ${userLookupMethod}:`, user.email);
 
   // Determine plan type from amount
   const amount = payment.transaction_amount;
   const planConfig = PLAN_CONFIG[amount];
 
+  if (!planConfig) {
+    console.warn(`[Webhook] Amount ${amount} not in PLAN_CONFIG, using fallback`);
+    operations.push({ op: 'plan_lookup', success: false, amount, fallback: true });
+  } else {
+    operations.push({ op: 'plan_lookup', success: true, amount, plan: planConfig.type });
+  }
+
   const planType = planConfig?.type || payment.metadata?.plan_type || 'PLAN_BASICO';
   const planDays = planConfig?.days || 40;
 
-  // Check if subscription already exists
+  // Check if subscription already exists (idempotency at DB level)
   const existingSub = await supabaseQuery(
     supabaseUrl, supabaseKey, 'subscriptions', 'id', `payment_reference=eq.${payment.id}`
   );
 
   if (existingSub) {
-    console.log('[Webhook] Subscription already exists:', payment.id);
-    return { status: 'already_exists', subscription_id: existingSub.id };
+    operations.push({ op: 'subscription_exists', subscription_id: existingSub.id });
+
+    if (webhookLogId) {
+      await updateWebhookLog(env, webhookLogId, {
+        subscription_id: existingSub.id,
+        user_id: user.id,
+        supabase_operations: operations,
+      });
+    }
+
+    return {
+      status: 'already_exists',
+      subscription_id: existingSub.id,
+      user_id: user.id,
+      plan_type: planType,
+    };
   }
+
+  operations.push({ op: 'subscription_check', exists: false });
 
   // Create subscription
   const endDate = new Date();
@@ -266,6 +497,8 @@ async function activateSubscription(payment, env) {
     amount_paid: amount,
   });
 
+  operations.push({ op: 'subscription_insert', success: !!subscription, id: subscription?.id });
+
   // Update user profile
   await supabaseUpdate(supabaseUrl, supabaseKey, 'profiles', user.id, {
     has_active_subscription: true,
@@ -273,6 +506,44 @@ async function activateSubscription(payment, env) {
     subscription_end_date: endDate.toISOString(),
     updated_at: new Date().toISOString(),
   });
+
+  operations.push({ op: 'profile_update', success: true });
+
+  // Create audit log
+  try {
+    await supabaseInsert(supabaseUrl, supabaseKey, 'subscription_audit_log', {
+      subscription_id: subscription?.id,
+      user_id: user.id,
+      operation: 'activated',
+      new_data: {
+        plan_type: planType,
+        status: 'active',
+        start_date: new Date().toISOString(),
+        end_date: endDate.toISOString(),
+        amount_paid: amount,
+      },
+      trigger_source: 'webhook',
+      trigger_reference: String(payment.id),
+      metadata: {
+        webhook_log_id: webhookLogId,
+        user_lookup_method: userLookupMethod,
+        payment_status: payment.status,
+      },
+    });
+    operations.push({ op: 'audit_log', success: true });
+  } catch (e) {
+    operations.push({ op: 'audit_log', success: false, error: e.message });
+  }
+
+  // Update webhook log with all operations
+  if (webhookLogId) {
+    await updateWebhookLog(env, webhookLogId, {
+      subscription_id: subscription?.id,
+      user_id: user.id,
+      plan_type: planType,
+      supabase_operations: operations,
+    });
+  }
 
   console.log('[Webhook] Subscription activated:', {
     user: user.email,
@@ -284,14 +555,16 @@ async function activateSubscription(payment, env) {
   return {
     status: 'activated',
     subscription_id: subscription?.id,
+    user_id: user.id,
     plan_type: planType,
     expires: endDate.toISOString(),
   };
 }
 
-/**
- * Supabase REST API helpers
- */
+// ============================================================================
+// SUPABASE REST API HELPERS
+// ============================================================================
+
 async function supabaseQuery(url, key, table, select, filter) {
   const response = await fetch(
     `${url}/rest/v1/${table}?select=${select}&${filter}&limit=1`,
@@ -360,9 +633,10 @@ async function supabaseUpdate(url, key, table, id, data) {
   return true;
 }
 
-/**
- * Handle preference creation (original functionality)
- */
+// ============================================================================
+// PREFERENCE CREATION (Original functionality)
+// ============================================================================
+
 async function handlePreferenceCreation(request, env, origin) {
   if (request.method !== 'POST') {
     return new Response(JSON.stringify({ error: 'Method not allowed' }), {
@@ -386,7 +660,7 @@ async function handlePreferenceCreation(request, env, origin) {
     const isProduction = origin.includes('jcv24fitness.com');
     const baseUrl = isProduction ? 'https://jcv24fitness.com' : origin;
 
-    // Worker URL for webhook (this worker handles webhooks now)
+    // Worker URL for webhook
     const workerUrl = 'https://mercadopago-jcv.fagal142010.workers.dev';
 
     // Create MercadoPago preference
@@ -409,7 +683,6 @@ async function handlePreferenceCreation(request, env, origin) {
       external_reference: userId
         ? `JCV-${Date.now()}-${userId}`
         : `JCV-${Date.now()}`,
-      // Webhook URL points to THIS worker
       notification_url: `${workerUrl}/webhook`,
       metadata: {
         user_id: userId || null,
