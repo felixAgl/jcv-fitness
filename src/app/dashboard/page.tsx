@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ProtectedRoute } from "@/features/auth";
-import { SubscriptionCard, QuickActions, UserProfile } from "@/features/dashboard";
+import { SubscriptionCard, QuickActions, UserProfile, VideoTutorials } from "@/features/dashboard";
 import { PlanStatusCard } from "@/features/plans/components/PlanStatusCard";
 
 export default function DashboardPage() {
@@ -30,6 +30,7 @@ export default function DashboardPage() {
                 <h3 className="text-lg font-semibold text-white mb-4">Acciones rapidas</h3>
                 <QuickActions />
               </div>
+              <VideoTutorials />
             </div>
 
             <div className="space-y-6">
