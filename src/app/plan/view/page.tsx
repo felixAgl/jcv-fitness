@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
@@ -10,6 +10,8 @@ import { PlanExpiredOverlay } from "@/features/plans/components/PlanExpiredOverl
 
 export default function PlanViewPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") as "resumen" | "rutina" | "alimentacion" | "calendario" | null;
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { plan, isLoading: isPlanLoading, error } = usePlan();
 
@@ -93,7 +95,7 @@ export default function PlanViewPage() {
 
   return (
     <div className="min-h-screen bg-black relative">
-      <PlanViewer plan={plan} />
+      <PlanViewer plan={plan} initialTab={initialTab || undefined} />
       {plan.isExpired && <PlanExpiredOverlay />}
     </div>
   );

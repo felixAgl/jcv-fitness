@@ -16,14 +16,15 @@ type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
 
 interface PlanViewerProps {
   plan: UserPlan & { isExpired: boolean; daysRemaining: number };
+  initialTab?: TabType;
 }
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
-export function PlanViewer({ plan }: PlanViewerProps) {
+export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
   const router = useRouter();
   const { profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<TabType>("resumen");
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab || "resumen");
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
   const [selectedMealDay, setSelectedMealDay] = useState(0);
 
