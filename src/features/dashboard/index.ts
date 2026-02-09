@@ -1,1 +1,1 @@
-export { SubscriptionCard, QuickActions, UserProfile } from "./components";
+export { SubscriptionCard, QuickActions, UserProfile, VideoTutorials } from "./components";

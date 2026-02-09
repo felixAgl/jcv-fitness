@@ -11,6 +11,10 @@
  * - SUPABASE_SERVICE_KEY: Supabase service role key
  */
 
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
 const ALLOWED_ORIGINS = [
   'https://jcv24fitness.com',
   'https://www.jcv24fitness.com',
@@ -21,12 +25,44 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ];
 
-// Plan configuration
 const PLAN_CONFIG = {
   49900: { type: 'PLAN_BASICO', days: 40 },
   89900: { type: 'PLAN_PRO', days: 40 },
   149900: { type: 'PLAN_PREMIUM', days: 40 },
 };
+
+// =============================================================================
+// ERROR TYPES - Distinguir errores recuperables vs permanentes
+// =============================================================================
+
+const ErrorType = {
+  // Errores de configuracion - NO reintentar, alertar admin
+  CONFIG_ERROR: 'CONFIG_ERROR',
+  AUTH_ERROR: 'AUTH_ERROR',
+
+  // Errores de datos - NO reintentar, datos invalidos
+  NOT_FOUND: 'NOT_FOUND',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+
+  // Errores temporales - SI reintentar
+  NETWORK_ERROR: 'NETWORK_ERROR',
+  RATE_LIMIT: 'RATE_LIMIT',
+  SERVER_ERROR: 'SERVER_ERROR',
+};
+
+class WorkerError extends Error {
+  constructor(message, type, details = {}) {
+    super(message);
+    this.name = 'WorkerError';
+    this.type = type;
+    this.details = details;
+    this.shouldRetry = [ErrorType.NETWORK_ERROR, ErrorType.RATE_LIMIT, ErrorType.SERVER_ERROR].includes(type);
+  }
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
 
 const corsHeaders = (origin) => ({
   'Access-Control-Allow-Origin': ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0],
@@ -34,62 +70,79 @@ const corsHeaders = (origin) => ({
   'Access-Control-Allow-Headers': 'Content-Type',
 });
 
+const jsonResponse = (data, status, origin = '*') => {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Access-Control-Allow-Origin': origin,
+    },
+  });
+};
+
+function validateEnvConfig(env) {
+  const missing = [];
+  if (!env.MP_ACCESS_TOKEN) missing.push('MP_ACCESS_TOKEN');
+  if (!env.SUPABASE_URL) missing.push('SUPABASE_URL');
+  if (!env.SUPABASE_SERVICE_KEY) missing.push('SUPABASE_SERVICE_KEY');
+
+  if (missing.length > 0) {
+    throw new WorkerError(
+      `Missing required configuration: ${missing.join(', ')}`,
+      ErrorType.CONFIG_ERROR,
+      { missing }
+    );
+  }
+}
+
+// =============================================================================
+// MAIN HANDLER
+// =============================================================================
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
 
-    // Handle CORS preflight
+    // CORS preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        status: 204,
-        headers: corsHeaders(origin),
-      });
+      return new Response(null, { status: 204, headers: corsHeaders(origin) });
     }
 
-    // Route based on path
+    // Route
     if (url.pathname === '/webhook' || url.pathname === '/api/webhooks/mercadopago') {
       return handleWebhook(request, env, origin);
     }
 
-    // Default: handle preference creation
     return handlePreferenceCreation(request, env, origin);
   },
 };
 
-// ============================================================================
-// WEBHOOK HANDLER WITH FULL LOGGING
-// ============================================================================
+// =============================================================================
+// WEBHOOK HANDLER
+// =============================================================================
 
 async function handleWebhook(request, env, origin) {
   const startTime = Date.now();
-  const headers = {
-    'Content-Type': 'application/json',
-    'Access-Control-Allow-Origin': '*',
-  };
+  let logId = null;
 
+  // Health check
   if (request.method === 'GET') {
-    return new Response(JSON.stringify({ status: 'ok', service: 'mercadopago-webhook' }), {
-      status: 200,
-      headers,
-    });
+    return jsonResponse({ status: 'ok', service: 'mercadopago-webhook' }, 200);
   }
 
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers,
-    });
+    return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
-  let logId = null;
-  let body = null;
-
   try {
-    body = await request.json();
+    // Validar configuracion antes de procesar
+    validateEnvConfig(env);
+
+    const body = await request.json();
     const { type, data, action } = body;
 
-    // STEP 1: Log webhook receipt immediately
+    // STEP 1: Log inmediato
     logId = await logWebhook(env, {
       status: 'received',
       webhook_type: type || 'unknown',
@@ -99,9 +152,7 @@ async function handleWebhook(request, env, origin) {
       payment_id: data?.id ? parseInt(data.id) : null,
     });
 
-    console.log(`[Webhook] Received and logged: ${logId}`);
-
-    // STEP 2: Validate notification type
+    // STEP 2: Validar tipo de notificacion
     if (type !== 'payment' && action !== 'payment.updated' && action !== 'payment.created') {
       await updateWebhookLog(env, logId, {
         status: 'ignored',
@@ -109,11 +160,7 @@ async function handleWebhook(request, env, origin) {
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(JSON.stringify({ received: true, ignored: true, log_id: logId }), {
-        status: 200,
-        headers,
-      });
+      return jsonResponse({ received: true, ignored: true, reason: 'non-payment', log_id: logId }, 200);
     }
 
     const paymentId = data?.id;
@@ -124,14 +171,10 @@ async function handleWebhook(request, env, origin) {
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(JSON.stringify({ error: 'No payment ID', log_id: logId }), {
-        status: 400,
-        headers,
-      });
+      return jsonResponse({ error: 'No payment ID', log_id: logId }, 400);
     }
 
-    // STEP 3: Check for duplicate webhook (idempotency)
+    // STEP 3: Idempotencia - verificar duplicados
     const existingLog = await checkDuplicateWebhook(env, paymentId, action);
     if (existingLog) {
       await updateWebhookLog(env, logId, {
@@ -142,39 +185,49 @@ async function handleWebhook(request, env, origin) {
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(JSON.stringify({
-        received: true,
-        duplicate: true,
-        original_log_id: existingLog.id,
-        log_id: logId
-      }), {
-        status: 200,
-        headers,
-      });
+      return jsonResponse({ received: true, duplicate: true, original_log_id: existingLog.id, log_id: logId }, 200);
     }
 
-    // STEP 4: Mark as processing
+    // STEP 4: Marcar como procesando
     await updateWebhookLog(env, logId, { status: 'processing' });
 
-    // STEP 5: Fetch payment details from MercadoPago
-    const payment = await fetchPaymentDetails(paymentId, env.MP_ACCESS_TOKEN);
-    if (!payment) {
+    // STEP 5: Obtener detalles del pago
+    const paymentResult = await fetchPaymentDetails(paymentId, env.MP_ACCESS_TOKEN);
+
+    if (paymentResult.error) {
+      const { error } = paymentResult;
+
       await updateWebhookLog(env, logId, {
-        status: 'failed',
-        error_message: 'Could not fetch payment from MercadoPago API',
-        error_details: { payment_id: paymentId },
+        status: error.shouldRetry ? 'failed' : 'ignored',
+        error_message: error.message,
+        error_details: { type: error.type, ...error.details },
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
 
-      return new Response(JSON.stringify({ error: 'Could not fetch payment', log_id: logId }), {
-        status: 500,
-        headers,
-      });
+      // Solo devolver 500 si el error es recuperable (MP debe reintentar)
+      if (error.shouldRetry) {
+        return jsonResponse({
+          error: error.message,
+          type: error.type,
+          shouldRetry: true,
+          log_id: logId
+        }, 500);
+      }
+
+      // Error permanente (NOT_FOUND, AUTH_ERROR) - devolver 200 para que MP no reintente
+      return jsonResponse({
+        received: true,
+        processed: false,
+        reason: error.message,
+        type: error.type,
+        log_id: logId
+      }, 200);
     }
 
-    // STEP 6: Log payment details
+    const payment = paymentResult.data;
+
+    // STEP 6: Log detalles del pago
     await updateWebhookLog(env, logId, {
       payment_status: payment.status,
       payment_amount: payment.transaction_amount,
@@ -190,14 +243,7 @@ async function handleWebhook(request, env, origin) {
       },
     });
 
-    console.log('[Webhook] Payment details:', {
-      id: payment.id,
-      status: payment.status,
-      amount: payment.transaction_amount,
-      payer_email: payment.payer?.email,
-    });
-
-    // STEP 7: Only process approved payments
+    // STEP 7: Solo procesar pagos aprobados
     if (payment.status !== 'approved') {
       await updateWebhookLog(env, logId, {
         status: 'ignored',
@@ -205,23 +251,19 @@ async function handleWebhook(request, env, origin) {
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
-
-      return new Response(JSON.stringify({
+      return jsonResponse({
         received: true,
         status: payment.status,
         status_detail: payment.status_detail,
         message: 'Payment not approved yet',
         log_id: logId
-      }), {
-        status: 200,
-        headers,
-      });
+      }, 200);
     }
 
-    // STEP 8: Activate subscription
+    // STEP 8: Activar suscripcion
     const result = await activateSubscription(payment, env, logId);
 
-    // STEP 9: Mark as success
+    // STEP 9: Exito
     await updateWebhookLog(env, logId, {
       status: 'success',
       user_id: result.user_id,
@@ -231,46 +273,145 @@ async function handleWebhook(request, env, origin) {
       processing_time_ms: Date.now() - startTime,
     });
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       received: true,
       processed: true,
       subscription: result,
       log_id: logId
-    }), {
-      status: 200,
-      headers,
-    });
+    }, 200);
 
   } catch (error) {
     console.error('[Webhook] Error:', error);
+
+    const isWorkerError = error instanceof WorkerError;
+    const errorType = isWorkerError ? error.type : ErrorType.SERVER_ERROR;
+    const shouldRetry = isWorkerError ? error.shouldRetry : true;
 
     if (logId) {
       await updateWebhookLog(env, logId, {
         status: 'failed',
         error_message: error.message,
         error_details: {
+          type: errorType,
           stack: error.stack,
           name: error.name,
+          ...(isWorkerError ? error.details : {}),
         },
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
     }
 
-    return new Response(JSON.stringify({
-      error: 'Internal server error',
-      message: error.message,
+    // CONFIG_ERROR siempre devuelve 500 - necesita atencion inmediata
+    if (errorType === ErrorType.CONFIG_ERROR) {
+      return jsonResponse({
+        error: 'Server configuration error',
+        message: error.message,
+        log_id: logId
+      }, 500);
+    }
+
+    return jsonResponse({
+      error: shouldRetry ? 'Internal server error' : error.message,
+      shouldRetry,
       log_id: logId
-    }), {
-      status: 500,
-      headers,
-    });
+    }, shouldRetry ? 500 : 200);
   }
 }
 
-// ============================================================================
+// =============================================================================
+// MERCADOPAGO API
+// =============================================================================
+
+async function fetchPaymentDetails(paymentId, accessToken) {
+  // Validar token
+  if (!accessToken) {
+    return {
+      error: new WorkerError(
+        'MP_ACCESS_TOKEN not configured',
+        ErrorType.CONFIG_ERROR
+      )
+    };
+  }
+
+  try {
+    const response = await fetch(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+
+    // Manejar diferentes codigos de respuesta
+    if (response.status === 401 || response.status === 403) {
+      return {
+        error: new WorkerError(
+          'Invalid or expired MercadoPago access token',
+          ErrorType.AUTH_ERROR,
+          { status: response.status }
+        )
+      };
+    }
+
+    if (response.status === 404) {
+      return {
+        error: new WorkerError(
+          `Payment ${paymentId} not found in MercadoPago`,
+          ErrorType.NOT_FOUND,
+          { payment_id: paymentId }
+        )
+      };
+    }
+
+    if (response.status === 429) {
+      return {
+        error: new WorkerError(
+          'MercadoPago rate limit exceeded',
+          ErrorType.RATE_LIMIT,
+          { status: response.status }
+        )
+      };
+    }
+
+    if (response.status >= 500) {
+      return {
+        error: new WorkerError(
+          'MercadoPago server error',
+          ErrorType.SERVER_ERROR,
+          { status: response.status }
+        )
+      };
+    }
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        error: new WorkerError(
+          `MercadoPago API error: ${response.status}`,
+          ErrorType.SERVER_ERROR,
+          { status: response.status, body: errorText }
+        )
+      };
+    }
+
+    const data = await response.json();
+    return { data };
+
+  } catch (error) {
+    // Error de red (DNS, timeout, etc)
+    return {
+      error: new WorkerError(
+        `Network error fetching payment: ${error.message}`,
+        ErrorType.NETWORK_ERROR,
+        { originalError: error.message }
+      )
+    };
+  }
+}
+
+// =============================================================================
 // LOGGING HELPERS
-// ============================================================================
+// =============================================================================
 
 async function logWebhook(env, data) {
   try {
@@ -347,52 +488,15 @@ async function checkDuplicateWebhook(env, paymentId, action) {
   }
 }
 
-// ============================================================================
-// MERCADOPAGO API
-// ============================================================================
-
-async function fetchPaymentDetails(paymentId, accessToken) {
-  if (!accessToken) {
-    console.error('[Webhook] MP_ACCESS_TOKEN not configured');
-    return null;
-  }
-
-  try {
-    const response = await fetch(
-      `https://api.mercadopago.com/v1/payments/${paymentId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error('[Webhook] MercadoPago API error:', response.status);
-      return null;
-    }
-
-    return response.json();
-  } catch (error) {
-    console.error('[Webhook] Error fetching payment:', error);
-    return null;
-  }
-}
-
-// ============================================================================
+// =============================================================================
 // SUBSCRIPTION ACTIVATION
-// ============================================================================
+// =============================================================================
 
 async function activateSubscription(payment, env, webhookLogId) {
-  const supabaseUrl = env.SUPABASE_URL;
-  const supabaseKey = env.SUPABASE_SERVICE_KEY;
+  const { SUPABASE_URL: supabaseUrl, SUPABASE_SERVICE_KEY: supabaseKey } = env;
   const operations = [];
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Supabase not configured');
-  }
-
-  // Extract user info from payment
+  // Extract user info
   const externalRef = payment.external_reference || '';
   const payerEmail = payment.payer?.email;
   const userId = payment.metadata?.user_id;
@@ -437,10 +541,12 @@ async function activateSubscription(payment, env, webhookLogId) {
       });
     }
 
-    throw new Error(errorMsg);
+    throw new WorkerError(errorMsg, ErrorType.VALIDATION_ERROR, {
+      metadata: userId,
+      ref: userIdFromRef,
+      email: payerEmail
+    });
   }
-
-  console.log(`[Webhook] Found user via ${userLookupMethod}:`, user.email);
 
   // Determine plan type from amount
   const amount = payment.transaction_amount;
@@ -456,7 +562,7 @@ async function activateSubscription(payment, env, webhookLogId) {
   const planType = planConfig?.type || payment.metadata?.plan_type || 'PLAN_BASICO';
   const planDays = planConfig?.days || 40;
 
-  // Check if subscription already exists (idempotency at DB level)
+  // Check if subscription already exists (idempotency)
   const existingSub = await supabaseQuery(
     supabaseUrl, supabaseKey, 'subscriptions', 'id', `payment_reference=eq.${payment.id}`
   );
@@ -535,7 +641,7 @@ async function activateSubscription(payment, env, webhookLogId) {
     operations.push({ op: 'audit_log', success: false, error: e.message });
   }
 
-  // Update webhook log with all operations
+  // Update webhook log
   if (webhookLogId) {
     await updateWebhookLog(env, webhookLogId, {
       subscription_id: subscription?.id,
@@ -561,9 +667,9 @@ async function activateSubscription(payment, env, webhookLogId) {
   };
 }
 
-// ============================================================================
+// =============================================================================
 // SUPABASE REST API HELPERS
-// ============================================================================
+// =============================================================================
 
 async function supabaseQuery(url, key, table, select, filter) {
   const response = await fetch(
@@ -603,7 +709,7 @@ async function supabaseInsert(url, key, table, data) {
   if (!response.ok) {
     const error = await response.text();
     console.error('[Supabase] Insert error:', error);
-    throw new Error(`Supabase insert failed: ${error}`);
+    throw new WorkerError(`Supabase insert failed: ${error}`, ErrorType.SERVER_ERROR);
   }
 
   const result = await response.json();
@@ -627,25 +733,27 @@ async function supabaseUpdate(url, key, table, id, data) {
   if (!response.ok) {
     const error = await response.text();
     console.error('[Supabase] Update error:', error);
-    throw new Error(`Supabase update failed: ${error}`);
+    throw new WorkerError(`Supabase update failed: ${error}`, ErrorType.SERVER_ERROR);
   }
 
   return true;
 }
 
-// ============================================================================
-// PREFERENCE CREATION (Original functionality)
-// ============================================================================
+// =============================================================================
+// PREFERENCE CREATION
+// =============================================================================
 
 async function handlePreferenceCreation(request, env, origin) {
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
-    });
+    return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders(origin)['Access-Control-Allow-Origin']);
   }
 
   try {
+    // Validar configuracion
+    if (!env.MP_ACCESS_TOKEN) {
+      throw new WorkerError('MP_ACCESS_TOKEN not configured', ErrorType.CONFIG_ERROR);
+    }
+
     const body = await request.json();
     const { items, payer, backUrls, planType, userId } = body;
 
@@ -656,14 +764,13 @@ async function handlePreferenceCreation(request, env, origin) {
       });
     }
 
-    // Determine the base URL for redirects
+    // Determine URLs
     const isProduction = origin.includes('jcv24fitness.com');
     const baseUrl = isProduction ? 'https://jcv24fitness.com' : origin;
+    const requestUrl = new URL(request.url);
+    const workerUrl = env.WORKER_URL || `https://${requestUrl.hostname}`;
 
-    // Worker URL for webhook
-    const workerUrl = 'https://mercadopago-jcv.fagal142010.workers.dev';
-
-    // Create MercadoPago preference
+    // Build preference
     const preferenceData = {
       items: items.map(item => ({
         id: item.id,
@@ -680,9 +787,7 @@ async function handlePreferenceCreation(request, env, origin) {
       },
       auto_return: 'approved',
       statement_descriptor: 'JCV FITNESS',
-      external_reference: userId
-        ? `JCV-${Date.now()}-${userId}`
-        : `JCV-${Date.now()}`,
+      external_reference: userId ? `JCV-${Date.now()}-${userId}` : `JCV-${Date.now()}`,
       notification_url: `${workerUrl}/webhook`,
       metadata: {
         user_id: userId || null,
@@ -710,6 +815,18 @@ async function handlePreferenceCreation(request, env, origin) {
     if (!mpResponse.ok) {
       const errorData = await mpResponse.text();
       console.error('MercadoPago error:', errorData);
+
+      // Distinguir tipo de error
+      if (mpResponse.status === 401 || mpResponse.status === 403) {
+        return new Response(JSON.stringify({
+          error: 'Authentication error with MercadoPago',
+          details: 'Invalid access token'
+        }), {
+          status: 500,
+          headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
+        });
+      }
+
       return new Response(JSON.stringify({ error: 'Failed to create preference', details: errorData }), {
         status: mpResponse.status,
         headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
@@ -729,7 +846,13 @@ async function handlePreferenceCreation(request, env, origin) {
 
   } catch (error) {
     console.error('Worker error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', message: error.message }), {
+
+    const isConfigError = error instanceof WorkerError && error.type === ErrorType.CONFIG_ERROR;
+
+    return new Response(JSON.stringify({
+      error: isConfigError ? 'Server configuration error' : 'Internal server error',
+      message: error.message
+    }), {
       status: 500,
       headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
     });

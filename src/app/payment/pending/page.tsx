@@ -33,21 +33,21 @@ function PendingContent() {
           </h1>
 
           <p className="text-gray-400 mb-6">
-            Tu pago esta siendo procesado. Te notificaremos por correo electronico cuando se confirme.
+            Tu pago está siendo procesado. Te notificaremos por correo electrónico cuando se confirme.
           </p>
 
           {paymentId && (
             <div className="bg-gray-900 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-500 mb-1">ID de Transaccion</p>
+              <p className="text-sm text-gray-500 mb-1">ID de Transacción</p>
               <p className="text-yellow-500 font-mono">{paymentId}</p>
               <p className="text-sm text-yellow-500/70 mt-2">
-                Estado: Pendiente de confirmacion
+                Estado: Pendiente de confirmación
               </p>
             </div>
           )}
 
           <div className="bg-gray-900/50 rounded-lg p-4 mb-6 text-left">
-            <h3 className="text-white font-semibold mb-2">Que sigue?</h3>
+            <h3 className="text-white font-semibold mb-2">¿Qué sigue?</h3>
             <ul className="text-sm text-gray-400 space-y-2">
               <li className="flex items-start gap-2">
                 <span className="text-yellow-500">1.</span>
@@ -55,11 +55,11 @@ function PendingContent() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-yellow-500">2.</span>
-                Si usaste PSE, espera la confirmacion del banco
+                Si usaste PSE, espera la confirmación del banco
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-yellow-500">3.</span>
-                Recibiras un correo cuando el pago sea confirmado
+                Recibirás un correo cuando el pago sea confirmado
               </li>
             </ul>
           </div>

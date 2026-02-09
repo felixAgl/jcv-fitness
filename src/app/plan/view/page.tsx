@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
 import { PlanViewer } from "@/features/plans/components/PlanViewer";
 import { PlanExpiredOverlay } from "@/features/plans/components/PlanExpiredOverlay";
 
-export default function PlanViewPage() {
+function PlanViewContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") as "resumen" | "rutina" | "alimentacion" | "calendario" | null;
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { plan, isLoading: isPlanLoading, error } = usePlan();
 
@@ -93,8 +95,27 @@ export default function PlanViewPage() {
 
   return (
     <div className="min-h-screen bg-black relative">
-      <PlanViewer plan={plan} />
+      <PlanViewer plan={plan} initialTab={initialTab || undefined} />
       {plan.isExpired && <PlanExpiredOverlay />}
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin inline-block w-12 h-12 border-4 border-accent-cyan border-t-transparent rounded-full mb-4" />
+        <p className="text-gray-400">Cargando...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function PlanViewPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <PlanViewContent />
+    </Suspense>
   );
 }

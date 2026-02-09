@@ -82,7 +82,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Configuracion</h1>
+            <h1 className="text-2xl font-bold text-white mb-2">Configuración</h1>
             <p className="text-gray-400">Administra tu perfil y cuenta</p>
           </div>
 
@@ -92,7 +92,7 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="w-5 h-5 text-accent-cyan" />
-                  Informacion del perfil
+                  Información del perfil
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -112,7 +112,7 @@ export default function SettingsPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Correo electronico
+                    Correo electrónico
                   </label>
                   <div className="flex items-center gap-3 px-4 py-3 bg-gray-800/50 border border-gray-700/50 rounded-lg">
                     <Mail className="w-5 h-5 text-gray-500" />
@@ -158,7 +158,7 @@ export default function SettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-accent-cyan" />
-                  Informacion de la cuenta
+                  Información de la cuenta
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -168,7 +168,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 mt-1">
                       <div className={`w-2 h-2 rounded-full ${profile?.has_active_subscription ? "bg-green-500" : "bg-gray-500"}`} />
                       <span className="text-white">
-                        {profile?.has_active_subscription ? "Suscripcion activa" : "Sin suscripcion"}
+                        {profile?.has_active_subscription ? "Suscripción activa" : "Sin suscripción"}
                       </span>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export default function SettingsPage() {
                   </div>
                   {profile?.subscription_end_date && (
                     <div>
-                      <span className="text-sm text-gray-500">Suscripcion hasta</span>
+                      <span className="text-sm text-gray-500">Suscripción hasta</span>
                       <p className="text-white mt-1">{formatDate(profile.subscription_end_date)}</p>
                     </div>
                   )}
@@ -199,7 +199,7 @@ export default function SettingsPage() {
                 {!profile?.has_active_subscription && (
                   <Link href="/pricing">
                     <Button variant="outline" className="w-full mt-4">
-                      Ver planes de suscripcion
+                      Ver planes de suscripción
                     </Button>
                   </Link>
                 )}
@@ -213,7 +213,7 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-gray-400 text-sm mb-4">
-                  Para eliminar tu cuenta o cancelar tu suscripcion, contacta con soporte.
+                  Para eliminar tu cuenta o cancelar tu suscripción, contacta con soporte.
                 </p>
                 <a
                   href="https://wa.me/573143826430?text=Hola,%20necesito%20ayuda%20con%20mi%20cuenta%20de%20JCV%20Fitness"

@@ -25,7 +25,7 @@ export function SubscriptionCard() {
             </svg>
           </div>
           <div>
-            <h3 className="text-lg font-bold text-white">Sin suscripcion activa</h3>
+            <h3 className="text-lg font-bold text-white">Sin suscripción activa</h3>
             <p className="text-gray-400 text-sm">Activa tu plan para acceder al contenido</p>
           </div>
         </div>
@@ -54,7 +54,7 @@ export function SubscriptionCard() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-white">{plan?.name || "Plan Activo"}</h3>
-            <p className="text-accent-cyan text-sm font-medium">Suscripcion activa</p>
+            <p className="text-accent-cyan text-sm font-medium">Suscripción activa</p>
           </div>
         </div>
         <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm font-medium">
@@ -74,16 +74,16 @@ export function SubscriptionCard() {
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-gray-400">Dias restantes:</span>
+          <span className="text-gray-400">Días restantes:</span>
           <span className={`font-bold ${isExpiringSoon ? "text-orange-400" : "text-accent-cyan"}`}>
-            {daysRemaining} dias
+            {daysRemaining} días
           </span>
         </div>
 
         {isExpiringSoon && (
           <div className="mt-4 p-3 bg-orange-500/10 border border-orange-500/30 rounded-xl">
             <p className="text-orange-400 text-sm">
-              Tu suscripcion esta por vencer. Renueva para no perder acceso.
+              Tu suscripción está por vencer. Renueva para no perder acceso.
             </p>
           </div>
         )}

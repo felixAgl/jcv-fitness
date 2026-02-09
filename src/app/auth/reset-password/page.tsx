@@ -20,7 +20,7 @@ export default function ResetPasswordPage() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) {
-        setError("Enlace invalido o expirado. Solicita un nuevo enlace de restablecimiento.");
+        setError("Enlace inválido o expirado. Solicita un nuevo enlace de restablecimiento.");
       }
     });
   }, []);
@@ -31,20 +31,20 @@ export default function ResetPasswordPage() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError("Las contrasenas no coinciden");
+      setError("Las contraseñas no coinciden");
       setIsLoading(false);
       return;
     }
 
     if (password.length < 6) {
-      setError("La contrasena debe tener al menos 6 caracteres");
+      setError("La contraseña debe tener al menos 6 caracteres");
       setIsLoading(false);
       return;
     }
 
     const supabase = createClient();
     if (!supabase) {
-      setError("Error de conexion");
+      setError("Error de conexión");
       setIsLoading(false);
       return;
     }
@@ -75,7 +75,7 @@ export default function ResetPasswordPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-white mb-2">Contrasena actualizada</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Contraseña actualizada</h2>
           <p className="text-gray-400">Redirigiendo al dashboard...</p>
         </div>
       </div>
@@ -87,14 +87,14 @@ export default function ResetPasswordPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <JCVLogoMini variant="cyan" size="lg" className="mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Nueva contrasena</h1>
-          <p className="text-gray-400">Ingresa tu nueva contrasena</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Nueva contraseña</h1>
+          <p className="text-gray-400">Ingresa tu nueva contraseña</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-2">
-              Nueva contrasena
+              Nueva contraseña
             </label>
             <input
               id="password"
@@ -104,13 +104,13 @@ export default function ResetPasswordPage() {
               required
               minLength={6}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent-cyan transition-colors"
-              placeholder="Minimo 6 caracteres"
+              placeholder="Mínimo 6 caracteres"
             />
           </div>
 
           <div>
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-400 mb-2">
-              Confirmar contrasena
+              Confirmar contraseña
             </label>
             <input
               id="confirmPassword"
@@ -119,7 +119,7 @@ export default function ResetPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent-cyan transition-colors"
-              placeholder="Repite tu contrasena"
+              placeholder="Repite tu contraseña"
             />
           </div>
 
@@ -143,7 +143,7 @@ export default function ResetPasswordPage() {
                 Guardando...
               </span>
             ) : (
-              "Guardar contrasena"
+              "Guardar contraseña"
             )}
           </button>
         </form>

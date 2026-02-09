@@ -82,18 +82,20 @@ export default function DownloadPlanPage() {
             <div className="space-y-4 mb-6">
               <div className="flex justify-between py-3 border-b border-gray-800">
                 <span className="text-gray-400">Estado:</span>
-                <span className="text-green-400 font-medium">Activo</span>
+                <span className={`font-medium ${hasActiveSubscription ? "text-green-400" : "text-red-400"}`}>
+                  {isLoading ? "Verificando..." : hasActiveSubscription ? "Activo" : "Inactivo"}
+                </span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-800">
                 <span className="text-gray-400">Dias restantes:</span>
-                <span className="text-accent-cyan font-medium">
+                <span className={`font-medium ${daysRemaining > 0 ? "text-accent-cyan" : "text-red-400"}`}>
                   {isLoading ? "..." : `${daysRemaining} dias`}
                 </span>
               </div>
               <div className="flex justify-between py-3 border-b border-gray-800">
                 <span className="text-gray-400">Plan:</span>
                 <span className="text-white font-medium">
-                  {subscription?.plan_type?.replace("PLAN_", "") || "Cargando..."}
+                  {isLoading ? "Cargando..." : subscription?.plan_type?.replace("PLAN_", "") || "Sin plan"}
                 </span>
               </div>
             </div>
@@ -144,7 +146,7 @@ export default function DownloadPlanPage() {
           <p className="text-center text-gray-300 text-xs mt-6">
             Al descargar, aceptas que este contenido es para uso personal.
             <br />
-            La distribucion no autorizada esta prohibida.
+            La distribución no autorizada está prohibida.
           </p>
         </div>
       </div>
