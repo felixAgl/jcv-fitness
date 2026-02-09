@@ -33,8 +33,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: false,
   });
 
-  // Track if we've already processed initial auth to avoid double processing
-  const initialAuthProcessed = useRef(false);
+  // Track current session ID to avoid re-processing same session
+  const currentSessionId = useRef<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch profile helper - stable reference
@@ -80,9 +80,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleAuthChange = async (session: Session | null, source: string) => {
       if (!isMounted) return;
 
-      // Avoid processing multiple times for same session
-      if (initialAuthProcessed.current && source !== "sign_out") {
-        console.log("[Auth] Already processed initial auth, skipping:", source);
+      const newSessionId = session?.access_token || null;
+
+      // Skip only if EXACT SAME session (same token)
+      if (newSessionId && newSessionId === currentSessionId.current) {
+        console.log("[Auth] Same session, skipping:", source);
         return;
       }
 
@@ -92,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearAuthTimeout();
 
       if (session?.user) {
-        initialAuthProcessed.current = true;
+        currentSessionId.current = newSessionId;
 
         // SET USER IMMEDIATELY - don't wait for profile
         setState({
@@ -112,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
       } else {
-        initialAuthProcessed.current = true;
+        currentSessionId.current = null;
         setState({
           user: null,
           session: null,
@@ -129,13 +131,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (event: AuthChangeEvent, session: Session | null) => {
         console.log("[Auth] onAuthStateChange event:", event);
 
-        // Handle sign out specially
-        if (event === "SIGNED_OUT") {
-          initialAuthProcessed.current = false;
-          await handleAuthChange(null, "sign_out");
-        } else {
-          await handleAuthChange(session, `onAuthStateChange:${event}`);
-        }
+        // Handle all auth events - let handleAuthChange dedupe by session token
+        await handleAuthChange(session, `onAuthStateChange:${event}`);
       }
     );
 
@@ -151,20 +148,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       });
 
-    // Timeout fallback - only if nothing has processed yet
+    // Timeout fallback - only if still loading
     timeoutRef.current = setTimeout(() => {
-      if (isMounted && !initialAuthProcessed.current) {
-        console.log("[Auth] Timeout reached, forcing isLoading=false");
-        initialAuthProcessed.current = true;
-        setState({
-          user: null,
-          session: null,
-          profile: null,
-          isLoading: false,
-          isAuthenticated: false,
+      if (isMounted) {
+        setState(prev => {
+          if (prev.isLoading) {
+            console.log("[Auth] Timeout reached, forcing isLoading=false");
+            return {
+              user: null,
+              session: null,
+              profile: null,
+              isLoading: false,
+              isAuthenticated: false,
+            };
+          }
+          return prev;
         });
       }
-    }, 5000);
+    }, 3000); // Reduced from 5s to 3s for faster fallback
 
     // Cleanup
     return () => {
@@ -203,8 +204,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     const supabase = createClient();
     if (!supabase) return;
-    // Reset the processed flag so we can process the sign out
-    initialAuthProcessed.current = false;
     await supabase.auth.signOut();
   };
 
