@@ -3,9 +3,29 @@ main = "mercadopago-worker.js"
 compatibility_date = "2024-01-01"
 
 # Environment variables (secrets should be set via wrangler secret put)
-# MP_ACCESS_TOKEN - Set this as a secret, not here!
+# MP_ACCESS_TOKEN - MercadoPago Access Token (TEST or PROD)
+# SUPABASE_URL - Supabase project URL
+# SUPABASE_SERVICE_KEY - Supabase service role key
 
-# Optional: Custom domain
+# =============================================================================
+# STAGING ENVIRONMENT
+# =============================================================================
+# Deploy with: wrangler deploy --env staging
+# Worker URL: mercadopago-jcv-staging.fagal142010.workers.dev
+# Supabase: jcv-fitness-staging (bqfkyknswklzlxkhebiy)
+# =============================================================================
+[env.staging]
+name = "mercadopago-jcv-staging"
+
+# =============================================================================
+# PRODUCTION ENVIRONMENT (default)
+# =============================================================================
+# Deploy with: wrangler deploy
+# Worker URL: mercadopago-jcv.fagal142010.workers.dev
+# Supabase: felixAgl's Project (chqgylghpuzcqzkbuhsk)
+# =============================================================================
+
+# Optional: Custom domain for production
 # routes = [
-#   { pattern = "api.jcvfitness.com/*", zone_name = "jcvfitness.com" }
+#   { pattern = "api.jcv24fitness.com/*", zone_name = "jcv24fitness.com" }
 # ]

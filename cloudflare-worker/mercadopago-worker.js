@@ -660,8 +660,9 @@ async function handlePreferenceCreation(request, env, origin) {
     const isProduction = origin.includes('jcv24fitness.com');
     const baseUrl = isProduction ? 'https://jcv24fitness.com' : origin;
 
-    // Worker URL for webhook
-    const workerUrl = 'https://mercadopago-jcv.fagal142010.workers.dev';
+    // Worker URL for webhook - use env variable or detect from request URL
+    const requestUrl = new URL(request.url);
+    const workerUrl = env.WORKER_URL || `https://${requestUrl.hostname}`;
 
     // Create MercadoPago preference
     const preferenceData = {
