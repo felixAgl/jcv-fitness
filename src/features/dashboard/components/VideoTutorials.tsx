@@ -1,56 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useSubscription } from "@/features/subscription";
-
-interface VideoTutorial {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail: string;
-  duration: string;
-  category: "ejercicios" | "nutricion" | "tecnica";
-  isPremium: boolean;
-}
-
-const TUTORIALS: VideoTutorial[] = [
-  {
-    id: "1",
-    title: "Tecnica correcta de Sentadilla",
-    description: "Aprende la forma perfecta para evitar lesiones",
-    thumbnail: "/images/tutorials/squat.jpg",
-    duration: "8:30",
-    category: "tecnica",
-    isPremium: false,
-  },
-  {
-    id: "2",
-    title: "Press de Banca - Guia Completa",
-    description: "Domina el press de banca paso a paso",
-    thumbnail: "/images/tutorials/bench.jpg",
-    duration: "12:15",
-    category: "tecnica",
-    isPremium: true,
-  },
-  {
-    id: "3",
-    title: "Rutina de Calentamiento",
-    description: "Prepara tu cuerpo antes de entrenar",
-    thumbnail: "/images/tutorials/warmup.jpg",
-    duration: "6:45",
-    category: "ejercicios",
-    isPremium: false,
-  },
-  {
-    id: "4",
-    title: "Nutricion Pre-Entreno",
-    description: "Que comer antes de tu sesion",
-    thumbnail: "/images/tutorials/preworkout.jpg",
-    duration: "10:20",
-    category: "nutricion",
-    isPremium: true,
-  },
-];
+import {
+  VIDEO_TUTORIALS,
+  getYoutubeThumbnail,
+  getYoutubeUrl,
+} from "../data/video-tutorials";
 
 const categoryColors = {
   ejercicios: { bg: "bg-purple-500/20", text: "text-purple-400" },
@@ -62,10 +19,14 @@ export function VideoTutorials() {
   const { hasActiveSubscription } = useSubscription();
 
   const visibleTutorials = hasActiveSubscription
-    ? TUTORIALS
-    : TUTORIALS.filter((t) => !t.isPremium);
+    ? VIDEO_TUTORIALS
+    : VIDEO_TUTORIALS.filter((t) => !t.isPremium);
 
-  const lockedCount = TUTORIALS.filter((t) => t.isPremium).length;
+  const lockedCount = VIDEO_TUTORIALS.filter((t) => t.isPremium).length;
+
+  const handleVideoClick = (youtubeId: string) => {
+    window.open(getYoutubeUrl(youtubeId), "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
@@ -80,27 +41,38 @@ export function VideoTutorials() {
 
       <div className="space-y-3">
         {visibleTutorials.slice(0, 3).map((tutorial) => (
-          <div
+          <button
             key={tutorial.id}
-            className="flex gap-3 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors cursor-pointer group"
+            type="button"
+            onClick={() => handleVideoClick(tutorial.youtubeId)}
+            className="w-full flex gap-3 p-3 rounded-lg bg-gray-800/50 hover:bg-gray-800 transition-colors cursor-pointer group text-left"
           >
-            {/* Thumbnail placeholder */}
-            <div className="w-20 h-14 bg-gray-700 rounded-lg flex items-center justify-center shrink-0 relative overflow-hidden">
-              <svg
-                className="w-8 h-8 text-gray-500 group-hover:text-accent-cyan transition-colors"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              <span className="absolute bottom-1 right-1 text-[10px] bg-black/70 text-white px-1 rounded">
+            {/* YouTube Thumbnail */}
+            <div className="w-24 h-14 bg-gray-700 rounded-lg shrink-0 relative overflow-hidden">
+              <Image
+                src={getYoutubeThumbnail(tutorial.youtubeId)}
+                alt={tutorial.title}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform"
+                sizes="96px"
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+              <span className="absolute bottom-1 right-1 text-[10px] bg-black/80 text-white px-1 rounded">
                 {tutorial.duration}
               </span>
             </div>
 
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
-                <h4 className="text-sm font-medium text-white truncate">
+                <h4 className="text-sm font-medium text-white truncate group-hover:text-accent-cyan transition-colors">
                   {tutorial.title}
                 </h4>
                 <span
@@ -114,8 +86,11 @@ export function VideoTutorials() {
               <p className="text-xs text-gray-500 line-clamp-1 mt-1">
                 {tutorial.description}
               </p>
+              <p className="text-[10px] text-gray-600 mt-1">
+                {tutorial.channel}
+              </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -156,12 +131,12 @@ export function VideoTutorials() {
       )}
 
       {hasActiveSubscription && visibleTutorials.length > 3 && (
-        <button
-          type="button"
-          className="w-full mt-4 py-2 text-sm text-accent-cyan hover:text-white transition-colors"
+        <Link
+          href="/videos"
+          className="block w-full mt-4 py-2 text-sm text-accent-cyan hover:text-white transition-colors text-center"
         >
           Ver todos los tutoriales ({visibleTutorials.length})
-        </button>
+        </Link>
       )}
     </div>
   );
