@@ -160,16 +160,23 @@ async function handleWebhook(request, env, origin) {
     // STEP 5: Fetch payment details from MercadoPago
     const payment = await fetchPaymentDetails(paymentId, env.MP_ACCESS_TOKEN);
     if (!payment) {
+      // Return 200 to acknowledge receipt - payment may not exist (test/deleted)
+      // This prevents MercadoPago from retrying unnecessarily
       await updateWebhookLog(env, logId, {
-        status: 'failed',
-        error_message: 'Could not fetch payment from MercadoPago API',
+        status: 'ignored',
+        error_message: 'Payment not found in MercadoPago API (may be test or deleted)',
         error_details: { payment_id: paymentId },
         processed_at: new Date().toISOString(),
         processing_time_ms: Date.now() - startTime,
       });
 
-      return new Response(JSON.stringify({ error: 'Could not fetch payment', log_id: logId }), {
-        status: 500,
+      return new Response(JSON.stringify({
+        received: true,
+        processed: false,
+        reason: 'Payment not found in MercadoPago API',
+        log_id: logId
+      }), {
+        status: 200,
         headers,
       });
     }
