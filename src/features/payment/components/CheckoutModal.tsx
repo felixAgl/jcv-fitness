@@ -276,6 +276,7 @@ export function CheckoutModal({
             Pagar con Mercado Pago
           </button>
 
+          {/* TODO: Habilitar Wompi cuando esté configurado
           <button
             type="button"
             onClick={handleWompi}
@@ -295,6 +296,7 @@ export function CheckoutModal({
           <p className="text-center text-xs text-gray-500 mt-4">
             PSE, Nequi, Tarjetas, Bancolombia QR
           </p>
+          */}
         </div>
 
         <div className="mt-6 pt-4 border-t border-gray-800">
