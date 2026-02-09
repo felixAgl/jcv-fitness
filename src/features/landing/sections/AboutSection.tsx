@@ -10,17 +10,17 @@ const features = [
   {
     icon: Target,
     title: "Enfoque personalizado",
-    description: "Cada plan esta diseñado considerando tus objetivos, nivel de experiencia y preferencias alimenticias.",
+    description: "Cada plan está diseñado considerando tus objetivos, nivel de experiencia y preferencias alimenticias.",
   },
   {
     icon: TrendingUp,
-    title: "Progresion gradual",
-    description: "Sistema de fases que te lleva paso a paso hacia tu mejor version, sin atajos ni dietas extremas.",
+    title: "Progresión gradual",
+    description: "Sistema de fases que te lleva paso a paso hacia tu mejor versión, sin atajos ni dietas extremas.",
   },
   {
     icon: Users,
     title: "Comunidad de apoyo",
-    description: "Unete a cientos de personas que estan en el mismo camino de transformacion que tu.",
+    description: "Únete a cientos de personas que están en el mismo camino de transformación que tú.",
   },
   {
     icon: Clock,

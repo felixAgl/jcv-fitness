@@ -19,7 +19,7 @@ export default function DashboardPage() {
 
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-white mb-2">Mi Panel</h2>
-            <p className="text-gray-400">Gestiona tu plan y suscripcion</p>
+            <p className="text-gray-400">Gestiona tu plan y suscripción</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -27,7 +27,7 @@ export default function DashboardPage() {
               <PlanStatusCard />
               <SubscriptionCard />
               <div>
-                <h3 className="text-lg font-semibold text-white mb-4">Acciones rapidas</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">Acciones rápidas</h3>
                 <QuickActions />
               </div>
               <VideoTutorials />
@@ -37,9 +37,9 @@ export default function DashboardPage() {
               <UserProfile />
 
               <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
-                <h4 className="font-semibold text-white mb-3">Necesitas ayuda?</h4>
+                <h4 className="font-semibold text-white mb-3">¿Necesitas ayuda?</h4>
                 <p className="text-gray-400 text-sm mb-4">
-                  Nuestro equipo esta disponible para ayudarte con cualquier pregunta.
+                  Nuestro equipo está disponible para ayudarte con cualquier pregunta.
                 </p>
                 <a
                   href="https://wa.me/573143826430"

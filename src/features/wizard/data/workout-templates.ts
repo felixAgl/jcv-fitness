@@ -26,7 +26,7 @@ const GOAL_ADJUSTMENTS: Record<TrainingGoal, { repsAdjust: number; setsAdjust: n
   salud: { repsAdjust: 2, setsAdjust: 0, restAdjust: 15 },
 };
 
-// Ejercicios con videos de YouTube (canales fitness en espanol)
+// Ejercicios con videos de YouTube (canales fitness en español)
 export const EXERCISE_VIDEOS: Record<string, string> = {
   sentadilla: "https://youtu.be/aclHkVaku9U",
   peso_muerto: "https://youtu.be/op9kVnSso6Q",
@@ -52,42 +52,42 @@ export const EXERCISE_VIDEOS: Record<string, string> = {
   jumping_jacks: "https://youtu.be/c4DAnQ6DtF8",
 };
 
-// Splits de entrenamiento segun dias por semana
+// Splits de entrenamiento según días por semana
 const WORKOUT_SPLITS = {
   3: [
-    { name: "Dia A - Cuerpo Completo", muscleGroups: ["piernas", "pecho", "espalda", "core"] },
+    { name: "Día A - Cuerpo Completo", muscleGroups: ["piernas", "pecho", "espalda", "core"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
-    { name: "Dia B - Cuerpo Completo", muscleGroups: ["piernas", "hombros", "brazos", "core"] },
+    { name: "Día B - Cuerpo Completo", muscleGroups: ["piernas", "hombros", "brazos", "core"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
-    { name: "Dia C - Cuerpo Completo", muscleGroups: ["piernas", "pecho", "espalda", "cardio"] },
+    { name: "Día C - Cuerpo Completo", muscleGroups: ["piernas", "pecho", "espalda", "cardio"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
     { name: "Descanso", muscleGroups: [], restDay: true },
   ],
   4: [
-    { name: "Dia 1 - Tren Superior", muscleGroups: ["pecho", "espalda", "hombros"] },
-    { name: "Dia 2 - Tren Inferior", muscleGroups: ["piernas", "gluteos", "core"] },
+    { name: "Día 1 - Tren Superior", muscleGroups: ["pecho", "espalda", "hombros"] },
+    { name: "Día 2 - Tren Inferior", muscleGroups: ["piernas", "gluteos", "core"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
-    { name: "Dia 3 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
-    { name: "Dia 4 - Pull", muscleGroups: ["espalda", "biceps", "core"] },
+    { name: "Día 3 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
+    { name: "Día 4 - Pull", muscleGroups: ["espalda", "biceps", "core"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
     { name: "Descanso", muscleGroups: [], restDay: true },
   ],
   5: [
-    { name: "Dia 1 - Pecho", muscleGroups: ["pecho", "triceps"] },
-    { name: "Dia 2 - Espalda", muscleGroups: ["espalda", "biceps"] },
-    { name: "Dia 3 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos"] },
-    { name: "Dia 4 - Hombros", muscleGroups: ["hombros", "trapecios", "core"] },
-    { name: "Dia 5 - Brazos + Core", muscleGroups: ["biceps", "triceps", "core"] },
+    { name: "Día 1 - Pecho", muscleGroups: ["pecho", "triceps"] },
+    { name: "Día 2 - Espalda", muscleGroups: ["espalda", "biceps"] },
+    { name: "Día 3 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos"] },
+    { name: "Día 4 - Hombros", muscleGroups: ["hombros", "trapecios", "core"] },
+    { name: "Día 5 - Brazos + Core", muscleGroups: ["biceps", "triceps", "core"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
     { name: "Descanso", muscleGroups: [], restDay: true },
   ],
   6: [
-    { name: "Dia 1 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
-    { name: "Dia 2 - Pull", muscleGroups: ["espalda", "biceps", "antebrazos"] },
-    { name: "Dia 3 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos", "pantorrillas"] },
-    { name: "Dia 4 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
-    { name: "Dia 5 - Pull", muscleGroups: ["espalda", "biceps", "core"] },
-    { name: "Dia 6 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos"] },
+    { name: "Día 1 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
+    { name: "Día 2 - Pull", muscleGroups: ["espalda", "biceps", "antebrazos"] },
+    { name: "Día 3 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos", "pantorrillas"] },
+    { name: "Día 4 - Push", muscleGroups: ["pecho", "hombros", "triceps"] },
+    { name: "Día 5 - Pull", muscleGroups: ["espalda", "biceps", "core"] },
+    { name: "Día 6 - Piernas", muscleGroups: ["cuadriceps", "femoral", "gluteos"] },
     { name: "Descanso", muscleGroups: [], restDay: true },
   ],
 };

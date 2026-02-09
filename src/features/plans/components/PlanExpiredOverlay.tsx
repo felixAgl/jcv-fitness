@@ -19,12 +19,12 @@ export function PlanExpiredOverlay() {
         </h2>
 
         <p className="text-gray-400 mb-6">
-          Tu periodo de prueba gratuito de 5 semanas ha terminado. Actualiza a Premium para seguir accediendo a tu plan, descargar PDFs y obtener soporte personalizado.
+          Tu período de prueba gratuito de 5 semanas ha terminado. Actualiza a Premium para seguir accediendo a tu plan, descargar PDFs y obtener soporte personalizado.
         </p>
 
         <div className="space-y-4">
           <div className="bg-gray-800/50 rounded-xl p-4 text-left">
-            <h3 className="font-bold text-accent-cyan mb-3">Con Premium obtendras:</h3>
+            <h3 className="font-bold text-accent-cyan mb-3">Con Premium obtendrás:</h3>
             <ul className="space-y-2 text-sm text-gray-300">
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-accent-green shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">

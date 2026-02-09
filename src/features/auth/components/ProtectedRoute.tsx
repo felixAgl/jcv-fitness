@@ -67,7 +67,7 @@ export function ProtectedRoute({
           </div>
           <h2 className="text-2xl font-bold text-white mb-3">Contenido Exclusivo</h2>
           <p className="text-gray-400 mb-6">
-            Este contenido requiere una suscripcion activa.
+            Este contenido requiere una suscripción activa.
             Activa tu plan para acceder a todas las funcionalidades.
           </p>
           <div className="flex flex-col gap-3">

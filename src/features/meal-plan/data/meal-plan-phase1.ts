@@ -3,7 +3,7 @@ import { allExchanges } from "./food-exchanges";
 
 export const mealPlanPhase1: MealPlanConfig = {
   phase: 1,
-  phaseName: "Fase de Adaptacion",
+  phaseName: "Fase de Adaptación",
   duration: "4 semanas",
   dailyMeals: 5,
   exchanges: allExchanges,
@@ -26,7 +26,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d1m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "10:00 AM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -64,7 +64,7 @@ export const mealPlanPhase1: MealPlanConfig = {
             { name: "Brocoli al vapor", grams: 150 },
             { name: "Aceite de oliva", grams: 5 },
           ],
-          notes: "Ultima comida del dia, evitar carbohidratos simples",
+          notes: "Última comida del día, evitar carbohidratos simples",
         },
       ],
     },
@@ -84,7 +84,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d2m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "10:00 AM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -127,7 +127,7 @@ export const mealPlanPhase1: MealPlanConfig = {
     },
     {
       day: 3,
-      dayName: "Miercoles",
+      dayName: "Miércoles",
       meals: [
         {
           id: "d3m1",
@@ -142,7 +142,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d3m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "10:00 AM",
           foods: [
             { name: "Carne de res magra", grams: 100 },
@@ -199,7 +199,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d4m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "10:00 AM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -257,7 +257,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d5m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "10:00 AM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -299,7 +299,7 @@ export const mealPlanPhase1: MealPlanConfig = {
     },
     {
       day: 6,
-      dayName: "Sabado",
+      dayName: "Sábado",
       meals: [
         {
           id: "d6m1",
@@ -313,7 +313,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d6m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "11:00 AM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -330,7 +330,7 @@ export const mealPlanPhase1: MealPlanConfig = {
             { name: "Arroz con vegetales", grams: 120 },
             { name: "Ensalada verde", grams: 100 },
           ],
-          notes: "Comida libre moderada - puede variar proteina",
+          notes: "Comida libre moderada - puede variar proteína",
         },
         {
           id: "d6m4",
@@ -371,7 +371,7 @@ export const mealPlanPhase1: MealPlanConfig = {
         },
         {
           id: "d7m2",
-          name: "Media Manana",
+          name: "Media Mañana",
           time: "12:00 PM",
           foods: [
             { name: "Pechuga de pollo", grams: 100 },
@@ -389,7 +389,7 @@ export const mealPlanPhase1: MealPlanConfig = {
             { name: "Ensalada completa", grams: 150 },
             { name: "Aceite de oliva", grams: 10 },
           ],
-          notes: "Comida principal del dia de descanso",
+          notes: "Comida principal del día de descanso",
         },
         {
           id: "d7m4",

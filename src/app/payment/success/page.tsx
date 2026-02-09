@@ -47,7 +47,7 @@ function SuccessContent() {
 
       setSubscriptionCreated(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al activar suscripcion");
+      setError(err instanceof Error ? err.message : "Error al activar suscripción");
     } finally {
       setIsProcessing(false);
     }
@@ -76,7 +76,7 @@ function SuccessContent() {
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-accent-cyan border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-400">
-            {isProcessing ? "Activando tu suscripcion..." : "Verificando..."}
+            {isProcessing ? "Activando tu suscripción..." : "Verificando..."}
           </p>
         </div>
       </div>
@@ -95,7 +95,7 @@ function SuccessContent() {
           </div>
           <h1 className="text-3xl font-bold text-white mb-4">Pago Pendiente</h1>
           <p className="text-gray-400 mb-6">
-            Tu pago esta siendo procesado. Te notificaremos cuando se confirme.
+            Tu pago está siendo procesado. Te notificaremos cuando se confirme.
           </p>
           <Link href="/" className="inline-block py-3 px-6 bg-accent-cyan text-black font-bold rounded-lg hover:bg-accent-cyan/90 transition-colors">
             Volver al inicio
@@ -116,19 +116,19 @@ function SuccessContent() {
           </div>
 
           <h1 className="text-3xl font-bold text-white mb-4">
-            {subscriptionCreated || hasActiveSubscription ? "Suscripcion Activada" : "Pago Exitoso"}
+            {subscriptionCreated || hasActiveSubscription ? "Suscripción Activada" : "Pago Exitoso"}
           </h1>
 
           <p className="text-gray-400 mb-6">
             {subscriptionCreated || hasActiveSubscription
-              ? "Tu plan ya esta activo. Puedes acceder a todo tu contenido personalizado."
-              : "Tu pago ha sido procesado correctamente. Crea tu cuenta para activar tu suscripcion."
+              ? "Tu plan ya está activo. Puedes acceder a todo tu contenido personalizado."
+              : "Tu pago ha sido procesado correctamente. Crea tu cuenta para activar tu suscripción."
             }
           </p>
 
           {paymentId && (
             <div className="bg-gray-900 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-500 mb-1">ID de Transaccion</p>
+              <p className="text-sm text-gray-500 mb-1">ID de Transacción</p>
               <p className="text-accent-cyan font-mono text-sm">{paymentId}</p>
             </div>
           )}
@@ -176,7 +176,7 @@ function SuccessContent() {
         </div>
 
         <p className="text-xs text-gray-600 mt-8">
-          Si tienes alguna pregunta, contactanos por WhatsApp: 314 382 64 30
+          Si tienes alguna pregunta, contáctanos por WhatsApp: 314 382 64 30
         </p>
       </div>
 

@@ -54,7 +54,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
   const handleResetPassword = async () => {
     if (!email) {
-      setError("Ingresa tu correo electronico primero");
+      setError("Ingresa tu correo electrónico primero");
       return;
     }
     setIsLoading(true);
@@ -82,7 +82,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         </div>
         <h3 className="text-xl font-bold text-white mb-2">Revisa tu correo</h3>
         <p className="text-gray-400 mb-4">
-          Enviamos un enlace para restablecer tu contrasena a<br />
+          Enviamos un enlace para restablecer tu contraseña a<br />
           <span className="text-accent-cyan font-medium">{email}</span>
         </p>
         <button
@@ -90,7 +90,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
           onClick={() => setResetLinkSent(false)}
           className="text-gray-400 hover:text-white text-sm transition-colors"
         >
-          Volver a iniciar sesion
+          Volver a iniciar sesión
         </button>
       </div>
     );
@@ -132,7 +132,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
               : "bg-gray-800 text-gray-400 hover:text-white"
           }`}
         >
-          Contrasena
+          Contraseña
         </button>
         <button
           type="button"
@@ -151,7 +151,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
         <div className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-2">
-              Correo electronico
+              Correo electrónico
             </label>
             <input
               id="email"
@@ -168,14 +168,14 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label htmlFor="password" className="block text-sm font-medium text-gray-400">
-                  Contrasena
+                  Contraseña
                 </label>
                 <button
                   type="button"
                   onClick={handleResetPassword}
                   className="text-xs text-accent-cyan hover:underline"
                 >
-                  Olvidaste tu contrasena?
+                  ¿Olvidaste tu contraseña?
                 </button>
               </div>
               <input
@@ -185,7 +185,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-accent-cyan transition-colors"
-                placeholder="Tu contrasena"
+                placeholder="Tu contraseña"
               />
             </div>
           )}
@@ -210,7 +210,7 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
                 Procesando...
               </span>
             ) : authMethod === "password" ? (
-              "Iniciar sesion"
+              "Iniciar sesión"
             ) : (
               "Enviar Magic Link"
             )}
@@ -220,13 +220,13 @@ export function LoginForm({ onSuccess, onSwitchToRegister }: LoginFormProps) {
 
       {onSwitchToRegister && (
         <p className="text-center text-gray-400 text-sm mt-6">
-          No tienes cuenta?{" "}
+          ¿No tienes cuenta?{" "}
           <button
             type="button"
             onClick={onSwitchToRegister}
             className="text-accent-cyan hover:underline font-medium"
           >
-            Registrate
+            Regístrate
           </button>
         </p>
       )}

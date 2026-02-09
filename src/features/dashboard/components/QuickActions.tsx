@@ -97,7 +97,7 @@ export function QuickActions() {
                 <p className="text-gray-400 text-sm">{action.description}</p>
                 {isDisabled && (
                   <span className="text-xs text-orange-400 mt-1 block">
-                    Requiere suscripcion activa
+                    Requiere suscripción activa
                   </span>
                 )}
               </div>

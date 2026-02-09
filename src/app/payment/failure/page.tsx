@@ -33,7 +33,7 @@ function FailureContent() {
           </h1>
 
           <p className="text-gray-400 mb-6">
-            Lo sentimos, no pudimos procesar tu pago. Por favor intenta nuevamente o usa otro método de pago.
+            Lo sentimos, no pudimos procesar tu pago. Por favor, intenta nuevamente o usa otro método de pago.
           </p>
 
           {paymentId && (

@@ -84,7 +84,7 @@ class PlanService {
             canCreate.reason === "already_has_plan"
               ? "Ya tienes un plan activo"
               : canCreate.reason === "free_used"
-                ? "Ya usaste tu plan gratuito. Actualiza a premium para crear mas planes."
+                ? "Ya usaste tu plan gratuito. Actualiza a premium para crear más planes."
                 : "No se pudo verificar tu cuenta",
         };
       }

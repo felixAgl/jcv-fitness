@@ -362,9 +362,9 @@ export function TrackingCalendar({
               {isRestDay(selectedDate) ? (
                 <div className="text-center py-8">
                   <div className="text-5xl mb-3">😴</div>
-                  <h4 className="text-xl font-bold text-white mb-2">Dia de Descanso</h4>
+                  <h4 className="text-xl font-bold text-white mb-2">Día de Descanso</h4>
                   <p className="text-gray-400 text-sm">
-                    Recupera energias para tu proximo entreno.
+                    Recupera energías para tu próximo entreno.
                   </p>
                 </div>
               ) : (
@@ -441,7 +441,7 @@ export function TrackingCalendar({
                   {selectedDayData.workoutCompleted && (
                     <div className="text-center py-3 bg-green-500/10 rounded-xl border border-green-500/20">
                       <p className="text-green-400 text-sm font-medium">
-                        Excelente trabajo! Sigue asi! 💪
+                        ¡Excelente trabajo! ¡Sigue así! 💪
                       </p>
                     </div>
                   )}
@@ -458,7 +458,7 @@ export function TrackingCalendar({
             </>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <p>Selecciona un dia para ver detalles</p>
+              <p>Selecciona un día para ver detalles</p>
             </div>
           )}
         </div>
