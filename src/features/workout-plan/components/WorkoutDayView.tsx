@@ -1,15 +1,19 @@
 "use client";
 
 import { Card } from "@/shared/components/ui";
+import { cn } from "@/shared/lib/cn";
 import { Flame, Clock } from "lucide-react";
 import type { WorkoutDay } from "../types";
 import { ExerciseCard } from "./ExerciseCard";
 
 interface WorkoutDayViewProps {
   workoutDay: WorkoutDay;
+  isPreview?: boolean;
 }
 
-export function WorkoutDayView({ workoutDay }: WorkoutDayViewProps) {
+const PREVIEW_EXERCISES = 3; // En preview, mostrar solo 3 ejercicios claros
+
+export function WorkoutDayView({ workoutDay, isPreview = false }: WorkoutDayViewProps) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -24,12 +28,25 @@ export function WorkoutDayView({ workoutDay }: WorkoutDayViewProps) {
 
       <div className="grid gap-3">
         {workoutDay.exercises.map((exercise, index) => (
-          <ExerciseCard key={exercise.id} exercise={exercise} index={index} />
+          <div
+            key={exercise.id}
+            className={cn(
+              "transition-all",
+              isPreview && index >= PREVIEW_EXERCISES && "blur-sm opacity-50 pointer-events-none select-none"
+            )}
+          >
+            <ExerciseCard exercise={exercise} index={index} />
+          </div>
         ))}
       </div>
 
       {workoutDay.cardio && (
-        <Card className="p-4 bg-accent/10 border-accent/30">
+        <Card
+          className={cn(
+            "p-4 bg-accent/10 border-accent/30",
+            isPreview && "blur-sm opacity-50 pointer-events-none select-none"
+          )}
+        >
           <div className="flex items-center gap-3">
             <Flame className="h-5 w-5 text-accent" />
             <div className="flex-1">
