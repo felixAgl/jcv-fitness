@@ -2,11 +2,12 @@ import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } fr
 import { AnimatedText, GradientBackground } from '../components';
 import { colors } from '../utils/colors';
 
+// Real features from the product (Plan Pro)
 const features = [
-  { icon: '1', title: 'Ver Mi Plan', description: 'Accede 24/7' },
-  { icon: '2', title: 'Descargar PDF', description: 'Imprimelo cuando quieras' },
-  { icon: '3', title: 'Videos Tutoriales', description: 'Aprende la tecnica' },
-  { icon: '4', title: 'Soporte WhatsApp', description: 'Resuelve tus dudas' },
+  { icon: '📋', title: 'Plan Personalizado', description: 'Alimentacion + Ejercicios' },
+  { icon: '📄', title: 'Descargar PDF', description: 'Tu plan siempre disponible' },
+  { icon: '📹', title: 'Videos de Ejercicios', description: 'Aprende la tecnica correcta' },
+  { icon: '💬', title: 'Soporte Prioritario', description: 'Resuelve tus dudas rapido' },
 ];
 
 function FeatureCard({ feature, index }: { feature: typeof features[0]; index: number }) {
@@ -49,22 +50,13 @@ function FeatureCard({ feature, index }: { feature: typeof features[0]; index: n
           width: 56,
           height: 56,
           borderRadius: 12,
-          background: `linear-gradient(135deg, ${colors.cyan}, ${colors.blue})`,
+          background: `linear-gradient(135deg, ${colors.cyan}20, ${colors.blue}20)`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
         }}
       >
-        <span
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: colors.white,
-            fontFamily: 'Inter, system-ui, sans-serif',
-          }}
-        >
-          {feature.icon}
-        </span>
+        <span style={{ fontSize: 32 }}>{feature.icon}</span>
       </div>
       <div>
         <div

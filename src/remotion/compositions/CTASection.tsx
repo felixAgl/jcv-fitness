@@ -2,6 +2,19 @@ import { AbsoluteFill, useCurrentFrame, interpolate, spring, useVideoConfig } fr
 import { AnimatedText, GradientBackground, Logo } from '../components';
 import { colors } from '../utils/colors';
 
+// Real pricing from SUBSCRIPTION_PLANS
+const PLAN_PRO = {
+  name: 'Plan Pro',
+  price: '$89.900',
+  features: [
+    'Plan de alimentacion personalizado',
+    'Rutina gimnasio + casa',
+    'Videos de ejercicios',
+    'Soporte prioritario',
+    'Seguimiento semanal',
+  ],
+};
+
 function PricingCard() {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -54,13 +67,13 @@ function PricingCard() {
 
       <div
         style={{
-          fontSize: 24,
+          fontSize: 28,
           fontWeight: 'bold',
           color: colors.cyan,
           fontFamily: 'Inter, system-ui, sans-serif',
         }}
       >
-        Plan Mensual
+        {PLAN_PRO.name}
       </div>
 
       <div
@@ -78,7 +91,7 @@ function PricingCard() {
             fontFamily: 'Inter, system-ui, sans-serif',
           }}
         >
-          $29,900
+          {PLAN_PRO.price}
         </span>
         <span
           style={{
@@ -99,7 +112,7 @@ function PricingCard() {
           marginTop: 10,
         }}
       >
-        {['Plan personalizado', 'PDF descargable', 'Soporte WhatsApp', 'Videos tutoriales'].map((feature) => (
+        {PLAN_PRO.features.map((feature) => (
           <div
             key={feature}
             style={{

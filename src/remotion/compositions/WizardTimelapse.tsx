@@ -82,13 +82,16 @@ export function WizardTimelapse() {
   return (
     <AbsoluteFill>
       <GradientBackground>
-        <AbsoluteFill
+        {/* Fixed title at top */}
+        <div
           style={{
+            position: 'absolute',
+            top: 80,
+            left: 0,
+            right: 0,
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
             justifyContent: 'center',
-            gap: 40,
+            zIndex: 10,
           }}
         >
           <AnimatedText
@@ -96,27 +99,26 @@ export function WizardTimelapse() {
             fontSize={56}
             gradient={[colors.cyan, colors.blue]}
             delay={0}
-            style={{ marginBottom: 20 }}
           />
+        </div>
 
-          {wizardSteps.map((step, index) => (
-            <Sequence key={step.title} from={index * stepDuration} durationInFrames={stepDuration}>
-              <AbsoluteFill
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingTop: 100,
-                }}
-              >
-                <WizardStep step={step} index={index} />
-              </AbsoluteFill>
-            </Sequence>
-          ))}
+        {/* Steps in center area */}
+        {wizardSteps.map((step, index) => (
+          <Sequence key={step.title} from={index * stepDuration} durationInFrames={stepDuration}>
+            <AbsoluteFill
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <WizardStep step={step} index={index} />
+            </AbsoluteFill>
+          </Sequence>
+        ))}
 
-          {/* Progress indicator */}
-          <ProgressBar />
-        </AbsoluteFill>
+        {/* Progress indicator at bottom */}
+        <ProgressBar />
       </GradientBackground>
     </AbsoluteFill>
   );

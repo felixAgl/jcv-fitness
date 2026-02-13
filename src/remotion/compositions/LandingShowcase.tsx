@@ -35,6 +35,7 @@ export function LandingShowcase() {
             delay={0}
           />
 
+          {/* Landing mockup with real features */}
           <div
             style={{
               width: '85%',
@@ -47,60 +48,83 @@ export function LandingShowcase() {
               opacity,
               boxShadow: `0 20px 60px ${colors.cyan}20`,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              padding: 40,
             }}
           >
-            {/* Placeholder for landing screenshot */}
+            {/* Browser bar mockup */}
             <div
               style={{
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 20,
+                gap: 8,
+                marginBottom: 30,
               }}
             >
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: colors.red }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: colors.orange }} />
+              <div style={{ width: 12, height: 12, borderRadius: '50%', background: colors.green }} />
               <div
                 style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 24,
-                  background: `linear-gradient(135deg, ${colors.cyan}, ${colors.blue})`,
+                  flex: 1,
+                  height: 28,
+                  borderRadius: 6,
+                  background: `${colors.gray}20`,
+                  marginLeft: 20,
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  paddingLeft: 12,
                 }}
               >
-                <span
+                <span style={{ fontSize: 14, color: colors.gray, fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  jcv24fitness.com
+                </span>
+              </div>
+            </div>
+
+            {/* Hero mockup */}
+            <div style={{ display: 'flex', flex: 1, gap: 30 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 20 }}>
+                <div
                   style={{
-                    fontSize: 48,
+                    fontSize: 36,
+                    fontWeight: 'bold',
+                    color: colors.white,
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  Transforma tu cuerpo con <span style={{ color: colors.cyan }}>JCV</span>
+                </div>
+                <div style={{ fontSize: 18, color: colors.gray, fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Plan personalizado en minutos
+                </div>
+                <div
+                  style={{
+                    padding: '12px 24px',
+                    background: `linear-gradient(90deg, ${colors.cyan}, ${colors.blue})`,
+                    borderRadius: 8,
+                    fontSize: 16,
                     fontWeight: 'bold',
                     color: colors.background,
                     fontFamily: 'Inter, system-ui, sans-serif',
+                    width: 'fit-content',
                   }}
                 >
-                  JCV
-                </span>
+                  COMENZAR AHORA
+                </div>
               </div>
-              <span
-                style={{
-                  fontSize: 32,
-                  fontWeight: 'bold',
-                  color: colors.white,
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                }}
-              >
-                Landing Preview
-              </span>
-              <span
-                style={{
-                  fontSize: 18,
-                  color: colors.gray,
-                  fontFamily: 'Inter, system-ui, sans-serif',
-                }}
-              >
-                (Agrega screenshot en assets/screenshots/landing.png)
-              </span>
+              {/* Features list */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, justifyContent: 'center' }}>
+                {['Alimentacion personalizada', 'Rutinas por objetivo', 'Seguimiento semanal'].map((feature) => (
+                  <div key={feature} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: colors.cyan, fontSize: 18 }}>&#10003;</span>
+                    <span style={{ color: colors.white, fontSize: 16, fontFamily: 'Inter, system-ui, sans-serif' }}>
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </AbsoluteFill>
