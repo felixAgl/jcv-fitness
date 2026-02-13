@@ -1,9 +1,16 @@
-import { Header, Hero, Footer, TransformationGallery } from "@/features/landing/components";
-import { MealPlanSection } from "@/features/meal-plan/components";
-import { WorkoutPlanSection } from "@/features/workout-plan/components";
+import {
+  Header,
+  Hero,
+  Footer,
+  ProblemSection,
+  FeaturesGrid,
+  HowItWorks,
+  SocialProof,
+  FAQ,
+  Guarantee,
+  PDFShowcase,
+} from "@/features/landing/components";
 import { PricingSection } from "@/features/payment/components";
-import { mealPlanPhase1 } from "@/features/meal-plan/data/meal-plan-phase1";
-import { gymWorkoutPlan, homeWorkoutPlan } from "@/features/workout-plan/data";
 
 export default function Home() {
   return (
@@ -11,10 +18,14 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
-        <TransformationGallery />
-        <MealPlanSection config={mealPlanPhase1} />
-        <WorkoutPlanSection gymPlan={gymWorkoutPlan} homePlan={homeWorkoutPlan} />
+        <ProblemSection />
+        <FeaturesGrid />
+        <HowItWorks />
+        <PDFShowcase />
+        <SocialProof />
         <PricingSection />
+        <Guarantee />
+        <FAQ />
       </main>
       <Footer />
     </>
