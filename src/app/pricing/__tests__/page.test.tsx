@@ -67,9 +67,9 @@ describe("PricingPage", () => {
 
       render(<PricingPage />);
 
-      expect(screen.getByText("Plan Basico")).toBeInTheDocument();
-      expect(screen.getByText("Plan Pro")).toBeInTheDocument();
-      expect(screen.getByText("Plan Premium")).toBeInTheDocument();
+      expect(screen.getByText("Basico")).toBeInTheDocument();
+      expect(screen.getByText("Pro")).toBeInTheDocument();
+      expect(screen.getByText("Premium")).toBeInTheDocument();
     });
 
     it("should show 'Mas popular' badge on Pro plan", async () => {

@@ -213,8 +213,8 @@ describe("PlanViewer", () => {
 
       await user.click(screen.getByText("Calendario"));
 
-      // TrackingCalendar component shows week selector
-      expect(screen.getByText("Seleccionar Semana")).toBeInTheDocument();
+      // TrackingCalendar component shows progress header
+      expect(screen.getByText("Tu Progreso")).toBeInTheDocument();
     });
   });
 
@@ -336,8 +336,8 @@ describe("PlanViewer", () => {
 
       await user.click(screen.getByText("Calendario"));
 
-      // TrackingCalendar shows progress stats and week selector
-      expect(screen.getByText("Seleccionar Semana")).toBeInTheDocument();
+      // TrackingCalendar shows progress header
+      expect(screen.getByText("Tu Progreso")).toBeInTheDocument();
     });
 
     it("should show progress stats", async () => {
@@ -345,16 +345,19 @@ describe("PlanViewer", () => {
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Entrenamientos")).toBeInTheDocument();
-      expect(screen.getByText("Racha actual")).toBeInTheDocument();
+      // Stats row shows Entrenos, Completado, Semana, Restantes
+      expect(screen.getByText("Entrenos")).toBeInTheDocument();
+      // "Completado" appears in multiple places, just verify Entrenos and Semana
+      expect(screen.getByText("Semana")).toBeInTheDocument();
     });
 
-    it("should show week details section", async () => {
+    it("should show streak section", async () => {
       render(<PlanViewer plan={createMockPlan()} />);
 
       await user.click(screen.getByText("Calendario"));
 
-      expect(screen.getByText("Detalle de la Semana")).toBeInTheDocument();
+      // Streak section shows best streak
+      expect(screen.getByText("Mejor racha")).toBeInTheDocument();
     });
   });
 
