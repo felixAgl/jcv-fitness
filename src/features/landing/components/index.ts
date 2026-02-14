@@ -7,5 +7,4 @@ export { FeaturesGrid } from "./FeaturesGrid";
 export { HowItWorks } from "./HowItWorks";
 export { SocialProof } from "./SocialProof";
 export { FAQ } from "./FAQ";
-export { Guarantee } from "./Guarantee";
 export { PDFShowcase } from "./PDFShowcase";

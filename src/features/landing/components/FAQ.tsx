@@ -30,11 +30,6 @@ const faqs = [
       "Ofrecemos planes mensuales, trimestrales y anuales. Puedes cancelar en cualquier momento desde tu dashboard. Mientras tu suscripcion este activa, tienes acceso a tu plan, dashboard, y puedes regenerar tu plan si cambias de objetivo.",
   },
   {
-    question: "Tienen garantia de devolucion?",
-    answer:
-      "Si. Tienes 7 dias de garantia. Si no estas satisfecho con tu plan, te devolvemos el 100% de tu dinero. Sin preguntas.",
-  },
-  {
     question: "Puedo cambiar mi plan si no me gusta?",
     answer:
       "Si. Puedes volver a completar el wizard y regenerar tu plan cuantas veces quieras mientras tu suscripcion este activa. Esto es util si cambias de objetivo o quieres probar una rutina diferente.",

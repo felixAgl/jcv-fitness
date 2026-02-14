@@ -5,7 +5,6 @@ import { FeaturesGrid } from "../components/FeaturesGrid";
 import { HowItWorks } from "../components/HowItWorks";
 import { SocialProof } from "../components/SocialProof";
 import { FAQ } from "../components/FAQ";
-import { Guarantee } from "../components/Guarantee";
 import { PDFShowcase } from "../components/PDFShowcase";
 
 describe("Landing Page Components", () => {
@@ -80,17 +79,7 @@ describe("Landing Page Components", () => {
 
       expect(screen.getByText("Como funciona el plan personalizado?")).toBeInTheDocument();
       expect(screen.getByText("Que incluye el PDF que descargo?")).toBeInTheDocument();
-      expect(screen.getByText("Tienen garantia de devolucion?")).toBeInTheDocument();
-    });
-  });
-
-  describe("Guarantee", () => {
-    it("renders 7 day guarantee", () => {
-      render(<Guarantee />);
-
-      expect(screen.getByText(/GARANTIA DE/)).toBeInTheDocument();
-      expect(screen.getByText("7 DIAS")).toBeInTheDocument();
-      expect(screen.getByText("COMENZAR SIN RIESGO")).toBeInTheDocument();
+      expect(screen.getByText("Cuanto tiempo dura la suscripcion?")).toBeInTheDocument();
     });
   });
 

@@ -7,7 +7,6 @@ import {
   HowItWorks,
   SocialProof,
   FAQ,
-  Guarantee,
   PDFShowcase,
 } from "@/features/landing/components";
 import { PricingSection } from "@/features/payment/components";
@@ -24,7 +23,6 @@ export default function Home() {
         <PDFShowcase />
         <SocialProof />
         <PricingSection />
-        <Guarantee />
         <FAQ />
       </main>
       <Footer />
