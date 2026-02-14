@@ -66,9 +66,10 @@ export function Hero() {
           </Link>
           <a
             href="#pricing"
-            className="px-8 py-4 rounded-lg font-bold border-2 border-gray-700 text-gray-300 hover:border-accent-cyan hover:text-accent-cyan transition-all"
+            className="relative px-8 py-4 rounded-full font-bold text-white bg-gradient-to-r from-accent-cyan to-accent-cyan/80 hover:shadow-lg hover:shadow-accent-cyan/30 transition-all hover:scale-105"
           >
             Ver planes
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse" />
           </a>
         </div>
         <div className="flex flex-wrap justify-center gap-8">
