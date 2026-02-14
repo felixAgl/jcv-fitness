@@ -57,7 +57,7 @@ describe("SettingsPage", () => {
 
       render(<SettingsPage />);
 
-      expect(screen.getByText("Configuracion")).toBeInTheDocument();
+      expect(screen.getByText("Configuración")).toBeInTheDocument();
       expect(screen.getByLabelText(/nombre completo/i)).toHaveValue("John Doe");
       expect(screen.getByText("john@example.com")).toBeInTheDocument();
     });
@@ -77,7 +77,7 @@ describe("SettingsPage", () => {
 
       render(<SettingsPage />);
 
-      expect(screen.getByText("Suscripcion activa")).toBeInTheDocument();
+      expect(screen.getByText("Suscripción activa")).toBeInTheDocument();
       expect(screen.getByText("PRO")).toBeInTheDocument();
     });
 
@@ -96,7 +96,7 @@ describe("SettingsPage", () => {
 
       render(<SettingsPage />);
 
-      expect(screen.getByText("Sin suscripcion")).toBeInTheDocument();
+      expect(screen.getByText("Sin suscripción")).toBeInTheDocument();
       expect(screen.getByText("Free")).toBeInTheDocument();
     });
 
@@ -114,7 +114,7 @@ describe("SettingsPage", () => {
 
       render(<SettingsPage />);
 
-      expect(screen.getByText("Ver planes de suscripcion")).toBeInTheDocument();
+      expect(screen.getByText("Ver planes de suscripción")).toBeInTheDocument();
     });
   });
 
@@ -184,10 +184,9 @@ describe("SettingsPage", () => {
         refreshSession: mockRefreshSession,
       });
 
-      mockSupabase.mocks.eq.mockResolvedValue({
-        data: null,
-        error: { message: "Update failed" },
-      });
+      // Create error that will be thrown
+      const updateError = new Error("Update failed");
+      mockSupabase.mocks.eq.mockRejectedValue(updateError);
 
       render(<SettingsPage />);
 

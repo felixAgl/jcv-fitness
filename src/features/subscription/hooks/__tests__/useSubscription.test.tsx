@@ -15,7 +15,7 @@ const mockGetActiveSubscription = vi.fn();
 const mockCreateSubscription = vi.fn();
 const mockCancelSubscription = vi.fn();
 
-vi.mock("../services/subscription-service", () => ({
+vi.mock("../../services/subscription-service", () => ({
   subscriptionService: {
     getActiveSubscription: (...args: unknown[]) => mockGetActiveSubscription(...args),
     createSubscription: (...args: unknown[]) => mockCreateSubscription(...args),

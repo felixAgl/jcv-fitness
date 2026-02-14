@@ -42,7 +42,6 @@ describe("AuthContext", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
     authChangeCallback = null;
 
     mockSupabase = createMockSupabaseClient();
@@ -63,7 +62,7 @@ describe("AuthContext", () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   describe("Initial State", () => {
@@ -132,7 +131,9 @@ describe("AuthContext", () => {
   });
 
   describe("Timeout Handling", () => {
-    it("should force isLoading false after 5 second timeout", async () => {
+    it("should force isLoading false after 3 second timeout", async () => {
+      vi.useFakeTimers();
+
       // Never resolve getSession
       mockSupabase.client.auth.getSession.mockImplementation(() => new Promise(() => {}));
 
@@ -145,14 +146,16 @@ describe("AuthContext", () => {
       // Initially loading
       expect(screen.getByTestId("loading").textContent).toBe("true");
 
-      // Fast-forward 5 seconds
+      // Fast-forward 3 seconds (timeout changed from 5s to 3s in AuthContext)
       await act(async () => {
-        vi.advanceTimersByTime(5000);
+        vi.advanceTimersByTime(3000);
       });
 
       // Should no longer be loading
       expect(screen.getByTestId("loading").textContent).toBe("false");
       expect(screen.getByTestId("authenticated").textContent).toBe("false");
+
+      vi.useRealTimers();
     });
   });
 
@@ -168,7 +171,7 @@ describe("AuthContext", () => {
         error: null,
       });
 
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const user = userEvent.setup();
 
       render(
         <AuthProvider>
@@ -208,7 +211,7 @@ describe("AuthContext", () => {
         error: null,
       });
 
-      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const user = userEvent.setup();
 
       render(
         <AuthProvider>
