@@ -52,15 +52,26 @@ export function Header() {
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-foreground/70 hover:text-primary transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.href === "#pricing" ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="relative px-4 py-1.5 text-white font-semibold bg-gradient-to-r from-accent-red to-accent-orange rounded-full hover:shadow-lg hover:shadow-accent-red/30 transition-all hover:scale-105"
+                >
+                  {link.label}
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                </a>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-foreground/70 hover:text-primary transition-colors"
+                >
+                  {link.label}
+                </a>
+              )
+            )}
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -74,9 +85,10 @@ export function Header() {
                   size="sm"
                   variant="outline"
                   onClick={() => signOut()}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 text-red-400 border-red-400/50 hover:bg-red-400/10 hover:border-red-400"
                 >
                   <LogOut className="h-4 w-4" />
+                  Salir
                 </Button>
               </div>
             ) : (
@@ -111,16 +123,28 @@ export function Header() {
           )}
         >
           <nav className="flex flex-col gap-4">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-foreground/70 hover:text-primary transition-colors"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
+            {navLinks.map((link) =>
+              link.href === "#pricing" ? (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="w-fit relative px-4 py-1.5 text-white font-semibold bg-gradient-to-r from-accent-red to-accent-orange rounded-full"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                </a>
+              ) : (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-foreground/70 hover:text-primary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </a>
+              )
+            )}
             {isAuthenticated ? (
               <>
                 <Link
@@ -138,7 +162,7 @@ export function Header() {
                     signOut();
                     setIsOpen(false);
                   }}
-                  className="w-fit flex items-center gap-2"
+                  className="w-fit flex items-center gap-2 text-red-400 border-red-400/50 hover:bg-red-400/10"
                 >
                   <LogOut className="h-4 w-4" />
                   Salir
