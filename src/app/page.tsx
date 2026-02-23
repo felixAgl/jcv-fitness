@@ -8,6 +8,7 @@ import {
   SocialProof,
   FAQ,
   PDFShowcase,
+  TransformationGallery,
 } from "@/features/landing/components";
 import { PricingSection } from "@/features/payment/components";
 import { MealPlanSection } from "@/features/meal-plan/components";
@@ -28,6 +29,7 @@ export default function Home() {
         <HowItWorks />
         <PDFShowcase />
         <SocialProof />
+        <TransformationGallery />
         <PricingSection />
         <FAQ />
       </main>
