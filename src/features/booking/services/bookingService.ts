@@ -129,6 +129,32 @@ export const bookingService = {
     return data as TrainingSlot;
   },
 
+  async createSlots(trainerId: string, inputs: CreateSlotInput[]): Promise<void> {
+    if (inputs.length === 0) return;
+    const supabase = getClient();
+    const { error } = await supabase
+      .from("training_slots")
+      .insert(inputs.map((input) => ({ ...input, trainer_id: trainerId })));
+
+    if (error) throw new Error(error.message);
+  },
+
+  async bookSlots(slotIds: string[]): Promise<{ booked: string[]; errors: string[] }> {
+    const results = await Promise.all(slotIds.map((id) => this.bookSlot(id)));
+    const booked: string[] = [];
+    const errors: string[] = [];
+
+    results.forEach((result, idx) => {
+      if (result.success) {
+        booked.push(slotIds[idx]);
+      } else {
+        errors.push(result.error ?? `Error al reservar slot ${slotIds[idx]}`);
+      }
+    });
+
+    return { booked, errors };
+  },
+
   async updateSlot(slotId: string, updates: Partial<CreateSlotInput>): Promise<void> {
     const supabase = getClient();
     const { error } = await supabase

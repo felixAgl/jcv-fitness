@@ -41,10 +41,16 @@ export function useTrainerSlots(fromDate: string, toDate: string) {
     await fetchSlots();
   }, [user?.id, fetchSlots]);
 
+  const createSlots = useCallback(async (inputs: CreateSlotInput[]) => {
+    if (!user?.id) return;
+    await bookingService.createSlots(user.id, inputs);
+    await fetchSlots();
+  }, [user?.id, fetchSlots]);
+
   const cancelSlot = useCallback(async (slotId: string) => {
     await bookingService.cancelSlot(slotId);
     await fetchSlots();
   }, [fetchSlots]);
 
-  return { slots, isLoading, error, createSlot, cancelSlot, refetch: fetchSlots };
+  return { slots, isLoading, error, createSlot, createSlots, cancelSlot, refetch: fetchSlots };
 }

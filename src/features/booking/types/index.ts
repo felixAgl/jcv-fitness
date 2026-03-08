@@ -37,6 +37,18 @@ export interface CreateSlotInput {
   notes?: string;
 }
 
+export interface RecurringSlotInput {
+  title: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  max_capacity: number;
+  notes?: string;
+  repeat: "once" | "daily" | "weekly";
+  days_of_week: number[]; // 0=Sun, 1=Mon, ..., 6=Sat (only for "weekly")
+}
+
 export interface BookingWithSlot extends Booking {
   slot: TrainingSlot;
 }
