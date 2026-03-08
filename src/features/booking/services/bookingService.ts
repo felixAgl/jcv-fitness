@@ -15,7 +15,7 @@ function getClient() {
 }
 
 export const bookingService = {
-  async getAvailableSlots(fromDate: string, toDate: string, userId: string): Promise<TrainingSlot[]> {
+  async getAvailableSlots(fromDate: string, toDate: string, userId: string | null): Promise<TrainingSlot[]> {
     const supabase = getClient();
 
     const { data: slots, error } = await supabase
@@ -29,6 +29,10 @@ export const bookingService = {
 
     if (error) throw new Error(error.message);
     if (!slots) return [];
+
+    if (!userId) {
+      return slots.map((slot) => ({ ...slot, is_booked_by_user: false }));
+    }
 
     const { data: userBookings } = await supabase
       .from("bookings")

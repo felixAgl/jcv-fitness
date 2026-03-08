@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
@@ -30,7 +30,7 @@ function getWeekRange(offset: number) {
 
 function AgendaContent() {
   const router = useRouter();
-  const { user, profile, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { profile, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<TrainingSlot | null>(null);
 
@@ -40,22 +40,6 @@ function AgendaContent() {
   const { preferences, isLoading: isPrefsLoading, isSaving, savePreferences } = useTimePreferences();
 
   const hasSubscription = profile?.has_active_subscription ?? false;
-
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      router.push("/");
-    }
-  }, [isAuthLoading, isAuthenticated, router]);
-
-  if (isAuthLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="animate-spin w-10 h-10 border-4 border-accent-cyan border-t-transparent rounded-full" />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) return null;
 
   const handleBookConfirmed = () => {
     setSelectedSlot(null);
@@ -74,7 +58,7 @@ function AgendaContent() {
       <div className="max-w-2xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <Link
-            href="/dashboard"
+            href="/"
             className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition-all"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -85,7 +69,22 @@ function AgendaContent() {
           </div>
         </div>
 
-        {!hasSubscription && (
+        {!isAuthLoading && !isAuthenticated && (
+          <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-cyan/5 border border-accent-cyan/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-white font-semibold text-sm">Inicia sesion para reservar</p>
+              <p className="text-gray-400 text-xs mt-0.5">Podes ver todos los horarios disponibles</p>
+            </div>
+            <Link
+              href="/"
+              className="shrink-0 px-4 py-2 rounded-lg bg-accent-cyan text-black font-bold text-sm hover:shadow-lg transition-all"
+            >
+              Iniciar sesion
+            </Link>
+          </div>
+        )}
+
+        {!isAuthLoading && isAuthenticated && !hasSubscription && (
           <div className="bg-gradient-to-r from-accent-red/10 to-accent-red/5 border border-accent-red/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
             <div>
               <p className="text-white font-semibold text-sm">Necesitas una suscripcion activa</p>
@@ -100,29 +99,33 @@ function AgendaContent() {
           </div>
         )}
 
-        <section className="mb-6">
-          <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-accent-cyan" />
-            Mis reservas proximas
-          </h2>
-          {isBookingsLoading ? (
-            <div className="h-16 bg-card border border-gray-800 rounded-xl animate-pulse" />
-          ) : (
-            <MyBookingsList bookings={bookings} onCancel={cancelBooking} />
-          )}
-        </section>
+        {isAuthenticated && (
+          <>
+            <section className="mb-6">
+              <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-accent-cyan" />
+                Mis reservas proximas
+              </h2>
+              {isBookingsLoading ? (
+                <div className="h-16 bg-card border border-gray-800 rounded-xl animate-pulse" />
+              ) : (
+                <MyBookingsList bookings={bookings} onCancel={cancelBooking} />
+              )}
+            </section>
 
-        <section className="mb-6">
-          {isPrefsLoading ? (
-            <div className="h-48 bg-card border border-gray-800 rounded-xl animate-pulse" />
-          ) : (
-            <TimePreferencesForm
-              preferences={preferences}
-              isSaving={isSaving}
-              onSave={savePreferences}
-            />
-          )}
-        </section>
+            <section className="mb-6">
+              {isPrefsLoading ? (
+                <div className="h-48 bg-card border border-gray-800 rounded-xl animate-pulse" />
+              ) : (
+                <TimePreferencesForm
+                  preferences={preferences}
+                  isSaving={isSaving}
+                  onSave={savePreferences}
+                />
+              )}
+            </section>
+          </>
+        )}
 
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -158,7 +161,7 @@ function AgendaContent() {
               preferences={preferences}
               canBook={hasSubscription}
               onBook={setSelectedSlot}
-              onUpgrade={() => router.push("/#pricing")}
+              onUpgrade={() => isAuthenticated ? router.push("/#pricing") : router.push("/")}
             />
           )}
         </section>

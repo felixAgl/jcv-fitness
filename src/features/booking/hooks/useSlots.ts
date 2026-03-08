@@ -12,17 +12,11 @@ export function useSlots(fromDate: string, toDate: string) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSlots = useCallback(async () => {
-    if (!user?.id) {
-      setSlots([]);
-      setIsLoading(false);
-      return;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
-      const data = await bookingService.getAvailableSlots(fromDate, toDate, user.id);
+      const data = await bookingService.getAvailableSlots(fromDate, toDate, user?.id ?? null);
       setSlots(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error cargando horarios");
