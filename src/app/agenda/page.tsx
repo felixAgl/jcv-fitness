@@ -30,7 +30,7 @@ function getWeekRange(offset: number) {
 
 function AgendaContent() {
   const router = useRouter();
-  const { profile, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<TrainingSlot | null>(null);
 
@@ -38,8 +38,6 @@ function AgendaContent() {
   const { slots, isLoading: isSlotsLoading, refetch: refetchSlots } = useSlots(from, to);
   const { bookings, isLoading: isBookingsLoading, cancelBooking, refetch: refetchBookings } = useMyBookings();
   const { preferences, isLoading: isPrefsLoading, isSaving, savePreferences } = useTimePreferences();
-
-  const hasSubscription = profile?.has_active_subscription ?? false;
 
   const handleBookConfirmed = () => {
     setSelectedSlot(null);
@@ -80,21 +78,6 @@ function AgendaContent() {
               className="shrink-0 px-4 py-2 rounded-lg bg-accent-cyan text-black font-bold text-sm hover:shadow-lg transition-all"
             >
               Iniciar sesion
-            </Link>
-          </div>
-        )}
-
-        {!isAuthLoading && isAuthenticated && !hasSubscription && (
-          <div className="bg-gradient-to-r from-accent-red/10 to-accent-red/5 border border-accent-red/30 rounded-xl p-4 mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-white font-semibold text-sm">Necesitas una suscripcion activa</p>
-              <p className="text-gray-400 text-xs mt-0.5">Podes ver los horarios pero no reservarlos</p>
-            </div>
-            <Link
-              href="/#pricing"
-              className="shrink-0 px-4 py-2 rounded-lg bg-accent-red text-white font-bold text-sm hover:shadow-lg transition-all"
-            >
-              Ver planes
             </Link>
           </div>
         )}
@@ -159,9 +142,9 @@ function AgendaContent() {
             <SlotList
               slots={slots}
               preferences={preferences}
-              canBook={hasSubscription}
+              canBook={isAuthenticated}
               onBook={setSelectedSlot}
-              onUpgrade={() => isAuthenticated ? router.push("/#pricing") : router.push("/")}
+              onUpgrade={() => router.push("/")}
             />
           )}
         </section>
