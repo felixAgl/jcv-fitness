@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback } from "react";
+import { Suspense, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/features/auth";
@@ -47,7 +47,8 @@ function getWeekRange(offset: number) {
 function AgendaContent() {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedSlots, setSelectedSlots] = useState<Set<string>>(new Set());
+  const [selectedSlotsMap, setSelectedSlotsMap] = useState<Map<string, TrainingSlot>>(new Map());
+  const selectedSlots = useMemo(() => new Set(selectedSlotsMap.keys()), [selectedSlotsMap]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const weekDays = getWeekDays(weekOffset);
@@ -75,33 +76,33 @@ function AgendaContent() {
       : `Semana del ${from}`;
 
   const handleSlotToggle = useCallback((slot: TrainingSlot) => {
-    setSelectedSlots((prev) => {
-      const next = new Set(prev);
+    setSelectedSlotsMap((prev) => {
+      const next = new Map(prev);
       if (next.has(slot.id)) {
         next.delete(slot.id);
       } else {
-        next.add(slot.id);
+        next.set(slot.id, slot);
       }
       return next;
     });
   }, []);
 
-  const selectedSlotObjects = slots.filter((s) => selectedSlots.has(s.id));
+  const selectedSlotObjects = Array.from(selectedSlotsMap.values());
 
   const handleMultiBook = async () => {
-    if (!user?.id || selectedSlots.size === 0) return;
-    const ids = Array.from(selectedSlots);
+    if (!user?.id || selectedSlotsMap.size === 0) return;
+    const ids = Array.from(selectedSlotsMap.keys());
     const { errors } = await bookingService.bookSlots(ids);
     if (errors.length > 0 && errors.length === ids.length) {
       throw new Error(errors[0]);
     }
-    setSelectedSlots(new Set());
+    setSelectedSlotsMap(new Map());
     refetchSlots();
     refetchBookings();
   };
 
   const handleBookConfirmed = () => {
-    setSelectedSlots(new Set());
+    setSelectedSlotsMap(new Map());
     setShowConfirmModal(false);
     refetchSlots();
     refetchBookings();
@@ -172,7 +173,7 @@ function AgendaContent() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  setSelectedSlots(new Set());
+                  setSelectedSlotsMap(new Map());
                   setWeekOffset((v) => Math.max(0, v - 1));
                 }}
                 disabled={weekOffset === 0}
@@ -183,7 +184,7 @@ function AgendaContent() {
               <span className="text-gray-400 text-sm min-w-[120px] text-center">{weekLabel}</span>
               <button
                 onClick={() => {
-                  setSelectedSlots(new Set());
+                  setSelectedSlotsMap(new Map());
                   setWeekOffset((v) => Math.min(3, v + 1));
                 }}
                 disabled={weekOffset === 3}
@@ -212,14 +213,14 @@ function AgendaContent() {
       </div>
 
       {/* Sticky footer: book selected slots */}
-      {selectedSlots.size > 0 && (
+      {selectedSlotsMap.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-black/90 backdrop-blur-sm border-t border-gray-800 z-40">
           <div className="max-w-2xl mx-auto flex items-center gap-4">
             <div className="flex-1">
               <p className="text-white font-semibold text-sm">
-                {selectedSlots.size === 1
+                {selectedSlotsMap.size === 1
                   ? "1 sesion seleccionada"
-                  : `${selectedSlots.size} sesiones seleccionadas`}
+                  : `${selectedSlotsMap.size} sesiones seleccionadas`}
               </p>
               <p className="text-gray-500 text-xs">Toca Reservar para confirmar</p>
             </div>
@@ -227,7 +228,7 @@ function AgendaContent() {
               onClick={() => setShowConfirmModal(true)}
               className="px-6 py-3 rounded-xl bg-accent-cyan text-black font-bold text-sm hover:shadow-lg hover:shadow-accent-cyan/30 transition-all active:scale-95"
             >
-              Reservar {selectedSlots.size > 1 ? `(${selectedSlots.size})` : ""}
+              Reservar {selectedSlotsMap.size > 1 ? `(${selectedSlotsMap.size})` : ""}
             </button>
           </div>
         </div>

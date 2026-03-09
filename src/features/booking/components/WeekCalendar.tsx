@@ -80,6 +80,82 @@ function formatTimeLong(time: string): string {
   return `${display}:${String(m).padStart(2, "0")} ${ampm}`;
 }
 
+function getSlotDurationMin(startTime: string, endTime: string): number {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  return (eh * 60 + em) - (sh * 60 + sm);
+}
+
+function getHourBlocks(startTime: string, endTime: string): Array<{ start: string; end: string }> {
+  const [sh, sm] = startTime.split(":").map(Number);
+  const [eh, em] = endTime.split(":").map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+  const blocks: Array<{ start: string; end: string }> = [];
+  let cur = startMin;
+  while (cur + 60 <= endMin) {
+    const nxt = cur + 60;
+    blocks.push({
+      start: `${String(Math.floor(cur / 60)).padStart(2, "0")}:${String(cur % 60).padStart(2, "0")}`,
+      end: `${String(Math.floor(nxt / 60)).padStart(2, "0")}:${String(nxt % 60).padStart(2, "0")}`,
+    });
+    cur = nxt;
+  }
+  return blocks;
+}
+
+// ─── Hour picker popup ─────────────────────────────────────────────────────────
+
+interface HourPickerPopupProps {
+  slot: TrainingSlot;
+  isSelected: boolean;
+  onClose: () => void;
+  onSelect: (start: string, end: string) => void;
+  onDeselect: () => void;
+}
+
+function HourPickerPopup({ slot, isSelected, onClose, onSelect, onDeselect }: HourPickerPopupProps) {
+  const blocks = getHourBlocks(slot.start_time, slot.end_time);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative bg-card border border-gray-800 rounded-t-3xl sm:rounded-2xl p-5 max-w-sm w-full shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+        <h4 className="text-white font-bold text-base pr-6">{slot.title}</h4>
+        <p className="text-gray-500 text-xs mt-0.5 mb-4">Elige tu horario (max. 1 hora)</p>
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+          {blocks.map(({ start, end }) => (
+            <button
+              key={start}
+              onClick={() => onSelect(start, end)}
+              className="w-full py-2.5 px-4 rounded-xl border border-gray-700 text-white text-sm font-semibold hover:border-accent-cyan hover:bg-accent-cyan/10 hover:text-accent-cyan transition-all text-left"
+            >
+              {formatTimeLong(start)} – {formatTimeLong(end)}
+            </button>
+          ))}
+        </div>
+        {isSelected && (
+          <button
+            onClick={onDeselect}
+            className="mt-3 w-full py-2.5 rounded-xl border border-red-500/40 text-red-400 text-sm font-semibold hover:bg-red-500/10 transition-all"
+          >
+            Quitar seleccion
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Duplicate panel ───────────────────────────────────────────────────────────
 
 interface DuplicatePanelProps {
@@ -363,6 +439,8 @@ export function WeekCalendar({
   onDuplicateSlot,
 }: WeekCalendarProps) {
   const [activeTrainerSlot, setActiveTrainerSlot] = useState<SlotWithBookings | null>(null);
+  const [hourPickerSlot, setHourPickerSlot] = useState<TrainingSlot | null>(null);
+  const [subSlotSelections, setSubSlotSelections] = useState<Map<string, { start: string; end: string }>>(new Map());
 
   const today = new Date().toDateString();
 
@@ -550,7 +628,12 @@ export function WeekCalendar({
                                 onUpgrade?.();
                                 return;
                               }
-                              if (!isFull) onSlotToggle?.(slot);
+                              if (isFull) return;
+                              if (getSlotDurationMin(slot.start_time, slot.end_time) > 60) {
+                                setHourPickerSlot(slot);
+                              } else {
+                                onSlotToggle?.(slot);
+                              }
                             } else {
                               setActiveTrainerSlot(slot as SlotWithBookings);
                             }
@@ -563,7 +646,9 @@ export function WeekCalendar({
                                 textCls
                               )}
                             >
-                              {formatTimeShort(slot.start_time)}
+                              {mode === "client" && isSelected && subSlotSelections.get(slot.id)
+                                ? `${formatTimeShort(subSlotSelections.get(slot.id)!.start)}–${formatTimeShort(subSlotSelections.get(slot.id)!.end)}`
+                                : formatTimeShort(slot.start_time)}
                             </p>
                             {height > 28 && (
                               <p
@@ -604,6 +689,33 @@ export function WeekCalendar({
           onClose={() => setActiveTrainerSlot(null)}
           onCancel={() => onCancelSlot(activeTrainerSlot.id)}
           onDuplicate={onDuplicateSlot}
+        />
+      )}
+
+      {/* Client hour picker popup for long slots */}
+      {mode === "client" && hourPickerSlot && (
+        <HourPickerPopup
+          slot={hourPickerSlot}
+          isSelected={selectedSlots?.has(hourPickerSlot.id) ?? false}
+          onClose={() => setHourPickerSlot(null)}
+          onSelect={(start, end) => {
+            setSubSlotSelections((prev) => new Map(prev).set(hourPickerSlot.id, { start, end }));
+            // If already selected, toggle off first so re-select works correctly
+            if (selectedSlots?.has(hourPickerSlot.id)) {
+              onSlotToggle?.(hourPickerSlot);
+            }
+            onSlotToggle?.({ ...hourPickerSlot, start_time: start, end_time: end });
+            setHourPickerSlot(null);
+          }}
+          onDeselect={() => {
+            setSubSlotSelections((prev) => {
+              const next = new Map(prev);
+              next.delete(hourPickerSlot.id);
+              return next;
+            });
+            onSlotToggle?.(hourPickerSlot);
+            setHourPickerSlot(null);
+          }}
         />
       )}
     </>
