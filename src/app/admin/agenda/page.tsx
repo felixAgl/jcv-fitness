@@ -177,6 +177,7 @@ function AdminAgendaContent() {
             slots={slots}
             weekDays={weekDays}
             onCancelSlot={cancelSlot}
+            onDuplicateSlot={createSlots}
           />
         )}
       </div>
