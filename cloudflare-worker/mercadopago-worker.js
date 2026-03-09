@@ -114,6 +114,10 @@ export default {
       return handleWebhook(request, env, origin);
     }
 
+    if (url.pathname === '/booking-notify') {
+      return handleBookingNotify(request, env);
+    }
+
     return handlePreferenceCreation(request, env, origin);
   },
 };
@@ -857,4 +861,121 @@ async function handlePreferenceCreation(request, env, origin) {
       headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
     });
   }
+}
+
+// =============================================================================
+// BOOKING NOTIFICATION HANDLER (WhatsApp via Green API)
+// =============================================================================
+
+async function handleBookingNotify(request, env) {
+  if (request.method === 'GET') {
+    return jsonResponse({ status: 'ok', service: 'booking-notify' }, 200);
+  }
+  if (request.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405);
+  }
+
+  // Verify webhook secret
+  const authHeader = request.headers.get('Authorization') || '';
+  const secret = env.BOOKING_WEBHOOK_SECRET;
+  if (secret && authHeader !== `Bearer ${secret}`) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  // Check Green API config
+  if (!env.GREEN_API_INSTANCE_ID || !env.GREEN_API_TOKEN || !env.TRAINER_WHATSAPP) {
+    console.error('[booking-notify] Missing Green API config');
+    return jsonResponse({ status: 'ignored', reason: 'notification service not configured' }, 200);
+  }
+
+  let payload;
+  try {
+    payload = await request.json();
+  } catch {
+    return jsonResponse({ error: 'Invalid JSON' }, 400);
+  }
+
+  const { type, table, record } = payload;
+  if (table !== 'bookings' || !record) {
+    return jsonResponse({ status: 'ignored', reason: 'not a bookings event' }, 200);
+  }
+
+  const isNewBooking = type === 'INSERT' && record.status === 'confirmed';
+  const isCancellation = type === 'UPDATE' && record.status === 'cancelled';
+  if (!isNewBooking && !isCancellation) {
+    return jsonResponse({ status: 'ignored', reason: 'not a relevant event' }, 200);
+  }
+
+  try {
+    const supabaseUrl = env.SUPABASE_URL;
+    const supabaseKey = env.SUPABASE_SERVICE_KEY;
+
+    const [slotRes, clientRes] = await Promise.all([
+      fetch(`${supabaseUrl}/rest/v1/training_slots?id=eq.${record.slot_id}&select=title,slot_date,start_time,end_time`, {
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+      }),
+      fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${record.user_id}&select=full_name,email`, {
+        headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
+      }),
+    ]);
+
+    const [slots, clients] = await Promise.all([slotRes.json(), clientRes.json()]);
+    const slot = slots[0];
+    const client = clients[0];
+
+    if (!slot) {
+      console.error(`[booking-notify] Slot not found: ${record.slot_id}`);
+      return jsonResponse({ status: 'error', reason: 'slot not found' }, 200);
+    }
+
+    const clientName = client?.full_name || client?.email || 'Un cliente';
+    const dateStr = formatSlotDate(slot.slot_date);
+    const timeStr = formatSlotTime(slot.start_time);
+
+    const message = isNewBooking
+      ? `*Nueva reserva!*\n${clientName} reservo *${slot.title}* para el ${dateStr} a las ${timeStr}.`
+      : `*Cancelacion!*\n${clientName} cancelo su reserva de *${slot.title}* del ${dateStr} a las ${timeStr}.`;
+
+    await sendWhatsApp(env, message);
+
+    console.log(`[booking-notify] Sent ${isNewBooking ? 'booking' : 'cancellation'} notification for slot ${record.slot_id}`);
+    return jsonResponse({ status: 'ok' }, 200);
+  } catch (err) {
+    console.error('[booking-notify] Error:', err.message);
+    return jsonResponse({ status: 'error', reason: err.message }, 500);
+  }
+}
+
+function formatSlotDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(d)} ${months[parseInt(m) - 1]} ${y}`;
+}
+
+function formatSlotTime(timeStr) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const ampm = h >= 12 ? 'pm' : 'am';
+  const display = h % 12 || 12;
+  return `${display}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+async function sendWhatsApp(env, message) {
+  const instanceId = env.GREEN_API_INSTANCE_ID;
+  const token = env.GREEN_API_TOKEN;
+  const chatId = `${env.TRAINER_WHATSAPP}@c.us`;
+
+  const res = await fetch(
+    `https://api.green-api.com/waInstance${instanceId}/sendMessage/${token}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chatId, message }),
+    }
+  );
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Green API ${res.status}: ${text}`);
+  }
+  return res.json();
 }
