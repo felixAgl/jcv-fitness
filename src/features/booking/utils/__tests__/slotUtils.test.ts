@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getSlotDurationMin, getHourBlocks } from "../slotUtils";
+import { getSlotDurationMin, getHourBlocks, sortSlotsByDuration } from "../slotUtils";
 
 // ─── getSlotDurationMin ────────────────────────────────────────────────────────
 
@@ -125,5 +125,102 @@ describe("getHourBlocks", () => {
     for (let i = 0; i < blocks.length - 1; i++) {
       expect(blocks[i].end).toBe(blocks[i + 1].start);
     }
+  });
+});
+
+// ─── sortSlotsByDuration ───────────────────────────────────────────────────────
+
+type MinSlot = { id: string; start_time: string; end_time: string };
+
+function slot(id: string, start: string, end: string): MinSlot {
+  return { id, start_time: start, end_time: end };
+}
+
+describe("sortSlotsByDuration", () => {
+  // ── The exact reported bug ─────────────────────────────────────────────────
+  it("puts the long slot (07:00–17:00) before the short one (07:00–08:00)", () => {
+    const slots = [
+      slot("short", "07:00", "08:00"),  // 60 min — this one couldn't be clicked
+      slot("long",  "07:00", "17:00"),  // 600 min
+    ];
+    const sorted = sortSlotsByDuration(slots);
+    expect(sorted[0].id).toBe("long");
+    expect(sorted[1].id).toBe("short");
+  });
+
+  // ── Inverse input order should produce the same result ─────────────────────
+  it("is stable regardless of input order", () => {
+    const a = [slot("long", "07:00", "17:00"), slot("short", "07:00", "08:00")];
+    const b = [slot("short", "07:00", "08:00"), slot("long", "07:00", "17:00")];
+    expect(sortSlotsByDuration(a).map((s) => s.id))
+      .toEqual(sortSlotsByDuration(b).map((s) => s.id));
+  });
+
+  // ── Three slots with different durations ──────────────────────────────────
+  it("sorts three slots from longest to shortest", () => {
+    const slots = [
+      slot("1h",  "09:00", "10:00"),  // 60 min
+      slot("10h", "07:00", "17:00"),  // 600 min
+      slot("2h",  "08:00", "10:00"),  // 120 min
+    ];
+    const ids = sortSlotsByDuration(slots).map((s) => s.id);
+    expect(ids).toEqual(["10h", "2h", "1h"]);
+  });
+
+  // ── Slots with identical durations keep a stable relative order ────────────
+  it("does not reorder slots that have equal duration", () => {
+    const slots = [
+      slot("a", "08:00", "09:00"),  // 60 min
+      slot("b", "10:00", "11:00"),  // 60 min
+      slot("c", "14:00", "15:00"),  // 60 min
+    ];
+    const ids = sortSlotsByDuration(slots).map((s) => s.id);
+    // All same duration → original order preserved
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  // ── Different start times, overlapping visually ───────────────────────────
+  it("handles slots starting at different hours but overlapping (e.g. 09:00–12:00 vs 10:00–10:30)", () => {
+    const slots = [
+      slot("short", "10:00", "10:30"),  // 30 min
+      slot("long",  "09:00", "12:00"),  // 180 min
+    ];
+    const sorted = sortSlotsByDuration(slots);
+    expect(sorted[0].id).toBe("long");
+    expect(sorted[1].id).toBe("short");
+  });
+
+  // ── Returns a new array; does not mutate the original ─────────────────────
+  it("does not mutate the original array", () => {
+    const slots = [
+      slot("short", "07:00", "08:00"),
+      slot("long",  "07:00", "17:00"),
+    ];
+    const original = [...slots];
+    sortSlotsByDuration(slots);
+    expect(slots[0].id).toBe(original[0].id);
+    expect(slots[1].id).toBe(original[1].id);
+  });
+
+  // ── Edge: empty array ─────────────────────────────────────────────────────
+  it("returns empty array unchanged", () => {
+    expect(sortSlotsByDuration([])).toEqual([]);
+  });
+
+  // ── Edge: single slot ─────────────────────────────────────────────────────
+  it("returns single-element array unchanged", () => {
+    const slots = [slot("only", "10:00", "11:00")];
+    expect(sortSlotsByDuration(slots)).toEqual(slots);
+  });
+
+  // ── Generic constraint: works with extra properties ───────────────────────
+  it("preserves all extra properties on each slot object", () => {
+    const slots = [
+      { id: "a", start_time: "10:00", end_time: "12:00", title: "Long" },
+      { id: "b", start_time: "10:00", end_time: "11:00", title: "Short" },
+    ];
+    const sorted = sortSlotsByDuration(slots);
+    expect(sorted[0].title).toBe("Long");
+    expect(sorted[1].title).toBe("Short");
   });
 });

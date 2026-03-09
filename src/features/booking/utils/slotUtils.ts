@@ -1,4 +1,27 @@
 /**
+ * Sorts slots by duration descending so shorter slots render on top of longer
+ * ones in an absolute-positioned calendar grid.
+ *
+ * Problem: two slots sharing the same start time (e.g. 07:00–08:00 and
+ * 07:00–17:00) both receive `top: 0` in the grid. Because the longer slot
+ * covers the shorter one's pixel area, whichever is painted last (highest DOM
+ * order) wins click events. Sorting longer slots first means shorter slots are
+ * painted last → they sit on top and remain clickable.
+ *
+ * Generic: accepts any array of objects that have `start_time` and `end_time`.
+ * Returns a new array; the original is not mutated.
+ */
+export function sortSlotsByDuration<T extends { start_time: string; end_time: string }>(
+  slots: T[]
+): T[] {
+  return [...slots].sort((a, b) => {
+    const durA = getSlotDurationMin(a.start_time, a.end_time);
+    const durB = getSlotDurationMin(b.start_time, b.end_time);
+    return durB - durA; // descending: longest first
+  });
+}
+
+/**
  * Returns the duration of a slot in minutes.
  */
 export function getSlotDurationMin(startTime: string, endTime: string): number {

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { TrainingSlot, UserTimePreferences, SlotWithBookings, CreateSlotInput } from "../types";
-import { getSlotDurationMin, getHourBlocks } from "../utils/slotUtils";
+import { getSlotDurationMin, getHourBlocks, sortSlotsByDuration } from "../utils/slotUtils";
 
 // ─── Calendar constants ────────────────────────────────────────────────────────
 const HOUR_HEIGHT = 56; // px per hour
@@ -537,8 +537,10 @@ export function WeekCalendar({
                       </div>
                     )}
 
-                    {/* Slots */}
-                    {daySlots.map((slot) => {
+                    {/* Slots — rendered longest-first so shorter slots paint on
+                        top and remain clickable when they share the same
+                        start_time as a longer slot. */}
+                    {sortSlotsByDuration(daySlots).map((slot) => {
                       const { top, height } = getSlotPosition(
                         slot.start_time,
                         slot.end_time
