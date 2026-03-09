@@ -77,7 +77,8 @@ export function MyBookingsList({ bookings, onCancel }: MyBookingsListProps) {
               </span>
               <span className="text-gray-400 text-sm flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                {formatTime(booking.slot.start_time)} - {formatTime(booking.slot.end_time)}
+                {formatTime(booking.booked_start_time ?? booking.slot.start_time)} -{" "}
+                {formatTime(booking.booked_end_time ?? booking.slot.end_time)}
               </span>
             </div>
           </div>

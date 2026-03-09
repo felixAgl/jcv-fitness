@@ -19,6 +19,8 @@ export interface Booking {
   user_id: string;
   status: "confirmed" | "cancelled";
   created_at: string;
+  booked_start_time?: string | null;
+  booked_end_time?: string | null;
   slot?: TrainingSlot;
 }
 

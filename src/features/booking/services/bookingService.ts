@@ -48,9 +48,16 @@ export const bookingService = {
     }));
   },
 
-  async bookSlot(slotId: string): Promise<{ success: boolean; booking_id?: string; error?: string }> {
+  async bookSlot(
+    slotId: string,
+    startTime?: string,
+    endTime?: string,
+  ): Promise<{ success: boolean; booking_id?: string; error?: string }> {
     const supabase = getClient();
-    const { data, error } = await supabase.rpc("book_slot", { p_slot_id: slotId });
+    const params: Record<string, string> = { p_slot_id: slotId };
+    if (startTime) params.p_start_time = startTime;
+    if (endTime) params.p_end_time = endTime;
+    const { data, error } = await supabase.rpc("book_slot", params);
     if (error) return { success: false, error: error.message };
     return data as { success: boolean; booking_id?: string; error?: string };
   },
@@ -139,16 +146,20 @@ export const bookingService = {
     if (error) throw new Error(error.message);
   },
 
-  async bookSlots(slotIds: string[]): Promise<{ booked: string[]; errors: string[] }> {
-    const results = await Promise.all(slotIds.map((id) => this.bookSlot(id)));
+  async bookSlots(
+    slots: Array<{ id: string; start_time?: string; end_time?: string }>,
+  ): Promise<{ booked: string[]; errors: string[] }> {
+    const results = await Promise.all(
+      slots.map((s) => this.bookSlot(s.id, s.start_time, s.end_time)),
+    );
     const booked: string[] = [];
     const errors: string[] = [];
 
     results.forEach((result, idx) => {
       if (result.success) {
-        booked.push(slotIds[idx]);
+        booked.push(slots[idx].id);
       } else {
-        errors.push(result.error ?? `Error al reservar slot ${slotIds[idx]}`);
+        errors.push(result.error ?? `Error al reservar slot ${slots[idx].id}`);
       }
     });
 

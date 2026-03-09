@@ -91,9 +91,13 @@ function AgendaContent() {
 
   const handleMultiBook = async () => {
     if (!user?.id || selectedSlotsMap.size === 0) return;
-    const ids = Array.from(selectedSlotsMap.keys());
-    const { errors } = await bookingService.bookSlots(ids);
-    if (errors.length > 0 && errors.length === ids.length) {
+    const slotObjects = Array.from(selectedSlotsMap.values()).map((s) => ({
+      id: s.id,
+      start_time: s.start_time,
+      end_time: s.end_time,
+    }));
+    const { errors } = await bookingService.bookSlots(slotObjects);
+    if (errors.length > 0 && errors.length === slotObjects.length) {
       throw new Error(errors[0]);
     }
     setSelectedSlotsMap(new Map());

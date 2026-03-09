@@ -4,6 +4,7 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import type { TrainingSlot, UserTimePreferences, SlotWithBookings, CreateSlotInput } from "../types";
+import { getSlotDurationMin, getHourBlocks } from "../utils/slotUtils";
 
 // ─── Calendar constants ────────────────────────────────────────────────────────
 const HOUR_HEIGHT = 56; // px per hour
@@ -78,30 +79,6 @@ function formatTimeLong(time: string): string {
   const ampm = h >= 12 ? "pm" : "am";
   const display = h % 12 || 12;
   return `${display}:${String(m).padStart(2, "0")} ${ampm}`;
-}
-
-function getSlotDurationMin(startTime: string, endTime: string): number {
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
-  return (eh * 60 + em) - (sh * 60 + sm);
-}
-
-function getHourBlocks(startTime: string, endTime: string): Array<{ start: string; end: string }> {
-  const [sh, sm] = startTime.split(":").map(Number);
-  const [eh, em] = endTime.split(":").map(Number);
-  const startMin = sh * 60 + sm;
-  const endMin = eh * 60 + em;
-  const blocks: Array<{ start: string; end: string }> = [];
-  let cur = startMin;
-  while (cur + 60 <= endMin) {
-    const nxt = cur + 60;
-    blocks.push({
-      start: `${String(Math.floor(cur / 60)).padStart(2, "0")}:${String(cur % 60).padStart(2, "0")}`,
-      end: `${String(Math.floor(nxt / 60)).padStart(2, "0")}:${String(nxt % 60).padStart(2, "0")}`,
-    });
-    cur = nxt;
-  }
-  return blocks;
 }
 
 // ─── Hour picker popup ─────────────────────────────────────────────────────────
