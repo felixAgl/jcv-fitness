@@ -882,9 +882,9 @@ async function handleBookingNotify(request, env) {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
-  // Check Green API config
-  if (!env.GREEN_API_INSTANCE_ID || !env.GREEN_API_TOKEN || !env.TRAINER_WHATSAPP) {
-    console.error('[booking-notify] Missing Green API config');
+  // Check CallMeBot config
+  if (!env.CALLMEBOT_API_KEY || !env.TRAINER_WHATSAPP) {
+    console.error('[booking-notify] Missing WhatsApp config');
     return jsonResponse({ status: 'ignored', reason: 'notification service not configured' }, 200);
   }
 
@@ -960,22 +960,14 @@ function formatSlotTime(timeStr) {
 }
 
 async function sendWhatsApp(env, message) {
-  const instanceId = env.GREEN_API_INSTANCE_ID;
-  const token = env.GREEN_API_TOKEN;
-  const chatId = `${env.TRAINER_WHATSAPP}@c.us`;
+  const phone = env.TRAINER_WHATSAPP; // e.g. 573108297118 (country code + number, no +)
+  const apikey = env.CALLMEBOT_API_KEY;
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${phone}&text=${encodeURIComponent(message)}&apikey=${apikey}`;
 
-  const res = await fetch(
-    `https://api.green-api.com/waInstance${instanceId}/sendMessage/${token}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatId, message }),
-    }
-  );
+  const res = await fetch(url);
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Green API ${res.status}: ${text}`);
+    throw new Error(`CallMeBot ${res.status}: ${text}`);
   }
-  return res.json();
 }
