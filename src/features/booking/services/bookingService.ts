@@ -201,6 +201,7 @@ export const bookingService = {
         )
       `)
       .eq("trainer_id", trainerId)
+      .eq("status", "active")
       .gte("slot_date", fromDate)
       .lte("slot_date", toDate)
       .order("slot_date", { ascending: true })
