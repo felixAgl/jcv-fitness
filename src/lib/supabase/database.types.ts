@@ -25,6 +25,7 @@ export interface Database {
           has_free_plan_used: boolean;
           free_plan_expires_at: string | null;
           active_plan_id: string | null;
+          is_trainer: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -38,6 +39,7 @@ export interface Database {
           has_free_plan_used?: boolean;
           free_plan_expires_at?: string | null;
           active_plan_id?: string | null;
+          is_trainer?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -51,6 +53,7 @@ export interface Database {
           has_free_plan_used?: boolean;
           free_plan_expires_at?: string | null;
           active_plan_id?: string | null;
+          is_trainer?: boolean;
           updated_at?: string;
         };
       };

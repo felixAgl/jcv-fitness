@@ -13,7 +13,7 @@ describe("Landing Page Components", () => {
       render(<ProblemSection />);
 
       expect(screen.getByText(/No basta con/)).toBeInTheDocument();
-      expect(screen.getByText("Sin Plan")).toBeInTheDocument();
+      expect(screen.getByText("Sin plan")).toBeInTheDocument();
       expect(screen.getByText("Con JCV Fitness")).toBeInTheDocument();
       expect(screen.getByText("VS")).toBeInTheDocument();
     });
