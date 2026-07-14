@@ -100,6 +100,17 @@ function validateEnvConfig(env) {
 // =============================================================================
 
 export default {
+  async scheduled(_, env) {
+    // Keep-alive ping — prevents Supabase free tier pause after 1 week inactive
+    try {
+      await fetch(`${env.SUPABASE_URL}/rest/v1/profiles?select=id&limit=1`, {
+        headers: { apikey: env.SUPABASE_SERVICE_KEY },
+      });
+    } catch (e) {
+      console.error('[KeepAlive] Ping failed:', e.message);
+    }
+  },
+
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get('Origin') || '';
