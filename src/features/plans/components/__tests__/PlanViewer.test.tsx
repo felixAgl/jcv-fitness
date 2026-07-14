@@ -92,6 +92,12 @@ vi.mock("@/features/wizard/data/exercises", () => ({
   ],
 }));
 
+// Mock exercise media (no media -> emoji fallback, current behavior)
+vi.mock("@/features/wizard/data/exercise-media", () => ({
+  EXERCISE_MEDIA: {},
+  getExerciseMedia: () => undefined,
+}));
+
 vi.mock("@/features/wizard/data/foods", () => ({
   foods: [
     { id: "chicken", name: "Pollo" },

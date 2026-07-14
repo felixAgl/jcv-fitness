@@ -1,13 +1,30 @@
 import jsPDF from "jspdf";
+import QRCode from "qrcode";
 import type { WizardState, Exercise } from "../types";
 import { TRANSLATIONS } from "../types";
 import { generateMealPlan } from "../data/meal-templates";
 import { generateWorkoutPlan, getVideoUrl } from "../data/workout-templates";
+import { getExerciseMedia } from "../data/exercise-media";
 
-interface PDFData {
+export interface PDFData {
   state: WizardState;
   exercises: Exercise[];
   calories: { bmr: number; tdee: number; target: number } | null;
+}
+
+/** Fetch an image and convert it to a dataURL (fetch -> blob -> FileReader). */
+async function fetchImageAsDataURL(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch image: HTTP ${response.status}`);
+  }
+  const blob = await response.blob();
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
 }
 
 const COLORS = {
@@ -75,6 +92,32 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
   const userName = state.userName || "Guerrero";
 
+  // ============ PRE-FETCH EXERCISE MEDIA (thumbnails + QR codes) ============
+  // Fetched ONCE before drawing. A failed image/QR must never break the PDF:
+  // the exercise card simply renders without it.
+  const exerciseImages = new Map<string, string>();
+  const exerciseQrCodes = new Map<string, string>();
+
+  const mediaExerciseIds = Array.from(
+    new Set((workoutPlan ?? []).flatMap((day) => day.exercises.map((ex) => ex.exerciseId)))
+  ).filter((id) => getExerciseMedia(id) !== undefined);
+
+  await Promise.all(
+    mediaExerciseIds.map(async (id) => {
+      const media = getExerciseMedia(id)!;
+      try {
+        exerciseImages.set(id, await fetchImageAsDataURL(media.image));
+      } catch {
+        // Skip thumbnail for this exercise
+      }
+      try {
+        exerciseQrCodes.set(id, await QRCode.toDataURL(media.gif, { margin: 1, width: 128 }));
+      } catch {
+        // Skip QR for this exercise
+      }
+    })
+  );
+
   // ============ HELPER FUNCTIONS ============
   const drawBackground = () => {
     pdf.setFillColor(...COLORS.bgDark);
@@ -118,6 +161,8 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
     cardY: number
   ) => {
     const cardHeight = 28;
+    const thumbnail = exerciseImages.get(ex.exerciseId);
+    const qrCode = exerciseQrCodes.get(ex.exerciseId);
 
     // Card background with cyan left border
     pdf.setFillColor(...COLORS.bgCard);
@@ -125,12 +170,27 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
     pdf.setFillColor(...COLORS.cyan);
     pdf.rect(margin, cardY + 3, 3, cardHeight - 6, "F");
 
+    // Exercise thumbnail on the left (text shifts right when present)
+    const thumbSize = 15;
+    let textX = margin + 12;
+    if (thumbnail) {
+      try {
+        pdf.setFillColor(...COLORS.white);
+        pdf.roundedRect(margin + 6, cardY + 6.5, thumbSize, thumbSize, 1, 1, "F");
+        pdf.addImage(thumbnail, "JPEG", margin + 6, cardY + 6.5, thumbSize, thumbSize);
+        textX = margin + 25;
+      } catch {
+        // Corrupt image data: keep default layout
+        textX = margin + 12;
+      }
+    }
+
     // Exercise name
     pdf.setFontSize(12);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(...COLORS.white);
     const exName = exerciseInfo?.name || ex.exerciseId.replace(/_/g, " ");
-    pdf.text(exName, margin + 12, cardY + 10);
+    pdf.text(exName, textX, cardY + 10);
 
     // Technical name in cyan
     pdf.setFontSize(9);
@@ -138,18 +198,18 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
     const techName = exerciseInfo?.muscle
       ? `"${exName}" - ${exerciseInfo.muscle}`
       : `${exName}`;
-    pdf.text(techName, margin + 12, cardY + 17);
+    pdf.text(techName, textX, cardY + 17);
 
     // Muscle group
     if (exerciseInfo?.muscle) {
       pdf.setFontSize(8);
       pdf.setTextColor(...COLORS.orange);
-      pdf.text(`Musculos: ${exerciseInfo.muscle}`, margin + 12, cardY + 23);
+      pdf.text(`Musculos: ${exerciseInfo.muscle}`, textX, cardY + 23);
     }
 
-    // Sets x Reps with big numbers
-    const setsRepsX = pageWidth - margin - 50;
-    pdf.setFontSize(18);
+    // Sets x Reps with big numbers (shifted left when a QR occupies the right edge)
+    const setsRepsX = qrCode ? pageWidth - margin - 62 : pageWidth - margin - 50;
+    pdf.setFontSize(qrCode ? 15 : 18);
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(...COLORS.cyan);
     pdf.text(`${ex.sets}x${ex.reps}`, setsRepsX, cardY + 14);
@@ -158,6 +218,20 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
     pdf.setFontSize(8);
     pdf.setTextColor(...COLORS.gray);
     pdf.text(`Descanso: ${ex.rest}`, setsRepsX, cardY + 21);
+
+    // QR code linking to the exercise GIF (right edge, before checkboxes)
+    if (qrCode) {
+      const qrSize = 11;
+      const qrX = pageWidth - margin - 31;
+      try {
+        pdf.addImage(qrCode, "PNG", qrX, cardY + 4, qrSize, qrSize);
+        pdf.setFontSize(5.5);
+        pdf.setTextColor(...COLORS.gray);
+        pdf.text("Ver video", qrX + qrSize / 2, cardY + 18.5, { align: "center" });
+      } catch {
+        // Corrupt QR data: skip it
+      }
+    }
 
     // Checkbox for series (right side)
     const checkboxX = pageWidth - margin - 12;
@@ -903,6 +977,11 @@ export async function generateWorkoutPDF(data: PDFData): Promise<void> {
 
     addFooter();
   }
+
+  // ============ ATTRIBUTION (last page) ============
+  pdf.setFontSize(6);
+  pdf.setTextColor(...COLORS.darkGray);
+  pdf.text("Imagenes de ejercicios © Gymvisual", pageWidth / 2, pageHeight - 12, { align: "center" });
 
   // ============ SAVE PDF ============
   const date = new Date().toISOString().split("T")[0];
