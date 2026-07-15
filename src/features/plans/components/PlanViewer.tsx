@@ -10,6 +10,7 @@ import { TRANSLATIONS, type TrainingLevel, type TrainingGoal, type WorkoutDay, t
 import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
 import { generateMealPlan } from "@/features/wizard/data/meal-templates";
 import { TrackingCalendar } from "./TrackingCalendar";
+import { ExerciseMediaThumb } from "./ExerciseMediaThumb";
 import type { UserPlan, PlanDataWithProgress } from "../types";
 
 type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
@@ -17,16 +18,22 @@ type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
 interface PlanViewerProps {
   plan: UserPlan & { isExpired: boolean; daysRemaining: number };
   initialTab?: TabType;
+  isPreview?: boolean;
 }
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
-export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
+// Default filler note emitted by generateWorkoutPlan when an exercise has no
+// specific tip; hidden at render to avoid repeating it on every card.
+const GENERIC_EXERCISE_NOTE = "Ejecuta con buena tecnica";
+
+export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerProps) {
   const router = useRouter();
   const { profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab || "resumen");
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
   const [selectedMealDay, setSelectedMealDay] = useState(0);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const planData = plan.planData;
   const hasSubscription = profile?.has_active_subscription ?? false;
@@ -42,10 +49,9 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
     );
   }, [planData.level, planData.goal, planData.selectedExercises, planData.time]);
 
-  // Generate meal plan based on calorie target
-  const mealPlan: MealPlanDay[] = useMemo(() => {
-    if (!planData.userBodyData) return [];
-    // Calculate target calories (simplified - in real app use the calculateCalories function)
+  // Calorie targets (simplified - in real app use the calculateCalories function)
+  const calories = useMemo(() => {
+    if (!planData.userBodyData) return null;
     const { currentWeight, targetWeight, height, age, gender, activityLevel } = planData.userBodyData;
 
     // Harris-Benedict BMR
@@ -70,8 +76,28 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
       targetCalories = tdee + 300; // Surplus for weight gain
     }
 
-    return generateMealPlan(targetCalories, planData.userBodyData.weightGoal, 7);
+    return { bmr: Math.round(bmr), tdee, target: targetCalories };
   }, [planData.userBodyData]);
+
+  // Generate meal plan based on calorie target
+  const mealPlan: MealPlanDay[] = useMemo(() => {
+    if (!planData.userBodyData || !calories) return [];
+    return generateMealPlan(calories.target, planData.userBodyData.weightGoal, 7);
+  }, [planData.userBodyData, calories]);
+
+  const handleDownloadPdf = async () => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      // Lazy import: keeps jspdf/qrcode out of the initial bundle
+      const { generateWorkoutPDF } = await import("@/features/wizard/utils/generate-pdf");
+      await generateWorkoutPDF({ state: planData, exercises, calories });
+    } catch (error) {
+      console.error("Error generando el PDF:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Get exercise details by ID
   const getExerciseById = (exerciseId: string) => {
@@ -86,12 +112,15 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
     planData.selectedFoods.includes(food.id)
   );
 
-  const tabs: { id: TabType; label: string; icon: string }[] = [
+  const allTabs: { id: TabType; label: string; icon: string }[] = [
     { id: "resumen", label: "Resumen", icon: "📋" },
     { id: "rutina", label: "Rutina Semanal", icon: "💪" },
     { id: "alimentacion", label: "Plan Alimenticio", icon: "🥗" },
     { id: "calendario", label: "Calendario", icon: "📅" },
   ];
+
+  // Hide calendar tab in preview mode (requires Supabase for progress tracking)
+  const tabs = isPreview ? allTabs.filter((t) => t.id !== "calendario") : allTabs;
 
   // Current workout day details
   const currentWorkout = workoutPlan[selectedWorkoutDay];
@@ -103,21 +132,25 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Volver
-            </button>
+            {!isPreview && (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Volver
+              </button>
+            )}
             <h1 className="text-2xl md:text-3xl font-bold text-white">
-              {planData.userName ? `Plan de ${planData.userName}` : "Tu Plan de Entrenamiento"}
+              {isPreview
+                ? "Plan de Ejemplo - JCV Fitness"
+                : planData.userName ? `Plan de ${planData.userName}` : "Tu Plan de Entrenamiento"}
             </h1>
           </div>
-          {!plan.isExpired && (
+          {!isPreview && !plan.isExpired && (
             <div className="text-right">
               <div className="text-sm text-gray-500">Tiempo restante</div>
               <div className="text-lg font-bold text-accent-cyan">
@@ -128,7 +161,7 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
         </div>
 
         {/* Status Banner */}
-        {!plan.isExpired && plan.daysRemaining <= 7 && (
+        {!isPreview && !plan.isExpired && plan.daysRemaining <= 7 && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,8 +278,25 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                 </div>
               </div>
 
-              {/* Download CTA */}
-              {!plan.isExpired && (
+              {/* Download CTA / Preview CTA */}
+              {isPreview ? (
+                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-1">Quieres tu plan personalizado?</h3>
+                      <p className="text-gray-400 text-sm">
+                        Genera el tuyo gratis en 2 minutos con nuestro wizard
+                      </p>
+                    </div>
+                    <Link
+                      href="/wizard"
+                      className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2"
+                    >
+                      Crear Mi Plan Gratis
+                    </Link>
+                  </div>
+                </div>
+              ) : !plan.isExpired && (
                 <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
@@ -260,12 +310,25 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                     {hasSubscription ? (
                       <button
                         type="button"
-                        className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2"
+                        onClick={handleDownloadPdf}
+                        disabled={isGeneratingPdf}
+                        className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Descargar PDF
+                        {isGeneratingPdf ? (
+                          <>
+                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Generando PDF...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Descargar PDF
+                          </>
+                        )}
                       </button>
                     ) : (
                       <Link
@@ -340,39 +403,39 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                       )}
 
                       {/* Exercise List */}
-                      <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
                         {currentWorkout.exercises.map((exercise, idx) => {
                           const exerciseDetails = getExerciseById(exercise.exerciseId);
                           return (
                             <div
                               key={idx}
-                              className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                              className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-gray-600 transition-colors"
                             >
-                              <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-full bg-accent-cyan/20 flex items-center justify-center text-lg shrink-0">
-                                  {exerciseDetails?.emoji || "🏋️"}
-                                </div>
+                              <div className="flex items-start gap-3 sm:gap-4">
+                                <ExerciseMediaThumb
+                                  exerciseId={exercise.exerciseId}
+                                  emoji={exerciseDetails?.emoji}
+                                  name={exerciseDetails?.name}
+                                />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className="font-semibold text-white truncate">
-                                      {exerciseDetails?.name || exercise.exerciseId}
-                                    </h4>
-                                    <div className="flex gap-2 shrink-0">
-                                      <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded text-xs font-medium">
-                                        {exercise.sets} series
-                                      </span>
-                                      <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
-                                        {exercise.reps} reps
-                                      </span>
-                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
-                                        {exercise.rest}
-                                      </span>
-                                    </div>
-                                  </div>
+                                  <h4 className="font-semibold text-white">
+                                    {exerciseDetails?.name || exercise.exerciseId}
+                                  </h4>
                                   {exerciseDetails?.altName && (
-                                    <p className="text-sm text-gray-500 mt-1">{exerciseDetails.altName}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{exerciseDetails.altName}</p>
                                   )}
-                                  {exercise.notes && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.sets}×</span> series
+                                    </span>
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.reps}</span> reps
+                                    </span>
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.rest}</span> descanso
+                                    </span>
+                                  </div>
+                                  {exercise.notes && exercise.notes !== GENERIC_EXERCISE_NOTE && (
                                     <p className="text-sm text-gray-400 mt-2 italic">
                                       Tip: {exercise.notes}
                                     </p>

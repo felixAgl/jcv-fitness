@@ -29,7 +29,7 @@ vi.mock("@/features/wizard/data/workout-templates", () => ({
       muscleGroups: ["pecho", "triceps"],
       exercises: [
         { exerciseId: "bench_press", sets: 4, reps: "8-10", rest: "90s", notes: "Controlar el movimiento" },
-        { exerciseId: "incline_press", sets: 3, reps: "10-12", rest: "60s" },
+        { exerciseId: "incline_press", sets: 3, reps: "10-12", rest: "60s", notes: "Ejecuta con buena tecnica" },
       ],
     },
     {
@@ -90,6 +90,12 @@ vi.mock("@/features/wizard/data/exercises", () => ({
     { id: "incline_press", name: "Press Inclinado", emoji: "🔥" },
     { id: "pull_ups", name: "Dominadas", emoji: "💪" },
   ],
+}));
+
+// Mock exercise media (no media -> emoji fallback, current behavior)
+vi.mock("@/features/wizard/data/exercise-media", () => ({
+  EXERCISE_MEDIA: {},
+  getExerciseMedia: () => undefined,
 }));
 
 vi.mock("@/features/wizard/data/foods", () => ({
@@ -275,8 +281,18 @@ describe("PlanViewer", () => {
       await user.click(screen.getByText("Rutina Semanal"));
 
       expect(screen.getByText("Press de Banca")).toBeInTheDocument();
-      expect(screen.getByText("4 series")).toBeInTheDocument();
-      expect(screen.getByText("8-10 reps")).toBeInTheDocument();
+      expect(screen.getByText("4×")).toBeInTheDocument();
+      expect(screen.getAllByText("series").length).toBeGreaterThan(0);
+      expect(screen.getByText("8-10")).toBeInTheDocument();
+    });
+
+    it("should show real tips but hide the generic default note", async () => {
+      render(<PlanViewer plan={createMockPlan()} />);
+
+      await user.click(screen.getByText("Rutina Semanal"));
+
+      expect(screen.getByText("Tip: Controlar el movimiento")).toBeInTheDocument();
+      expect(screen.queryByText(/Ejecuta con buena tecnica/)).not.toBeInTheDocument();
     });
 
     it("should show rest day content", async () => {
