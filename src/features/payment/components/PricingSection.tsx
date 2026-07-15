@@ -78,8 +78,8 @@ export function PricingSection() {
               <Card
                 key={plan.id}
                 className={cn(
-                  "relative",
-                  plan.popular && "border-primary ring-2 ring-primary/20"
+                  "relative hover-lift",
+                  plan.popular && "border-primary ring-2 ring-primary/20 glow-cyan-soft"
                 )}
               >
                 {plan.popular && (
@@ -90,7 +90,7 @@ export function PricingSection() {
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="mt-4">
-                    <span className="text-4xl font-bold">{plan.priceDisplay}</span>
+                    <span className="font-display text-5xl tracking-wide">{plan.priceDisplay}</span>
                     <span className="text-foreground/60 ml-1">{t.perMonth}</span>
                   </div>
                 </CardHeader>

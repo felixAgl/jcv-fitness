@@ -64,7 +64,7 @@ export function TransformationGallery() {
           >
             {transformationImages.map((image) => (
               <SwiperSlide key={image.id}>
-                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-gray-800">
+                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-gray-800 transition-all duration-300 hover:border-accent-cyan/50 hover:shadow-lg hover:shadow-accent-cyan/10">
                   <Image
                     src={image.url}
                     alt={t.imageAlts[image.id] ?? image.alt}
@@ -106,18 +106,18 @@ export function TransformationGallery() {
         <div className="mt-12 text-center">
           <div className="inline-flex items-center gap-8 flex-wrap justify-center">
             <div className="text-center">
-              <div className="text-4xl font-black text-accent-cyan">500+</div>
-              <div className="text-sm text-gray-500">{t.statClients}</div>
+              <div className="font-display text-6xl tracking-wide text-accent-cyan">500+</div>
+              <div className="text-sm text-gray-400">{t.statClients}</div>
             </div>
-            <div className="w-px h-12 bg-gray-800 hidden sm:block" />
+            <div className="w-px h-12 bg-accent-cyan/20 hidden sm:block" />
             <div className="text-center">
-              <div className="text-4xl font-black text-accent-success">40</div>
-              <div className="text-sm text-gray-500">{t.statDays}</div>
+              <div className="font-display text-6xl tracking-wide text-accent-cyan">40</div>
+              <div className="text-sm text-gray-400">{t.statDays}</div>
             </div>
-            <div className="w-px h-12 bg-gray-800 hidden sm:block" />
+            <div className="w-px h-12 bg-accent-cyan/20 hidden sm:block" />
             <div className="text-center">
-              <div className="text-4xl font-black text-accent-cyan">100%</div>
-              <div className="text-sm text-gray-500">{t.statCommitment}</div>
+              <div className="font-display text-6xl tracking-wide text-accent-cyan">100%</div>
+              <div className="text-sm text-gray-400">{t.statCommitment}</div>
             </div>
           </div>
         </div>

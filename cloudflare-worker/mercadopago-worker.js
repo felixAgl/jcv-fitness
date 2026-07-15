@@ -109,6 +109,13 @@ export default {
     } catch (e) {
       console.error('[KeepAlive] Ping failed:', e.message);
     }
+
+    // Self-healing checkout — reconcile approved MP payments missing a subscription
+    try {
+      await reconcilePayments(env);
+    } catch (e) {
+      console.error('[Reconcile] Sweep failed:', e.message);
+    }
   },
 
   async fetch(request, env) {
@@ -680,6 +687,124 @@ async function activateSubscription(payment, env, webhookLogId) {
     plan_type: planType,
     expires: endDate.toISOString(),
   };
+}
+
+// =============================================================================
+// PAYMENT RECONCILIATION (self-healing checkout)
+// =============================================================================
+
+const RECONCILE_MAX_PAYMENTS = 50;
+
+/**
+ * Sweeps MercadoPago approved payments from the last 48h and activates any
+ * subscription that the webhook flow missed (webhook lost, worker down, etc).
+ * Idempotent: payments with an existing subscription (payment_reference) are skipped.
+ */
+async function reconcilePayments(env) {
+  validateEnvConfig(env);
+
+  // MercadoPago search supports relative date tokens (NOW-XHOURS)
+  const searchUrl =
+    'https://api.mercadopago.com/v1/payments/search' +
+    '?sort=date_created&criteria=desc' +
+    '&range=date_created&begin_date=NOW-48HOURS&end_date=NOW' +
+    `&status=approved&limit=${RECONCILE_MAX_PAYMENTS}`;
+
+  const response = await fetch(searchUrl, {
+    headers: { Authorization: `Bearer ${env.MP_ACCESS_TOKEN}` },
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new WorkerError(
+      `MP payments search failed: ${response.status} ${text.slice(0, 200)}`,
+      response.status === 401 || response.status === 403 ? ErrorType.AUTH_ERROR : ErrorType.SERVER_ERROR
+    );
+  }
+
+  const { results = [] } = await response.json();
+  const payments = results.slice(0, RECONCILE_MAX_PAYMENTS);
+
+  const recovered = [];
+  const failed = [];
+  let checked = 0;
+
+  for (const payment of payments) {
+    checked++;
+    try {
+      // Idempotency guard: skip payments that already have a subscription
+      const existingSub = await supabaseQuery(
+        env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY,
+        'subscriptions', 'id', `payment_reference=eq.${payment.id}`
+      );
+      if (existingSub) continue;
+
+      console.log(`[Reconcile] Orphan approved payment found: ${payment.id} (${payment.payer?.email || 'no email'})`);
+      const result = await activateSubscription(payment, env, null);
+
+      recovered.push({
+        payment_id: payment.id,
+        amount: payment.transaction_amount,
+        email: payment.payer?.email || null,
+        subscription_id: result.subscription_id,
+        plan_type: result.plan_type,
+      });
+      console.log(`[Reconcile] Recovered payment ${payment.id} -> subscription ${result.subscription_id}`);
+    } catch (error) {
+      failed.push({
+        payment_id: payment.id,
+        amount: payment.transaction_amount,
+        email: payment.payer?.email || null,
+        error: error.message,
+      });
+      console.error(`[Reconcile] Failed to recover payment ${payment.id}:`, error.message);
+    }
+  }
+
+  console.log(`[Reconcile] Sweep done: checked=${checked}, recovered=${recovered.length}, failed=${failed.length}`);
+
+  // Nothing anomalous — no alert, no audit row
+  if (recovered.length === 0 && failed.length === 0) return;
+
+  const summary = {
+    checked,
+    recovered,
+    failed,
+    window: 'NOW-48HOURS',
+    ran_at: new Date().toISOString(),
+  };
+
+  // Audit trail in Supabase
+  await logWebhook(env, {
+    status: 'reconciliation',
+    webhook_type: 'reconciliation',
+    webhook_action: 'payment.reconcile',
+    raw_payload: summary,
+    error_message: failed.length > 0 ? `${failed.length} payment(s) could not be recovered` : null,
+    processed_at: new Date().toISOString(),
+  });
+
+  // WhatsApp alert to trainer
+  const lines = ['*Reconciliacion de pagos*'];
+  for (const r of recovered) {
+    lines.push(`Recuperado: pago ${r.payment_id} (${r.email || 's/email'}) -> ${r.plan_type}`);
+  }
+  for (const f of failed) {
+    lines.push(`FALLO: pago ${f.payment_id} (${f.email || 's/email'}) - ${f.error}`);
+  }
+  const message = lines.join('\n');
+
+  if (!env.CALLMEBOT_API_KEY || !env.TRAINER_WHATSAPP) {
+    console.log('[Reconcile] WhatsApp not configured, alert would be:', message);
+    return;
+  }
+
+  try {
+    await sendWhatsApp(env, message);
+    console.log('[Reconcile] WhatsApp alert sent');
+  } catch (e) {
+    console.error('[Reconcile] WhatsApp alert failed:', e.message);
+  }
 }
 
 // =============================================================================

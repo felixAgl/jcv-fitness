@@ -33,8 +33,8 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                 <div
                   className={cn(
                     "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300",
-                    isCompleted && "bg-amber-500 text-black",
-                    isActive && "bg-white text-black ring-2 ring-white ring-offset-2 ring-offset-black shadow-lg shadow-white/30",
+                    isCompleted && "bg-accent-cyan/25 text-accent-cyan border border-accent-cyan/60",
+                    isActive && "bg-accent-cyan text-black ring-2 ring-accent-cyan ring-offset-2 ring-offset-black glow-cyan-soft",
                     !isActive && !isCompleted && "bg-gray-700 text-gray-400 border border-gray-600"
                   )}
                 >
@@ -50,9 +50,9 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                   className={cn(
                     "text-xs mt-1 hidden sm:block transition-colors",
                     isActive
-                      ? "text-white font-semibold"
+                      ? "text-accent-cyan font-semibold"
                       : isCompleted
-                        ? "text-amber-500"
+                        ? "text-accent-cyan/70"
                         : "text-gray-500"
                   )}
                 >
@@ -63,7 +63,7 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
                 <div
                   className={cn(
                     "flex-1 h-1 mx-2 rounded transition-colors duration-300",
-                    isCompleted ? "bg-amber-500" : "bg-gray-700"
+                    isCompleted ? "bg-accent-cyan" : "bg-gray-700"
                   )}
                 />
               )}
@@ -73,7 +73,7 @@ export function WizardProgress({ currentStep, totalSteps }: WizardProgressProps)
       </div>
       <div className="text-center mt-4">
         <span className="text-gray-300 text-sm">
-          Paso <span className="text-white font-bold">{currentStep}</span> de {totalSteps}
+          Paso <span className="font-display text-xl text-accent-cyan tracking-wide align-middle">{currentStep}</span> de {totalSteps}
         </span>
       </div>
     </div>

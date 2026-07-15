@@ -2,9 +2,9 @@
 
 :root {
   --bg-primary: #0a0a0a;
-  --bg-secondary: #10131a;
-  --bg-card: #151a24;
-  --bg-card-hover: #1a2130;
+  --bg-secondary: #131824;
+  --bg-card: #1a2029;
+  --bg-card-hover: #212936;
   --accent-cyan: #22d3ee;
   --accent-success: #34d399;
   --accent-danger: #f87171;
@@ -12,7 +12,7 @@
   --text-primary: #ffffff;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --border-color: #232a38;
+  --border-color: #2b3444;
   /* Macro triad — semantic, used ONLY in FoodCard */
   --macro-protein: #34d399;
   --macro-carbs: #fbbf24;
@@ -62,11 +62,12 @@ h1, h2, h3 {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at -10% 50%, rgba(59, 130, 246, 0.18) 0%, transparent 40%),
-    radial-gradient(ellipse at 110% 50%, rgba(34, 211, 238, 0.25) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 110%, rgba(59, 130, 246, 0.15) 0%, transparent 35%),
+    radial-gradient(ellipse at 50% -10%, rgba(34, 211, 238, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at -10% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 40%),
+    radial-gradient(ellipse at 110% 50%, rgba(34, 211, 238, 0.28) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 110%, rgba(59, 130, 246, 0.16) 0%, transparent 35%),
     radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1) 0%, transparent 25%),
-    radial-gradient(circle at 90% 10%, rgba(34, 211, 238, 0.15) 0%, transparent 30%);
+    radial-gradient(circle at 90% 10%, rgba(34, 211, 238, 0.16) 0%, transparent 30%);
   pointer-events: none;
   z-index: 0;
   animation: pulseGlow 6s ease-in-out infinite alternate;
@@ -109,6 +110,41 @@ h1, h2, h3 {
 
 .glow-cyan {
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.5), 0 0 40px rgba(34, 211, 238, 0.3), 0 0 60px rgba(34, 211, 238, 0.1);
+}
+
+/* Softer glow for active tabs, selected cards and secondary CTAs. */
+.glow-cyan-soft {
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35), 0 0 28px rgba(34, 211, 238, 0.15);
+}
+
+/* Subtle cyan wash behind section headers / stat blocks. */
+.wash-cyan {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(59, 130, 246, 0.05) 60%, transparent 100%);
+}
+
+/* Hover lift for cards. Guarded by prefers-reduced-motion below. */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 211, 238, 0.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-pattern,
+  .bg-particles,
+  .btn-cta,
+  .btn-generate {
+    animation: none;
+  }
+
+  .hover-lift,
+  .hover-lift:hover,
+  .btn-cta:hover {
+    transform: none;
+  }
 }
 
 .btn-cta {

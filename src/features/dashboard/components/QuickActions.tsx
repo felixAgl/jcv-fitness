@@ -80,17 +80,17 @@ export function QuickActions() {
     purple: {
       bg: "bg-white/5",
       text: "text-slate-300",
-      hover: "hover:border-slate-500/50",
+      hover: "hover:border-accent-cyan/40",
     },
     green: {
       bg: "bg-white/5",
       text: "text-slate-300",
-      hover: "hover:border-slate-500/50",
+      hover: "hover:border-accent-cyan/40",
     },
     orange: {
       bg: "bg-white/5",
       text: "text-slate-300",
-      hover: "hover:border-slate-500/50",
+      hover: "hover:border-accent-cyan/40",
     },
   };
 
@@ -102,8 +102,8 @@ export function QuickActions() {
 
         const content = (
           <div
-            className={`bg-gray-900 rounded-xl border border-gray-800 p-4 transition-all ${
-              isDisabled ? "opacity-50 cursor-not-allowed" : colors.hover
+            className={`bg-card rounded-xl border border-gray-800 p-4 ${
+              isDisabled ? "opacity-50 cursor-not-allowed transition-all" : `hover-lift ${colors.hover}`
             }`}
           >
             <div className="flex items-start gap-4">

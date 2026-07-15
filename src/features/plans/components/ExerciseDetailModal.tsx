@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { getExerciseMedia } from "@/features/wizard/data/exercise-media";
+import { exercises } from "@/features/wizard/data/exercises";
 import {
   loadExerciseLibrary,
   getLibraryExercise,
@@ -130,6 +131,10 @@ export function ExerciseDetailModal({ exerciseId, name, altName, onClose }: Exer
   const media = getExerciseMedia(exerciseId);
   const { lang, setLang } = useLanguage();
   const t = STRINGS[lang];
+  // In EN mode show the catalog's English techName as the title
+  const catalogExercise = exercises.find((e) => e.id === exerciseId);
+  const displayName = lang === "en" ? catalogExercise?.techName ?? name : name;
+  const displayAltName = lang === "en" ? undefined : altName;
 
   const [mounted, setMounted] = useState(false);
   const [gifLoaded, setGifLoaded] = useState(false);
@@ -196,14 +201,14 @@ export function ExerciseDetailModal({ exerciseId, name, altName, onClose }: Exer
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={name}
+        aria-label={displayName}
         className="relative bg-gray-900 rounded-2xl border border-gray-800 w-full max-w-[480px] shadow-2xl max-h-[92vh] flex flex-col overflow-hidden"
       >
         {/* Header: name + ES/EN pill + close */}
         <div className="flex items-center gap-3 p-4 border-b border-gray-800">
           <div className="min-w-0 flex-1">
-            <h2 className="text-white font-bold text-lg leading-tight truncate">{name}</h2>
-            {altName && <p className="text-gray-500 text-xs truncate">{altName}</p>}
+            <h2 className="text-white font-bold text-lg leading-tight truncate">{displayName}</h2>
+            {displayAltName && <p className="text-gray-500 text-xs truncate">{displayAltName}</p>}
           </div>
 
           <div

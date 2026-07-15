@@ -22,13 +22,16 @@ export function SocialProof() {
             return (
               <div
                 key={stat.label}
-                className="bg-card border border-gray-800 rounded-2xl p-8 text-center"
+                className="relative overflow-hidden bg-card border border-gray-800 rounded-2xl p-8 text-center hover-lift hover:border-accent-cyan/40"
               >
-                <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
-                  <Icon className="w-7 h-7 text-accent-cyan" />
+                <div className="absolute inset-0 wash-cyan pointer-events-none" />
+                <div className="relative">
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
+                    <Icon className="w-7 h-7 text-accent-cyan" />
+                  </div>
+                  <div className="font-display text-6xl tracking-wide text-accent-cyan mb-2">{stat.value}</div>
+                  <div className="text-gray-400">{stat.label}</div>
                 </div>
-                <div className="text-4xl font-black text-accent-cyan mb-2">{stat.value}</div>
-                <div className="text-gray-400">{stat.label}</div>
               </div>
             );
           })}
@@ -45,7 +48,7 @@ export function SocialProof() {
           {t.testimonials.map((testimonial) => (
             <div
               key={testimonial.name}
-              className="bg-card border border-gray-800 rounded-2xl p-6"
+              className="bg-card border border-gray-800 rounded-2xl p-6 hover-lift hover:border-accent-cyan/30"
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center text-white font-bold">

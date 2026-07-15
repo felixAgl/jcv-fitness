@@ -38,7 +38,7 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
         type="button"
         onClick={() => setModalOpen(true)}
         aria-label={`Ver demostracion de ${label}`}
-        className="relative size-[72px] rounded-xl overflow-hidden shrink-0 bg-white ring-1 ring-white/10 hover:ring-accent-cyan/60 transition-shadow"
+        className="relative size-20 sm:size-24 rounded-xl overflow-hidden shrink-0 bg-white ring-1 ring-white/10 hover:ring-2 hover:ring-accent-cyan/60 hover:shadow-lg hover:shadow-accent-cyan/20 transition-all"
       >
         {/* Static export: plain <img>, not next/image */}
         <img

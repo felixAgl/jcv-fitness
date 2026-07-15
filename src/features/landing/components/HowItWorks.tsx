@@ -31,9 +31,9 @@ export function HowItWorks() {
                   <div className="hidden md:block absolute top-12 left-1/2 w-full h-0.5 bg-gradient-to-r from-accent-cyan/50 to-transparent" />
                 )}
 
-                <div className="bg-card border border-gray-800 rounded-2xl p-8 text-center relative z-10">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center">
-                    <span className="text-2xl font-black text-white">{index + 1}</span>
+                <div className="bg-card border border-gray-800 rounded-2xl p-8 text-center relative z-10 hover-lift hover:border-accent-cyan/40">
+                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center glow-cyan-soft">
+                    <span className="font-display text-3xl text-white">{index + 1}</span>
                   </div>
                   <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
                     <Icon className="w-6 h-6 text-accent-cyan" />

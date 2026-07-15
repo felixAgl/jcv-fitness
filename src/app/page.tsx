@@ -20,7 +20,7 @@ import { gymWorkoutPlan, homeWorkoutPlan } from "@/features/workout-plan/data";
 function SectionDivider() {
   return (
     <div className="w-full flex justify-center py-2">
-      <div className="w-2/3 max-w-2xl h-px bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+      <div className="w-2/3 max-w-2xl h-px bg-gradient-to-r from-transparent via-accent-cyan/30 to-transparent" />
     </div>
   );
 }

@@ -24,9 +24,10 @@ export function OptionCard({
   size = "md",
 }: OptionCardProps) {
   const selectedClasses =
-    "border-accent-cyan bg-accent-cyan/30 ring-2 ring-accent-cyan shadow-lg shadow-accent-cyan/20";
+    "border-accent-cyan bg-accent-cyan/30 ring-2 ring-accent-cyan shadow-lg shadow-accent-cyan/30 glow-cyan-soft";
 
-  const unselectedClasses = "border-gray-600 bg-gray-900/80 hover:border-gray-500 hover:bg-gray-800/60";
+  const unselectedClasses =
+    "border-gray-600 bg-gray-900/80 hover:border-accent-cyan/40 hover:bg-gray-800/60";
 
   const sizeClasses = {
     sm: "p-3",

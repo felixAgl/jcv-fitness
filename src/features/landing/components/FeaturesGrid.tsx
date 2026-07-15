@@ -31,7 +31,7 @@ export function FeaturesGrid() {
             return (
               <div
                 key={feature.title}
-                className="bg-card border border-gray-800 rounded-2xl p-6 hover:border-accent-cyan/50 transition-all group"
+                className="bg-card border border-gray-800 rounded-2xl p-6 hover-lift hover:border-accent-cyan/50 group"
               >
                 <div className={`w-14 h-14 rounded-xl ${colors} flex items-center justify-center mb-4 border`}>
                   <Icon className="w-7 h-7" />

@@ -153,7 +153,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
           {!isPreview && !plan.isExpired && (
             <div className="text-right">
               <div className="text-sm text-gray-500">Tiempo restante</div>
-              <div className="text-lg font-bold text-accent-cyan">
+              <div className="font-display text-2xl tracking-wide text-accent-cyan">
                 {plan.daysRemaining} dias
               </div>
             </div>
@@ -187,7 +187,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? "bg-accent-cyan text-black"
+                  ? "bg-accent-cyan text-black glow-cyan-soft"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
               }`}
             >
@@ -243,19 +243,19 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                   <h2 className="text-lg font-bold text-accent-cyan mb-4">Datos Corporales</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.currentWeight}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.currentWeight}</div>
                       <div className="text-gray-300 text-xs">kg actuales</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-accent-success">{planData.userBodyData.targetWeight}</div>
+                      <div className="font-display text-4xl tracking-wide text-accent-success">{planData.userBodyData.targetWeight}</div>
                       <div className="text-gray-300 text-xs">kg objetivo</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.height}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.height}</div>
                       <div className="text-gray-300 text-xs">cm altura</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.age}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.age}</div>
                       <div className="text-gray-300 text-xs">años</div>
                     </div>
                   </div>
@@ -264,16 +264,16 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
 
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
-                  <div className="text-3xl font-bold text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
+                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
                   <div className="text-gray-400 text-sm">Dias de Entreno</div>
                 </div>
-                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
-                  <div className="text-3xl font-bold text-accent-cyan">{selectedExercises.length}</div>
+                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-cyan">{selectedExercises.length}</div>
                   <div className="text-gray-400 text-sm">Ejercicios</div>
                 </div>
-                <div className="bg-gradient-to-br from-accent-success/20 to-accent-success/5 rounded-xl p-6 border border-accent-success/30">
-                  <div className="text-3xl font-bold text-accent-success">{selectedFoods.length}</div>
+                <div className="bg-gradient-to-br from-accent-success/20 to-accent-success/5 rounded-xl p-6 border border-accent-success/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-success">{selectedFoods.length}</div>
                   <div className="text-gray-400 text-sm">Alimentos</div>
                 </div>
               </div>
@@ -358,12 +358,14 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                       selectedWorkoutDay === index
                         ? day.restDay
                           ? "bg-gray-600 text-white"
-                          : "bg-accent-cyan text-black"
-                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                          : "bg-accent-cyan text-black glow-cyan-soft"
+                        : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
                     }`}
                   >
                     <div className="text-xs opacity-70">{DAYS_OF_WEEK[index]}</div>
-                    <div className="font-semibold">{day.restDay ? "Descanso" : `Dia ${index + 1}`}</div>
+                    <div className={day.restDay ? "font-semibold" : "font-display text-lg tracking-wide"}>
+                      {day.restDay ? "Descanso" : `Dia ${index + 1}`}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -409,7 +411,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                           return (
                             <div
                               key={idx}
-                              className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                              className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-accent-cyan/40 transition-colors"
                             >
                               <div className="flex items-start gap-3 sm:gap-4">
                                 <ExerciseMediaThumb
@@ -494,15 +496,15 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                           <div className="text-xs text-gray-500">kcal</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-blue-400">{currentMealDay.macros.protein}g</div>
+                          <div className="text-xl font-bold text-macro-protein">{currentMealDay.macros.protein}g</div>
                           <div className="text-xs text-gray-500">Proteina</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-yellow-400">{currentMealDay.macros.carbs}g</div>
+                          <div className="text-xl font-bold text-macro-carbs">{currentMealDay.macros.carbs}g</div>
                           <div className="text-xs text-gray-500">Carbos</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-orange-400">{currentMealDay.macros.fat}g</div>
+                          <div className="text-xl font-bold text-macro-fat">{currentMealDay.macros.fat}g</div>
                           <div className="text-xs text-gray-500">Grasas</div>
                         </div>
                       </div>
@@ -537,9 +539,9 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                                 </div>
                                 <div className="flex gap-3 text-xs">
                                   <span className="text-gray-400">{food.calories} kcal</span>
-                                  <span className="text-blue-400">P:{food.protein}g</span>
-                                  <span className="text-yellow-400">C:{food.carbs}g</span>
-                                  <span className="text-orange-400">G:{food.fat}g</span>
+                                  <span className="text-macro-protein">P:{food.protein}g</span>
+                                  <span className="text-macro-carbs">C:{food.carbs}g</span>
+                                  <span className="text-macro-fat">G:{food.fat}g</span>
                                 </div>
                               </div>
                             ))}
