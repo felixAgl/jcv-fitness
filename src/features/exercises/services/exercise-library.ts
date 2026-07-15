@@ -16,8 +16,9 @@ import type {
 
 const LIBRARY_URL = "/data/exercise-library.json";
 
-const MEDIA_BASE_URL =
-  "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/";
+// Media © Gymvisual (gymvisual.com) — self-hosted on Cloudflare R2
+// (bucket jcv-exercise-media) pending Gymvisual license for production use.
+const MEDIA_BASE_URL = "https://media.jcv24fitness.com/";
 
 let libraryPromise: Promise<LibraryExercise[]> | null = null;
 

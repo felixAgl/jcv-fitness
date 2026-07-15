@@ -1,6 +1,7 @@
 // Exercise media mapping — dataset: github.com/hasaneyldrm/exercises-dataset
 // Media © Gymvisual (gymvisual.com) — licensed for that repo; production use requires Gymvisual license
-const MEDIA_BASE = "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main";
+// Self-hosted on Cloudflare R2 (bucket jcv-exercise-media) pending Gymvisual license for production use
+const MEDIA_BASE = "https://media.jcv24fitness.com";
 
 interface ExerciseMedia {
   image: string;
