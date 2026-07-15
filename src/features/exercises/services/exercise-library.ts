@@ -96,6 +96,17 @@ export function getLibraryExercise(
   return list.find((ex) => ex.id === id);
 }
 
+/**
+ * Extract the dataset id from a media URL or relative path whose filename is
+ * prefixed with the id, e.g. ".../images/0043-qXTaZnJ.jpg" -> "0043".
+ * Returns undefined when the filename does not match the dataset pattern.
+ */
+export function extractDatasetId(url: string): string | undefined {
+  const filename = url.split("/").pop() ?? "";
+  const match = filename.match(/^(\d+)-/);
+  return match ? match[1] : undefined;
+}
+
 /** Absolute media URLs for an exercise (image jpg + animated gif). */
 export function getMediaUrls(ex: LibraryExercise): ExerciseMediaUrls {
   return {

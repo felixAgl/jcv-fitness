@@ -6,8 +6,8 @@
  * for the exercise library feature (src/features/exercises).
  *
  * Kept per exercise: id, name, category, body_part, equipment, target,
- * secondary_muscles (max 3), instructions (Spanish string),
- * instruction_steps (Spanish array), image path, gif path.
+ * secondary_muscles (max 3), instructions ({es, en}),
+ * instruction_steps ({es, en}), image path, gif path.
  * Media paths are RELATIVE to the dataset repo root — the base URL lives in
  * src/features/exercises/services/exercise-library.ts (getMediaUrls).
  *
@@ -47,8 +47,8 @@ const slim = raw.map((ex) => ({
   equipment: ex.equipment,
   target: ex.target,
   secondary_muscles: (ex.secondary_muscles ?? []).slice(0, 3),
-  instructions: ex.instructions?.es ?? "",
-  instruction_steps: ex.instruction_steps?.es ?? [],
+  instructions: { es: ex.instructions?.es ?? "", en: ex.instructions?.en ?? "" },
+  instruction_steps: { es: ex.instruction_steps?.es ?? [], en: ex.instruction_steps?.en ?? [] },
   image: ex.image,
   gif: ex.gif_url,
 }));

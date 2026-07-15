@@ -1,4 +1,7 @@
 export type {
+  Lang,
+  BilingualText,
+  BilingualSteps,
   LibraryExercise,
   LibraryCategory,
   LibraryEquipment,
@@ -14,4 +17,5 @@ export {
   filterExercises,
   getLibraryExercise,
   getMediaUrls,
+  extractDatasetId,
 } from "./services/exercise-library";

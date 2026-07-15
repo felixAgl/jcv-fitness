@@ -6,6 +6,7 @@ import {
   filterExercises,
   getLibraryExercise,
   getMediaUrls,
+  extractDatasetId,
 } from "../exercise-library";
 import type { LibraryExercise } from "../../types";
 
@@ -20,11 +21,14 @@ function makeExercise(
     equipment: "body weight",
     target: "abs",
     secondary_muscles: ["hip flexors", "lower back"],
-    instructions: "Túmbate sobre tu espalda con las rodillas flexionadas.",
-    instruction_steps: [
-      "Túmbate sobre tu espalda.",
-      "Coloca las manos detrás de la cabeza.",
-    ],
+    instructions: {
+      es: "Túmbate sobre tu espalda con las rodillas flexionadas.",
+      en: "Lie flat on your back with your knees bent.",
+    },
+    instruction_steps: {
+      es: ["Túmbate sobre tu espalda.", "Coloca las manos detrás de la cabeza."],
+      en: ["Lie flat on your back.", "Place your hands behind your head."],
+    },
     image: "images/0001-2gPfomN.jpg",
     gif: "videos/0001-2gPfomN.gif",
     ...overrides,
@@ -136,6 +140,25 @@ describe("getMediaUrls", () => {
         "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/images/0025-abc.jpg",
       gif: "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/videos/0025-abc.gif",
     });
+  });
+});
+
+describe("extractDatasetId", () => {
+  it("extracts the id prefix from a full media URL", () => {
+    expect(
+      extractDatasetId(
+        "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/images/0043-qXTaZnJ.jpg"
+      )
+    ).toBe("0043");
+  });
+
+  it("extracts the id prefix from a relative path", () => {
+    expect(extractDatasetId("videos/0001-2gPfomN.gif")).toBe("0001");
+  });
+
+  it("returns undefined when the filename has no id prefix", () => {
+    expect(extractDatasetId("images/logo.png")).toBeUndefined();
+    expect(extractDatasetId("")).toBeUndefined();
   });
 });
 

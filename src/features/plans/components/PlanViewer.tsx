@@ -23,6 +23,10 @@ interface PlanViewerProps {
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
+// Default filler note emitted by generateWorkoutPlan when an exercise has no
+// specific tip; hidden at render to avoid repeating it on every card.
+const GENERIC_EXERCISE_NOTE = "Ejecuta con buena tecnica";
+
 export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -399,41 +403,39 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                       )}
 
                       {/* Exercise List */}
-                      <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
                         {currentWorkout.exercises.map((exercise, idx) => {
                           const exerciseDetails = getExerciseById(exercise.exerciseId);
                           return (
                             <div
                               key={idx}
-                              className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                              className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-gray-600 transition-colors"
                             >
-                              <div className="flex items-start gap-4">
+                              <div className="flex items-start gap-3 sm:gap-4">
                                 <ExerciseMediaThumb
                                   exerciseId={exercise.exerciseId}
                                   emoji={exerciseDetails?.emoji}
                                   name={exerciseDetails?.name}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className="font-semibold text-white truncate">
-                                      {exerciseDetails?.name || exercise.exerciseId}
-                                    </h4>
-                                    <div className="flex gap-2 shrink-0">
-                                      <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded text-xs font-medium">
-                                        {exercise.sets} series
-                                      </span>
-                                      <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
-                                        {exercise.reps} reps
-                                      </span>
-                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
-                                        {exercise.rest}
-                                      </span>
-                                    </div>
-                                  </div>
+                                  <h4 className="font-semibold text-white">
+                                    {exerciseDetails?.name || exercise.exerciseId}
+                                  </h4>
                                   {exerciseDetails?.altName && (
-                                    <p className="text-sm text-gray-500 mt-1">{exerciseDetails.altName}</p>
+                                    <p className="text-xs text-gray-500 mt-0.5">{exerciseDetails.altName}</p>
                                   )}
-                                  {exercise.notes && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.sets}×</span> series
+                                    </span>
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.reps}</span> reps
+                                    </span>
+                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                      <span className="font-bold text-white">{exercise.rest}</span> descanso
+                                    </span>
+                                  </div>
+                                  {exercise.notes && exercise.notes !== GENERIC_EXERCISE_NOTE && (
                                     <p className="text-sm text-gray-400 mt-2 italic">
                                       Tip: {exercise.notes}
                                     </p>

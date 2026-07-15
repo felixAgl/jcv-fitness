@@ -7,6 +7,15 @@
  * with the script and update these if the upstream dataset changes.
  */
 
+/** Supported UI languages for exercise content. */
+export type Lang = "es" | "en";
+
+/** A text value available in both Spanish and English. */
+export type BilingualText = Record<Lang, string>;
+
+/** A step list available in both Spanish and English. */
+export type BilingualSteps = Record<Lang, string[]>;
+
 export type LibraryCategory =
   | "back"
   | "cardio"
@@ -82,10 +91,10 @@ export interface LibraryExercise {
   target: LibraryTarget;
   /** Up to 3 secondary muscles. */
   secondary_muscles: string[];
-  /** Spanish instructions as a single paragraph. */
-  instructions: string;
-  /** Spanish step-by-step instructions. */
-  instruction_steps: string[];
+  /** Instructions as a single paragraph, per language. */
+  instructions: BilingualText;
+  /** Step-by-step instructions, per language. */
+  instruction_steps: BilingualSteps;
   /** Relative path, e.g. "images/0001-2gPfomN.jpg". Use getMediaUrls() for the full URL. */
   image: string;
   /** Relative path, e.g. "videos/0001-2gPfomN.gif". Use getMediaUrls() for the full URL. */
