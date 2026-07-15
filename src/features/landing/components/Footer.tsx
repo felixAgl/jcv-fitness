@@ -72,6 +72,11 @@ export function Footer() {
                   {t.linkGenerator}
                 </Link>
               </li>
+              <li>
+                <Link href="/nutricion" className="text-foreground/60 hover:text-primary transition-colors">
+                  {t.linkNutrition}
+                </Link>
+              </li>
             </ul>
           </div>
 

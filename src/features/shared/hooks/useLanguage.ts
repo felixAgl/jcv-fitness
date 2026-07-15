@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { Lang } from "@/features/exercises";
+import { track } from "@/features/shared/analytics/track";
 
 const STORAGE_KEY = "jcv-lang";
 const DEFAULT_LANG: Lang = "es";
@@ -42,6 +43,7 @@ export function useLanguage(): { lang: Lang; setLang: (lang: Lang) => void } {
   }, []);
 
   const setLang = useCallback((next: Lang) => {
+    track("language_toggle", undefined, next);
     setLangState(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);

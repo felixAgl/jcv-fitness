@@ -11,6 +11,8 @@ vi.mock("@/features/wizard/data/exercise-media", () => ({
       ? {
           image: "https://example.com/images/0025-EIeI8Vf.jpg",
           gif: "https://example.com/videos/0025-EIeI8Vf.gif",
+          mp4: "https://example.com/videos-mp4/0025-EIeI8Vf.mp4",
+          poster: "https://example.com/posters/0025-EIeI8Vf.webp",
         }
       : undefined,
 }));
@@ -66,17 +68,35 @@ describe("ExerciseDetailModal", () => {
     document.body.style.overflow = "";
   });
 
-  it("renders a dialog with the GIF and the JPG placeholder", async () => {
+  it("renders a dialog with the MP4 video and the JPG placeholder", async () => {
     renderModal();
 
     const dialog = screen.getByRole("dialog", { name: "Press de banca" });
     expect(dialog).toBeInTheDocument();
 
+    const video = screen.getByTestId<HTMLVideoElement>("exercise-video");
+    expect(video.tagName).toBe("VIDEO");
+    expect(video).toHaveAttribute("src", "https://example.com/videos-mp4/0025-EIeI8Vf.mp4");
+    expect(video).toHaveAttribute("poster", "https://example.com/posters/0025-EIeI8Vf.webp");
+    expect(screen.getByTestId("gif-spinner")).toBeInTheDocument();
+
+    // Spinner disappears once the video has data
+    fireEvent.loadedData(video);
+    expect(screen.queryByTestId("gif-spinner")).not.toBeInTheDocument();
+
+    await screen.findByText("Músculos trabajados");
+  });
+
+  it("falls back to the GIF when the MP4 fails to load", async () => {
+    renderModal();
+
+    const video = screen.getByTestId<HTMLVideoElement>("exercise-video");
+    fireEvent.error(video);
+
     const gif = screen.getByRole("img", { name: "Press de banca" });
     expect(gif).toHaveAttribute("src", "https://example.com/videos/0025-EIeI8Vf.gif");
     expect(screen.getByTestId("gif-spinner")).toBeInTheDocument();
 
-    // Spinner disappears once the GIF loads
     fireEvent.load(gif);
     expect(screen.queryByTestId("gif-spinner")).not.toBeInTheDocument();
 
@@ -131,13 +151,11 @@ describe("ExerciseDetailModal", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("still shows the GIF when the library fetch fails", async () => {
+  it("still shows the demo video when the library fetch fails", async () => {
     loadExerciseLibraryMock.mockRejectedValue(new Error("network down"));
     renderModal();
 
-    expect(
-      await screen.findByRole("img", { name: "Press de banca" })
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId("exercise-video")).toBeInTheDocument();
 
     // Wait for the loading skeleton to settle into the error state.
     await waitFor(() =>

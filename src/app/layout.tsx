@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Bebas_Neue } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/features/auth";
+import { AnalyticsBeacon } from "@/features/shared/analytics/AnalyticsBeacon";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -51,6 +52,7 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} ${bebasNeue.variable} antialiased`}>
+        <AnalyticsBeacon />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

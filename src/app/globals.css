@@ -52,7 +52,7 @@ body {
 }
 
 h1, h2, h3 {
-  font-family: var(--font-display), system-ui, sans-serif;
+  font-family: var(--font-bebas), system-ui, sans-serif;
 }
 
 .bg-pattern {
@@ -288,7 +288,7 @@ h1, h2, h3 {
   padding: 18px 50px;
   background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
   color: #0a0a0a;
-  font-family: var(--font-display), system-ui, sans-serif;
+  font-family: var(--font-bebas), system-ui, sans-serif;
   font-size: 24px;
   letter-spacing: 2px;
   text-decoration: none;

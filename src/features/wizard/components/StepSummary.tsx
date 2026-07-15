@@ -9,6 +9,7 @@ import { foods, FOOD_TRANSLATIONS, type FoodCategory } from "../data/foods";
 import { TRANSLATIONS } from "../types";
 import { useAuth, AuthModal } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
+import { track } from "@/features/shared/analytics/track";
 import { PlanForge } from "./PlanForge";
 
 interface SummarySectionProps {
@@ -116,6 +117,7 @@ export function StepSummary() {
       const result = await createPlan(planData, "free");
 
       if (result.success) {
+        track("wizard_complete");
         // Forge sequence first; it redirects to the plan viewer when it ends
         // (or immediately under prefers-reduced-motion / "saltar").
         setForging(true);

@@ -110,4 +110,8 @@ export interface LibraryFilters {
 export interface ExerciseMediaUrls {
   image: string;
   gif: string;
+  /** H.264 MP4 transcode of the GIF (85-95% lighter), under videos-mp4/. */
+  mp4: string;
+  /** WebP first-frame poster for the <video>, under posters/. */
+  poster: string;
 }

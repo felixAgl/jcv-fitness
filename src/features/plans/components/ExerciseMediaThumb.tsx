@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import { Play } from "lucide-react";
 import { getExerciseMedia } from "@/features/wizard/data/exercise-media";
 import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
+import { track } from "@/features/shared/analytics/track";
 import { ExerciseDetailModal } from "./ExerciseDetailModal";
 
 interface ExerciseMediaThumbProps {
@@ -44,6 +45,7 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
 
   const toggleModal = useCallback(
     (open: boolean) => {
+      if (open) track("exercise_modal_open", undefined, exerciseId);
       const doc = document as DocumentWithViewTransition;
       if (typeof doc.startViewTransition !== "function" || prefersReducedMotion()) {
         setModalOpen(open);
@@ -68,7 +70,7 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
         if (thumbRef.current) thumbRef.current.style.viewTransitionName = "";
       });
     },
-    [vtName]
+    [vtName, exerciseId]
   );
 
   if (!media || imageFailed) {

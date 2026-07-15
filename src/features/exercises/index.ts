@@ -17,5 +17,6 @@ export {
   filterExercises,
   getLibraryExercise,
   getMediaUrls,
+  deriveMp4Media,
   extractDatasetId,
 } from "./services/exercise-library";

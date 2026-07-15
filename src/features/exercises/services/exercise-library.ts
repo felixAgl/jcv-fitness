@@ -108,10 +108,31 @@ export function extractDatasetId(url: string): string | undefined {
   return match ? match[1] : undefined;
 }
 
-/** Absolute media URLs for an exercise (image jpg + animated gif). */
+/**
+ * Derive the MP4 transcode and WebP poster URLs from a GIF URL (or relative
+ * path), e.g. ".../videos/0043-qXTaZnJ.gif" ->
+ * { mp4: ".../videos-mp4/0043-qXTaZnJ.mp4", poster: ".../posters/0043-qXTaZnJ.webp" }.
+ * The transcodes live in sibling R2 prefixes and share the GIF's basename
+ * (see scripts/transcode-exercise-media.sh).
+ */
+export function deriveMp4Media(gifUrl: string): { mp4: string; poster: string } {
+  const filename = gifUrl.split("/").pop() ?? "";
+  const base = filename.replace(/\.gif$/i, "");
+  const prefix = gifUrl
+    .slice(0, gifUrl.length - filename.length)
+    .replace(/videos\/$/, "");
+  return {
+    mp4: `${prefix}videos-mp4/${base}.mp4`,
+    poster: `${prefix}posters/${base}.webp`,
+  };
+}
+
+/** Absolute media URLs for an exercise (image jpg, animated gif, mp4 + poster). */
 export function getMediaUrls(ex: LibraryExercise): ExerciseMediaUrls {
+  const gif = `${MEDIA_BASE_URL}${ex.gif}`;
   return {
     image: `${MEDIA_BASE_URL}${ex.image}`,
-    gif: `${MEDIA_BASE_URL}${ex.gif}`,
+    gif,
+    ...deriveMp4Media(gif),
   };
 }

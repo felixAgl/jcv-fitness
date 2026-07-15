@@ -10,6 +10,7 @@ import { JCVLogoMini } from "@/shared/components/JCVLogo";
 import { useAuth, AuthModal } from "@/features/auth";
 import { SUBSCRIPTION_PLANS, type PlanType } from "@/features/subscription";
 import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { track } from "@/features/shared/analytics/track";
 import { LANDING_STRINGS } from "@/features/landing/i18n";
 import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 import { WhatsAppIcon } from "@/features/landing/components/WhatsAppIcon";
@@ -26,6 +27,7 @@ export function PricingSection() {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>("PLAN_PRO");
 
   const handleSelectPlan = (planType: PlanType) => {
+    track("checkout_click", undefined, planType);
     setSelectedPlan(planType);
     // If still loading auth state, show auth modal anyway - it will handle the loading state
     if (isAuthenticated) {

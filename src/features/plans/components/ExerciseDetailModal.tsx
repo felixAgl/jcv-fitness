@@ -127,8 +127,9 @@ function getInstructionSteps(ex: LibraryExercise, lang: Lang): string[] {
 }
 
 /**
- * Full-detail modal for an exercise: animated GIF demo (JPG placeholder while
- * it loads), muscle badges and step-by-step instructions from the exercise
+ * Full-detail modal for an exercise: looping MP4 demo (WebP poster + JPG
+ * placeholder while it loads, GIF fallback if the MP4 fails), muscle badges
+ * and step-by-step instructions from the exercise
  * library, with an ES/EN toggle. Follows the AuthModal portal pattern plus
  * Escape-to-close and body scroll-lock.
  */
@@ -149,6 +150,8 @@ export function ExerciseDetailModal({
 
   const [mounted, setMounted] = useState(false);
   const [gifLoaded, setGifLoaded] = useState(false);
+  // MP4 failed (missing transcode, unsupported codec...): fall back to the GIF.
+  const [videoFailed, setVideoFailed] = useState(false);
   const [libraryExercise, setLibraryExercise] = useState<LibraryExercise | null>(null);
   const [libraryState, setLibraryState] = useState<"loading" | "ready" | "error">("loading");
 
@@ -268,21 +271,41 @@ export function ExerciseDetailModal({
             className="relative bg-white aspect-square w-full max-h-[45vh] shrink-0"
             style={mediaViewTransitionName ? { viewTransitionName: mediaViewTransitionName } : undefined}
           >
-            {/* Static export: plain <img>, not next/image. JPG is already cached from the thumb. */}
+            {/* Static export: plain <img>/<video>, not next/image. JPG is already cached from the thumb. */}
             <img
               src={media.image}
               alt=""
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-contain"
             />
-            <img
-              src={media.gif}
-              alt={name}
-              onLoad={() => setGifLoaded(true)}
-              className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
-                gifLoaded ? "opacity-100" : "opacity-0"
-              }`}
-            />
+            {!videoFailed ? (
+              /* MP4 transcode (85-95% lighter than the GIF), WebP first frame as poster. */
+              <video
+                src={media.mp4}
+                poster={media.poster}
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label={name}
+                data-testid="exercise-video"
+                onLoadedData={() => setGifLoaded(true)}
+                onError={() => setVideoFailed(true)}
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
+                  gifLoaded ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            ) : (
+              /* GIF fallback when the MP4 cannot be loaded/played. */
+              <img
+                src={media.gif}
+                alt={name}
+                onLoad={() => setGifLoaded(true)}
+                className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
+                  gifLoaded ? "opacity-100" : "opacity-0"
+                }`}
+              />
+            )}
             {!gifLoaded && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div

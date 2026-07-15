@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { track } from "@/features/shared/analytics/track";
 import { useWizardStore } from "../store/wizard-store";
 import { WizardProgress } from "./WizardProgress";
 import { StepLevel } from "./StepLevel";
@@ -17,6 +19,17 @@ const TOTAL_STEPS = 9;
 
 export function WizardContainer() {
   const { currentStep } = useWizardStore();
+  // Anonymous funnel events: wizard_start once per mount, wizard_step on change.
+  const prevStepRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prevStepRef.current === null) {
+      track("wizard_start");
+    } else if (currentStep !== prevStepRef.current) {
+      track("wizard_step", currentStep);
+    }
+    prevStepRef.current = currentStep;
+  }, [currentStep]);
 
   const renderStep = () => {
     switch (currentStep) {

@@ -1,11 +1,19 @@
 // Exercise media mapping — dataset: github.com/hasaneyldrm/exercises-dataset
 // Media © Gymvisual (gymvisual.com) — licensed for that repo; production use requires Gymvisual license
 // Self-hosted on Cloudflare R2 (bucket jcv-exercise-media) pending Gymvisual license for production use
+import { deriveMp4Media } from "@/features/exercises";
+
 const MEDIA_BASE = "https://media.jcv24fitness.com";
 
 interface ExerciseMedia {
   image: string;
   gif: string;
+}
+
+/** ExerciseMedia plus the MP4/WebP transcodes derived from the gif URL. */
+export interface ExerciseMediaResolved extends ExerciseMedia {
+  mp4: string;
+  poster: string;
 }
 
 export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
@@ -172,6 +180,12 @@ export const EXERCISE_MEDIA: Record<string, ExerciseMedia> = {
   squat_press: { image: `${MEDIA_BASE}/images/0550-yWxMvB5.jpg`, gif: `${MEDIA_BASE}/videos/0550-yWxMvB5.gif` },
 };
 
-export function getExerciseMedia(exerciseId: string): ExerciseMedia | undefined {
-  return EXERCISE_MEDIA[exerciseId];
+export function getExerciseMedia(
+  exerciseId: string
+): ExerciseMediaResolved | undefined {
+  const media = EXERCISE_MEDIA[exerciseId];
+  if (!media) return undefined;
+  // mp4/poster live in sibling R2 prefixes with the same basename as the gif,
+  // so they are derived instead of duplicating them across the whole map.
+  return { ...media, ...deriveMp4Media(media.gif) };
 }

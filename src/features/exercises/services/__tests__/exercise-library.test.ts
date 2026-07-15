@@ -134,10 +134,12 @@ describe("getLibraryExercise", () => {
 });
 
 describe("getMediaUrls", () => {
-  it("prepends the dataset base URL to image and gif paths", () => {
+  it("prepends the dataset base URL and derives mp4/poster from the gif", () => {
     expect(getMediaUrls(fixture[1])).toEqual({
       image: "https://media.jcv24fitness.com/images/0025-abc.jpg",
       gif: "https://media.jcv24fitness.com/videos/0025-abc.gif",
+      mp4: "https://media.jcv24fitness.com/videos-mp4/0025-abc.mp4",
+      poster: "https://media.jcv24fitness.com/posters/0025-abc.webp",
     });
   });
 });
