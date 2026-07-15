@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Play } from "lucide-react";
 import { getExerciseMedia } from "@/features/wizard/data/exercise-media";
+import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
 import { ExerciseDetailModal } from "./ExerciseDetailModal";
 
 interface ExerciseMediaThumbProps {
@@ -11,16 +13,63 @@ interface ExerciseMediaThumbProps {
   name?: string;
 }
 
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => { finished: Promise<void> };
+};
+
+/** CSS custom-ident safe view-transition-name, unique per exercise. */
+function viewTransitionNameFor(exerciseId: string): string {
+  return `exercise-media-${exerciseId.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+}
+
 /**
  * Thumbnail for an exercise. Shows the static JPG with a Play badge and opens
  * the ExerciseDetailModal (animated GIF + instructions) on tap/click. Falls
  * back to the emoji circle when the exercise has no media or the JPG fails
  * to load.
+ *
+ * Open/close is wrapped in document.startViewTransition() when the browser
+ * supports it, morphing the thumb image into the modal media. The
+ * view-transition-name is applied imperatively only to the active pair (this
+ * thumb + its modal) for the duration of the transition, so duplicate names
+ * across the exercise list are impossible. jsdom and older browsers take the
+ * plain setState path.
  */
 export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThumbProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const thumbRef = useRef<HTMLImageElement>(null);
   const media = getExerciseMedia(exerciseId);
+  const vtName = viewTransitionNameFor(exerciseId);
+
+  const toggleModal = useCallback(
+    (open: boolean) => {
+      const doc = document as DocumentWithViewTransition;
+      if (typeof doc.startViewTransition !== "function" || prefersReducedMotion()) {
+        setModalOpen(open);
+        return;
+      }
+
+      const thumb = thumbRef.current;
+      // Opening: the OLD snapshot needs the name on the thumb (modal takes it
+      // in the new state). Closing: the old state already names the modal
+      // media; the thumb gets the name in the NEW snapshot inside the update.
+      if (open && thumb) {
+        thumb.style.viewTransitionName = vtName;
+      }
+      const transition = doc.startViewTransition(() => {
+        flushSync(() => setModalOpen(open));
+        if (thumb) {
+          thumb.style.viewTransitionName = open ? "" : vtName;
+        }
+      });
+      transition.finished.finally(() => {
+        // Drop the name once the morph ends so no two thumbs ever share it.
+        if (thumbRef.current) thumbRef.current.style.viewTransitionName = "";
+      });
+    },
+    [vtName]
+  );
 
   if (!media || imageFailed) {
     return (
@@ -36,12 +85,13 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
     <>
       <button
         type="button"
-        onClick={() => setModalOpen(true)}
+        onClick={() => toggleModal(true)}
         aria-label={`Ver demostracion de ${label}`}
         className="relative size-20 sm:size-24 rounded-xl overflow-hidden shrink-0 bg-white ring-1 ring-white/10 hover:ring-2 hover:ring-accent-cyan/60 hover:shadow-lg hover:shadow-accent-cyan/20 transition-all"
       >
         {/* Static export: plain <img>, not next/image */}
         <img
+          ref={thumbRef}
           src={media.image}
           alt={label}
           loading="lazy"
@@ -57,7 +107,8 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
         <ExerciseDetailModal
           exerciseId={exerciseId}
           name={label}
-          onClose={() => setModalOpen(false)}
+          mediaViewTransitionName={vtName}
+          onClose={() => toggleModal(false)}
         />
       )}
     </>

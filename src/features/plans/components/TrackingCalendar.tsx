@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { progressService, initializePlanProgress } from "../services/progress-service";
+import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
 import type { PlanProgress, DayProgress, PlanDataWithProgress } from "../types";
 import type { WorkoutDay } from "@/features/wizard/types";
 
@@ -16,6 +17,35 @@ interface TrackingCalendarProps {
 
 const DAYS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+
+/** Completed-workout counts that earn a full-width milestone moment. */
+const MILESTONE_LABELS: Record<number, string> = {
+  7: "7 DIAS",
+  20: "20 DIAS",
+  40: "MITAD DEL CAMINO",
+};
+
+/** How long the ring + burst celebration stays on a day cell. */
+const CELEBRATION_MS = 1600;
+/** Milestone overlay auto-dismiss. */
+const MILESTONE_MS = 2500;
+
+/** 10 CSS particle offsets, evenly spread around the cell center. */
+const PARTICLE_OFFSETS = Array.from({ length: 10 }, (_, i) => {
+  const angle = (i / 10) * Math.PI * 2;
+  return {
+    x: `${Math.round(Math.cos(angle) * 26)}px`,
+    y: `${Math.round(Math.sin(angle) * 26)}px`,
+  };
+});
+
+function findDayProgress(progress: PlanProgress, date: string): DayProgress | undefined {
+  for (const week of progress.weeks) {
+    const day = week.days[date];
+    if (day) return day;
+  }
+  return undefined;
+}
 
 function getDurationWeeks(duration: string | null): number {
   const durationMap: Record<string, number> = {
@@ -43,6 +73,23 @@ export function TrackingCalendar({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingDate, setUpdatingDate] = useState<string | null>(null);
+  // Ring-close celebration on the day cell + milestone overlay (#9)
+  const [celebratingDate, setCelebratingDate] = useState<string | null>(null);
+  const [milestone, setMilestone] = useState<number | null>(null);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-dismiss the milestone overlay (also dismissible by tap).
+  useEffect(() => {
+    if (milestone === null) return;
+    const timer = setTimeout(() => setMilestone(null), MILESTONE_MS);
+    return () => clearTimeout(timer);
+  }, [milestone]);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+    };
+  }, []);
 
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -93,17 +140,48 @@ export function TrackingCalendar({
   const handleToggleWorkout = async (date: string) => {
     if (updatingDate || isRestDay(date)) return;
 
+    const wasCompleted = progress ? findDayProgress(progress, date)?.workoutCompleted ?? false : false;
+
     setUpdatingDate(date);
     try {
       const updatedProgress = await progressService.toggleWorkoutCompleted(planId, date);
       if (updatedProgress) {
         setProgress(updatedProgress);
         onProgressUpdate?.(updatedProgress);
+
+        const nowCompleted = findDayProgress(updatedProgress, date)?.workoutCompleted ?? false;
+        if (nowCompleted && !wasCompleted) {
+          celebrateCompletion(date, updatedProgress.stats.totalWorkoutsCompleted);
+        }
       }
     } catch (error) {
       console.error("[TrackingCalendar] Error toggling workout:", error);
     } finally {
       setUpdatingDate(null);
+    }
+  };
+
+  /**
+   * Day marked complete: draw a cyan ring around the cell, burst particles and
+   * pop the day number; haptic tick on supported devices. At 7/20/40 completed
+   * workouts, a full-width milestone moment. Reduced motion keeps only the
+   * existing color change (and a static milestone overlay).
+   */
+  const celebrateCompletion = (date: string, totalCompleted: number) => {
+    const reduced = prefersReducedMotion();
+
+    if (!reduced && typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(50);
+    }
+
+    if (!reduced) {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+      setCelebratingDate(date);
+      celebrationTimer.current = setTimeout(() => setCelebratingDate(null), CELEBRATION_MS);
+    }
+
+    if (MILESTONE_LABELS[totalCompleted]) {
+      setMilestone(totalCompleted);
     }
   };
 
@@ -171,6 +249,24 @@ export function TrackingCalendar({
 
   return (
     <div className="space-y-6">
+      {/* Milestone moment: full-width overlay, auto-dismiss or tap */}
+      {milestone !== null && (
+        <button
+          type="button"
+          onClick={() => setMilestone(null)}
+          data-testid="milestone-overlay"
+          aria-label="Cerrar celebracion"
+          className="milestone-overlay fixed inset-0 z-[90] flex flex-col items-center justify-center gap-3 bg-black/85 backdrop-blur-sm cursor-pointer"
+        >
+          <span className="milestone-text font-display text-6xl sm:text-8xl tracking-widest text-accent-cyan px-6 text-center leading-none">
+            {MILESTONE_LABELS[milestone]}
+          </span>
+          <span className="milestone-text text-gray-300 text-sm uppercase tracking-[0.3em]">
+            {milestone === 40 ? "40 entrenos completados" : "Sigue asi"}
+          </span>
+        </button>
+      )}
+
       {/* Streak Hero Section */}
       <div className="bg-gradient-to-br from-orange-500/20 via-red-500/10 to-yellow-500/20 rounded-2xl p-6 border border-orange-500/30">
         <div className="flex items-center justify-between">
@@ -260,6 +356,7 @@ export function TrackingCalendar({
               const future = isFutureDate(day.date);
               const todayClass = isToday(day.date);
               const isSelected = selectedDate === day.date;
+              const isCelebrating = celebratingDate === day.date;
               const dayNum = new Date(day.date + "T12:00:00").getDate();
 
               // Determine cell style
@@ -312,6 +409,39 @@ export function TrackingCalendar({
                   {/* Meals indicator */}
                   {day.mealsTracked && !restDay && (
                     <span className="absolute bottom-1 right-1 w-2 h-2 bg-orange-400 rounded-full" />
+                  )}
+
+                  {/* Ring-close celebration: ring draws shut, particles burst, day number pops */}
+                  {isCelebrating && (
+                    <span
+                      className="pointer-events-none absolute inset-0 z-10"
+                      data-testid="day-celebration"
+                      aria-hidden="true"
+                    >
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 40 40" fill="none">
+                        <circle
+                          cx="20"
+                          cy="20"
+                          r="17"
+                          stroke="var(--accent-cyan)"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          pathLength={100}
+                          className="celebrate-ring"
+                          transform="rotate(-90 20 20)"
+                        />
+                      </svg>
+                      {PARTICLE_OFFSETS.map((offset, i) => (
+                        <span
+                          key={i}
+                          className="celebrate-particle"
+                          style={{ "--burst-x": offset.x, "--burst-y": offset.y } as React.CSSProperties}
+                        />
+                      ))}
+                      <span className="celebrate-pop absolute inset-0 flex items-center justify-center font-display text-xl tracking-wide text-accent-cyan">
+                        {dayNum}
+                      </span>
+                    </span>
                   )}
                 </button>
               );

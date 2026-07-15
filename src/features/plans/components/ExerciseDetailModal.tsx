@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { getExerciseMedia } from "@/features/wizard/data/exercise-media";
@@ -18,6 +18,11 @@ interface ExerciseDetailModalProps {
   exerciseId: string;
   name: string;
   altName?: string;
+  /**
+   * view-transition-name shared with the thumb that opened the modal, so the
+   * browser can morph thumb -> modal media (see ExerciseMediaThumb).
+   */
+  mediaViewTransitionName?: string;
   onClose: () => void;
 }
 
@@ -127,7 +132,13 @@ function getInstructionSteps(ex: LibraryExercise, lang: Lang): string[] {
  * library, with an ES/EN toggle. Follows the AuthModal portal pattern plus
  * Escape-to-close and body scroll-lock.
  */
-export function ExerciseDetailModal({ exerciseId, name, altName, onClose }: ExerciseDetailModalProps) {
+export function ExerciseDetailModal({
+  exerciseId,
+  name,
+  altName,
+  mediaViewTransitionName,
+  onClose,
+}: ExerciseDetailModalProps) {
   const media = getExerciseMedia(exerciseId);
   const { lang, setLang } = useLanguage();
   const t = STRINGS[lang];
@@ -141,7 +152,10 @@ export function ExerciseDetailModal({ exerciseId, name, altName, onClose }: Exer
   const [libraryExercise, setLibraryExercise] = useState<LibraryExercise | null>(null);
   const [libraryState, setLibraryState] = useState<"loading" | "ready" | "error">("loading");
 
-  useEffect(() => {
+  // Layout effect (not passive) so that when the opener wraps this mount in
+  // document.startViewTransition + flushSync, the portal content is in the
+  // DOM before the new-state snapshot is captured.
+  useLayoutEffect(() => {
     setMounted(true);
   }, []);
 
@@ -250,7 +264,10 @@ export function ExerciseDetailModal({ exerciseId, name, altName, onClose }: Exer
 
         {/* Media: Gymvisual GIFs have a white background, so the container is white */}
         {media && (
-          <div className="relative bg-white aspect-square w-full max-h-[45vh] shrink-0">
+          <div
+            className="relative bg-white aspect-square w-full max-h-[45vh] shrink-0"
+            style={mediaViewTransitionName ? { viewTransitionName: mediaViewTransitionName } : undefined}
+          >
             {/* Static export: plain <img>, not next/image. JPG is already cached from the thumb. */}
             <img
               src={media.image}

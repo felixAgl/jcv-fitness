@@ -9,6 +9,7 @@ import { foods, FOOD_TRANSLATIONS, type FoodCategory } from "../data/foods";
 import { TRANSLATIONS } from "../types";
 import { useAuth, AuthModal } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
+import { PlanForge } from "./PlanForge";
 
 interface SummarySectionProps {
   title: string;
@@ -36,6 +37,8 @@ export function StepSummary() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Plan created: show the forging sequence before navigating to the viewer.
+  const [forging, setForging] = useState(false);
 
   const state = useWizardStore();
   const {
@@ -58,6 +61,19 @@ export function StepSummary() {
   );
 
   const calories = calculateCalories();
+
+  // Bebas-stamped lines for the forge sequence: uppercase, sin acentos.
+  const stamp = (value: string) =>
+    value.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const forgeLines = [
+    level ? `NIVEL: ${stamp(TRANSLATIONS.levels[level])}` : null,
+    goal ? `OBJETIVO: ${stamp(TRANSLATIONS.goals[goal])}` : null,
+    `${time} MIN / SESION`,
+    duration ? `DURACION: ${stamp(TRANSLATIONS.durations[duration])}` : null,
+    equipment.length > 0
+      ? `EQUIPO: ${stamp(equipment.map((e) => TRANSLATIONS.equipment[e]).join(" + "))}`
+      : null,
+  ].filter((line): line is string => line !== null);
 
   const groupedExercises = selectedExercisesList.reduce((acc, exercise) => {
     if (!acc[exercise.category]) {
@@ -100,8 +116,9 @@ export function StepSummary() {
       const result = await createPlan(planData, "free");
 
       if (result.success) {
-        // Redirect to plan viewer
-        router.push("/plan/view");
+        // Forge sequence first; it redirects to the plan viewer when it ends
+        // (or immediately under prefers-reduced-motion / "saltar").
+        setForging(true);
       } else {
         setError(result.error || "Error al guardar el plan");
       }
@@ -416,6 +433,14 @@ export function StepSummary() {
         onSuccess={handleAuthSuccess}
         showStepIndicator={false}
       />
+
+      {forging && (
+        <PlanForge
+          lines={forgeLines}
+          planName={userName ? `PLAN DE ${userName.toUpperCase()}` : "TU PLAN PERSONALIZADO"}
+          onDone={() => router.push("/plan/view")}
+        />
+      )}
     </div>
   );
 }

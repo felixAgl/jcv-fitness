@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Dumbbell } from "lucide-react";
 import { useAuth } from "@/features/auth";
 import { exercises } from "@/features/wizard/data/exercises";
 import { foods } from "@/features/wizard/data/foods";
@@ -27,6 +28,14 @@ const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Saba
 // specific tip; hidden at render to avoid repeating it on every card.
 const GENERIC_EXERCISE_NOTE = "Ejecuta con buena tecnica";
 
+// Modo Gimnasio preference (rutina tab, one-thumb high-contrast layout).
+const GYM_MODE_STORAGE_KEY = "jcv-gym-mode";
+
+type WakeLockSentinelLike = { release: () => Promise<void> };
+type NavigatorWithWakeLock = Navigator & {
+  wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> };
+};
+
 export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -34,6 +43,64 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
   const [selectedMealDay, setSelectedMealDay] = useState(0);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [gymMode, setGymMode] = useState(false);
+
+  // Restore Modo Gimnasio preference (client only, static export safe).
+  useEffect(() => {
+    try {
+      setGymMode(window.localStorage.getItem(GYM_MODE_STORAGE_KEY) === "1");
+    } catch {
+      // Storage unavailable (private mode): default off.
+    }
+  }, []);
+
+  const toggleGymMode = () => {
+    setGymMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(GYM_MODE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // Preference simply won't persist.
+      }
+      return next;
+    });
+  };
+
+  // Keep the screen awake while training in Modo Gimnasio. The browser
+  // releases the lock when the tab hides; re-acquire when it comes back.
+  useEffect(() => {
+    if (!gymMode || activeTab !== "rutina") return;
+    const nav = navigator as NavigatorWithWakeLock;
+    if (!nav.wakeLock) return;
+
+    let active = true;
+    let sentinel: WakeLockSentinelLike | null = null;
+
+    const acquire = async () => {
+      try {
+        const lock = await nav.wakeLock!.request("screen");
+        if (!active) {
+          lock.release().catch(() => {});
+          return;
+        }
+        sentinel = lock;
+      } catch {
+        // Unsupported, denied or low battery: degrade silently.
+      }
+    };
+
+    acquire();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      sentinel?.release().catch(() => {});
+    };
+  }, [gymMode, activeTab]);
 
   const planData = plan.planData;
   const hasSubscription = profile?.has_active_subscription ?? false;
@@ -347,6 +414,23 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
           {/* RUTINA TAB */}
           {activeTab === "rutina" && (
             <div className="space-y-6">
+              {/* Modo Gimnasio toggle */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={toggleGymMode}
+                  aria-pressed={gymMode}
+                  className={`min-h-14 inline-flex items-center gap-2 px-5 rounded-xl font-semibold text-sm transition-all ${
+                    gymMode
+                      ? "bg-accent-cyan text-black glow-cyan-soft"
+                      : "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700 hover:text-white"
+                  }`}
+                >
+                  <Dumbbell className="w-5 h-5" aria-hidden="true" />
+                  Modo Gimnasio
+                </button>
+              </div>
+
               {/* Day Selector */}
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {workoutPlan.map((day, index) => (
@@ -354,7 +438,9 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                     key={index}
                     type="button"
                     onClick={() => setSelectedWorkoutDay(index)}
-                    className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                    className={`flex-shrink-0 rounded-lg font-medium transition-all ${
+                      gymMode ? "min-h-14 px-5 py-3 text-base" : "px-4 py-3 text-sm"
+                    } ${
                       selectedWorkoutDay === index
                         ? day.restDay
                           ? "bg-gray-600 text-white"
@@ -363,7 +449,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                     }`}
                   >
                     <div className="text-xs opacity-70">{DAYS_OF_WEEK[index]}</div>
-                    <div className={day.restDay ? "font-semibold" : "font-display text-lg tracking-wide"}>
+                    <div className={day.restDay ? "font-semibold" : `font-display tracking-wide ${gymMode ? "text-2xl" : "text-lg"}`}>
                       {day.restDay ? "Descanso" : `Dia ${index + 1}`}
                     </div>
                   </button>
@@ -393,8 +479,8 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                     </div>
                   ) : (
                     <div className="p-6 space-y-4">
-                      {/* Muscle groups */}
-                      {currentWorkout.muscleGroups.length > 0 && (
+                      {/* Muscle groups (hidden in Modo Gimnasio: simplified chrome) */}
+                      {!gymMode && currentWorkout.muscleGroups.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {currentWorkout.muscleGroups.map((muscle) => (
                             <span key={muscle} className="px-3 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-medium">
@@ -411,7 +497,11 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                           return (
                             <div
                               key={idx}
-                              className="bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-accent-cyan/40 transition-colors"
+                              className={
+                                gymMode
+                                  ? "bg-black rounded-xl p-4 border-2 border-gray-600"
+                                  : "bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-accent-cyan/40 transition-colors"
+                              }
                             >
                               <div className="flex items-start gap-3 sm:gap-4">
                                 <ExerciseMediaThumb
@@ -420,24 +510,54 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                                   name={exerciseDetails?.name}
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <h4 className="font-semibold text-white">
+                                  <h4 className={`font-semibold text-white ${gymMode ? "text-2xl leading-tight" : ""}`}>
                                     {exerciseDetails?.name || exercise.exerciseId}
                                   </h4>
-                                  {exerciseDetails?.altName && (
+                                  {!gymMode && exerciseDetails?.altName && (
                                     <p className="text-xs text-gray-500 mt-0.5">{exerciseDetails.altName}</p>
                                   )}
-                                  <div className="flex flex-wrap gap-2 mt-2">
-                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
-                                      <span className="font-bold text-white">{exercise.sets}×</span> series
-                                    </span>
-                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
-                                      <span className="font-bold text-white">{exercise.reps}</span> reps
-                                    </span>
-                                    <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
-                                      <span className="font-bold text-white">{exercise.rest}</span> descanso
-                                    </span>
-                                  </div>
-                                  {exercise.notes && exercise.notes !== GENERIC_EXERCISE_NOTE && (
+                                  {gymMode ? (
+                                    /* One-thumb layout: giant Bebas numerals, 56px+ blocks */
+                                    <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-accent-cyan">
+                                          {exercise.sets}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Series
+                                        </div>
+                                      </div>
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-white whitespace-nowrap">
+                                          {exercise.reps}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Reps
+                                        </div>
+                                      </div>
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-white whitespace-nowrap">
+                                          {exercise.rest}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Descanso
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.sets}×</span> series
+                                      </span>
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.reps}</span> reps
+                                      </span>
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.rest}</span> descanso
+                                      </span>
+                                    </div>
+                                  )}
+                                  {!gymMode && exercise.notes && exercise.notes !== GENERIC_EXERCISE_NOTE && (
                                     <p className="text-sm text-gray-400 mt-2 italic">
                                       Tip: {exercise.notes}
                                     </p>
