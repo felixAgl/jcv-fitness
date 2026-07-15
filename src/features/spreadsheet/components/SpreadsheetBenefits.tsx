@@ -41,7 +41,7 @@ export function SpreadsheetBenefits() {
       <div className="relative z-10 max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-5xl font-black text-center mb-4">
           <span className="text-white">Por que </span>
-          <span className="text-accent-red">NECESITAS</span>
+          <span className="text-accent-cyan">NECESITAS</span>
           <span className="text-white"> esta herramienta</span>
         </h2>
         <p className="text-xl text-gray-400 text-center mb-16 max-w-2xl mx-auto">
@@ -58,7 +58,7 @@ export function SpreadsheetBenefits() {
                 className="flex gap-6 p-6 rounded-2xl border border-gray-800 bg-gray-900/30 hover:border-accent-cyan/30 transition-all group"
               >
                 <div className="shrink-0">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-accent-red/20 border border-accent-cyan/20 flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-blue-500/20 border border-accent-cyan/20 flex items-center justify-center">
                     <Icon className="w-8 h-8 text-accent-cyan group-hover:text-white transition-colors" />
                   </div>
                 </div>

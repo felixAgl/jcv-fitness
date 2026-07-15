@@ -2,14 +2,13 @@
 
 import Image from "next/image";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, Navigation, EffectCoverflow } from "swiper/modules";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import { transformationImages } from "../data/transformations";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
 
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import "swiper/css/effect-coverflow";
 
 export function TransformationGallery() {
   return (
@@ -24,7 +23,7 @@ export function TransformationGallery() {
           </div>
           <h2 className="text-3xl md:text-5xl font-black mb-4">
             <span className="text-white">RESULTADOS</span>{" "}
-            <span className="text-accent-red">REALES</span>
+            <span className="text-accent-cyan">REALES</span>
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto text-lg">
             Personas <span className="font-extrabold underline text-white">reales como tu</span>, que ya
@@ -34,53 +33,43 @@ export function TransformationGallery() {
 
         <div className="relative">
           <Swiper
-            modules={[Autoplay, Pagination, Navigation, EffectCoverflow]}
-            effect="coverflow"
+            modules={[Autoplay, Pagination, Navigation]}
             grabCursor={true}
             centeredSlides={true}
-            slidesPerView="auto"
-            coverflowEffect={{
-              rotate: 0,
-              stretch: 0,
-              depth: 100,
-              modifier: 2.5,
-              slideShadows: false,
+            slidesPerView={1}
+            spaceBetween={20}
+            breakpoints={{
+              640: { slidesPerView: 2, spaceBetween: 24 },
+              1024: { slidesPerView: 3, spaceBetween: 32 },
             }}
             autoplay={{
-              delay: 3000,
+              delay: 3500,
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
             }}
             pagination={{
               clickable: true,
-              dynamicBullets: true,
             }}
             navigation={true}
-            loop={false}
+            loop={true}
             className="transformation-swiper"
           >
             {transformationImages.map((image) => (
-              <SwiperSlide key={image.id} className="!w-[300px] md:!w-[400px]">
-                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden group">
+              <SwiperSlide key={image.id}>
+                <div className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-gray-800">
                   <Image
                     src={image.url}
                     alt={image.alt}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
-                    sizes="(max-width: 768px) 300px, 400px"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     unoptimized
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
 
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="text-white text-sm font-medium text-center">{image.alt}</p>
                   </div>
-
-                  {image.type === "promo" && (
-                    <div className="absolute top-3 right-3 bg-accent-red text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">
-                      JCV 24
-                    </div>
-                  )}
                 </div>
               </SwiperSlide>
             ))}
@@ -95,12 +84,12 @@ export function TransformationGallery() {
             </div>
             <div className="w-px h-12 bg-gray-800 hidden sm:block" />
             <div className="text-center">
-              <div className="text-4xl font-black text-accent-green">40</div>
+              <div className="text-4xl font-black text-accent-success">40</div>
               <div className="text-sm text-gray-500">Días de programa</div>
             </div>
             <div className="w-px h-12 bg-gray-800 hidden sm:block" />
             <div className="text-center">
-              <div className="text-4xl font-black text-accent-red">100%</div>
+              <div className="text-4xl font-black text-accent-cyan">100%</div>
               <div className="text-sm text-gray-500">Compromiso</div>
             </div>
           </div>

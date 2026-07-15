@@ -46,7 +46,7 @@ export function PDFShowcase() {
               key={page.title}
               className="bg-card border border-gray-800 rounded-2xl p-6 text-center hover:border-accent-cyan/50 transition-colors"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-r from-accent-cyan/20 to-accent-red/20 flex items-center justify-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-r from-accent-cyan/20 to-blue-500/20 flex items-center justify-center">
                 <span className="text-3xl font-black text-accent-cyan">{index + 1}</span>
               </div>
               <h3 className="text-lg font-bold text-white mb-2">{page.title}</h3>

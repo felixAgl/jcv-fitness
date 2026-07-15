@@ -23,7 +23,7 @@ const steps: readonly Step[] = [
     title: "Calculos automaticos",
     description:
       "La hoja calcula automaticamente IMC, porcentaje de grasa, masa magra, masa grasa y genera graficos comparativos.",
-    accent: "text-accent-green",
+    accent: "text-accent-cyan",
   },
   {
     icon: Download,
@@ -31,7 +31,7 @@ const steps: readonly Step[] = [
     title: "Descarga el informe",
     description:
       "Genera un PDF profesional con todos los resultados y entregalo a tu cliente. Asi de simple.",
-    accent: "text-accent-red",
+    accent: "text-accent-cyan",
   },
 ] as const;
 
@@ -46,7 +46,7 @@ export function SpreadsheetHowItWorks() {
       <div className="relative z-10 max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-5xl font-black text-center mb-4">
           <span className="text-white">Como </span>
-          <span className="text-accent-green">FUNCIONA</span>
+          <span className="text-accent-cyan">FUNCIONA</span>
         </h2>
         <p className="text-xl text-gray-400 text-center mb-16 max-w-2xl mx-auto">
           Tres pasos simples. Cero complicaciones.

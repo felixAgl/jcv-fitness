@@ -57,7 +57,7 @@ export function Header() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="relative px-4 py-1.5 text-white font-semibold bg-gradient-to-r from-accent-red to-accent-orange rounded-full hover:shadow-lg hover:shadow-accent-red/30 transition-all hover:scale-105"
+                  className="relative px-4 py-1.5 text-black font-semibold bg-accent-cyan rounded-full hover:shadow-lg hover:shadow-accent-cyan/30 transition-all hover:scale-105"
                 >
                   {link.label}
                   <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -128,7 +128,7 @@ export function Header() {
                 <a
                   key={link.href}
                   href={link.href}
-                  className="w-fit relative px-4 py-1.5 text-white font-semibold bg-gradient-to-r from-accent-red to-accent-orange rounded-full"
+                  className="w-fit relative px-4 py-1.5 text-black font-semibold bg-accent-cyan rounded-full"
                   onClick={() => setIsOpen(false)}
                 >
                   {link.label}

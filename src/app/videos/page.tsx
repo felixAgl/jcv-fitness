@@ -10,7 +10,7 @@ import {
 } from "@/features/dashboard/data/video-tutorials";
 
 const categoryColors = {
-  ejercicios: { bg: "bg-purple-500/20", text: "text-purple-400" },
+  ejercicios: { bg: "bg-slate-500/20", text: "text-slate-300" },
   nutricion: { bg: "bg-green-500/20", text: "text-green-400" },
   tecnica: { bg: "bg-accent-cyan/20", text: "text-accent-cyan" },
 };
@@ -149,7 +149,7 @@ export default function VideosPage() {
 
         {/* Upgrade CTA */}
         {!hasActiveSubscription && (
-          <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-accent-cyan/10 to-purple-500/10 border border-accent-cyan/20 text-center">
+          <div className="mt-12 p-8 rounded-2xl bg-gradient-to-r from-accent-cyan/10 to-blue-500/10 border border-accent-cyan/20 text-center">
             <div className="w-16 h-16 bg-accent-cyan/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path

@@ -74,7 +74,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
                 className={cn(
                   "w-10 h-10 rounded-full font-bold transition-colors",
                   selectedDay === index
-                    ? "bg-accent text-white"
+                    ? "bg-accent text-black"
                     : "bg-card hover:bg-card-hover text-foreground/60"
                 )}
               >
@@ -119,7 +119,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
                 </p>
                 <Link
                   href="#pricing"
-                  className="inline-flex items-center gap-2 px-8 py-3 bg-accent text-white font-bold rounded-xl hover:bg-accent/90 transition-colors"
+                  className="inline-flex items-center gap-2 px-8 py-3 bg-accent text-black font-bold rounded-xl hover:bg-accent/90 transition-colors"
                 >
                   Desbloquear Plan Completo
                 </Link>

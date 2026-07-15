@@ -47,7 +47,7 @@ export function HowItWorks() {
                 )}
 
                 <div className="bg-card border border-gray-800 rounded-2xl p-8 text-center relative z-10">
-                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-accent-cyan to-accent-red flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center">
                     <span className="text-2xl font-black text-white">{step.number}</span>
                   </div>
                   <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-accent-cyan/20 flex items-center justify-center">

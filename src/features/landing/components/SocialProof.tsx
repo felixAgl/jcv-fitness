@@ -83,7 +83,7 @@ export function SocialProof() {
               className="bg-card border border-gray-800 rounded-2xl p-6"
             >
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-accent-cyan to-accent-red flex items-center justify-center text-white font-bold">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center text-white font-bold">
                   {testimonial.avatar}
                 </div>
                 <div>

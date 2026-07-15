@@ -64,7 +64,7 @@ export function CTASection() {
                   unoptimized
                 />
               </div>
-              <div className="absolute -bottom-4 -right-4 bg-accent-red text-white px-6 py-3 rounded-xl font-bold shadow-lg transform rotate-3">
+              <div className="absolute -bottom-4 -right-4 bg-accent-cyan text-black px-6 py-3 rounded-xl font-bold shadow-lg transform rotate-3">
                 JCV 24
               </div>
             </div>

@@ -17,7 +17,7 @@ export function WorkoutDayView({ workoutDay, isPreview = false }: WorkoutDayView
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent text-white font-bold text-xl">
+        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-accent text-black font-bold text-xl">
           {workoutDay.day}
         </div>
         <div>

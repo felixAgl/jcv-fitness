@@ -77,19 +77,19 @@ export function QuickActions() {
       hover: "hover:border-accent-cyan/50",
     },
     purple: {
-      bg: "bg-purple-500/10",
-      text: "text-purple-400",
-      hover: "hover:border-purple-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-slate-500/50",
     },
     green: {
-      bg: "bg-green-500/10",
-      text: "text-green-400",
-      hover: "hover:border-green-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-slate-500/50",
     },
     orange: {
-      bg: "bg-orange-500/10",
-      text: "text-orange-400",
-      hover: "hover:border-orange-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-slate-500/50",
     },
   };
 

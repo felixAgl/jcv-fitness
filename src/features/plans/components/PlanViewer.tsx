@@ -247,7 +247,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                       <div className="text-gray-300 text-xs">kg actuales</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-accent-green">{planData.userBodyData.targetWeight}</div>
+                      <div className="text-2xl font-bold text-accent-success">{planData.userBodyData.targetWeight}</div>
                       <div className="text-gray-300 text-xs">kg objetivo</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
@@ -268,19 +268,19 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                   <div className="text-3xl font-bold text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
                   <div className="text-gray-400 text-sm">Dias de Entreno</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-xl p-6 border border-purple-500/30">
-                  <div className="text-3xl font-bold text-purple-400">{selectedExercises.length}</div>
+                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
+                  <div className="text-3xl font-bold text-accent-cyan">{selectedExercises.length}</div>
                   <div className="text-gray-400 text-sm">Ejercicios</div>
                 </div>
-                <div className="bg-gradient-to-br from-accent-green/20 to-accent-green/5 rounded-xl p-6 border border-accent-green/30">
-                  <div className="text-3xl font-bold text-accent-green">{selectedFoods.length}</div>
+                <div className="bg-gradient-to-br from-accent-success/20 to-accent-success/5 rounded-xl p-6 border border-accent-success/30">
+                  <div className="text-3xl font-bold text-accent-success">{selectedFoods.length}</div>
                   <div className="text-gray-400 text-sm">Alimentos</div>
                 </div>
               </div>
 
               {/* Download CTA / Preview CTA */}
               {isPreview ? (
-                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-white mb-1">Quieres tu plan personalizado?</h3>
@@ -297,7 +297,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                   </div>
                 </div>
               ) : !plan.isExpired && (
-                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-white mb-1">Descarga tu plan en PDF</h3>
@@ -471,7 +471,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                     onClick={() => setSelectedMealDay(index)}
                     className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
                       selectedMealDay === index
-                        ? "bg-accent-green text-black"
+                        ? "bg-accent-success text-black"
                         : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                     }`}
                   >
@@ -490,7 +490,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                       <h3 className="text-lg font-bold text-white">{DAYS_OF_WEEK[selectedMealDay]} - Resumen Nutricional</h3>
                       <div className="flex gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-accent-green">{currentMealDay.totalCalories}</div>
+                          <div className="text-2xl font-bold text-accent-success">{currentMealDay.totalCalories}</div>
                           <div className="text-xs text-gray-500">kcal</div>
                         </div>
                         <div className="text-center">
@@ -525,7 +525,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                               <span className="text-xs text-gray-500">{meal.time}</span>
                             </div>
                           </div>
-                          <div className="text-accent-green font-bold">{meal.calories} kcal</div>
+                          <div className="text-accent-success font-bold">{meal.calories} kcal</div>
                         </div>
                         <div className="p-4">
                           <div className="space-y-2">

@@ -204,7 +204,7 @@ export function StepSummary() {
         </p>
       </div>
 
-      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
         <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-2">
           Tu nombre (para personalizar el plan)
         </label>
@@ -290,8 +290,8 @@ export function StepSummary() {
                   <div className="text-xs text-gray-400">TDEE</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-accent-green">{calories.target}</div>
-                  <div className="text-xs text-accent-green">Objetivo</div>
+                  <div className="text-xl font-bold text-accent-success">{calories.target}</div>
+                  <div className="text-xs text-accent-success">Objetivo</div>
                 </div>
               </div>
             </div>
@@ -331,7 +331,7 @@ export function StepSummary() {
       </div>
 
       <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-        <h3 className="text-lg font-bold text-accent-green mb-4">
+        <h3 className="text-lg font-bold text-accent-success mb-4">
           Alimentos seleccionados ({selectedFoods.length})
         </h3>
         {Object.entries(groupedFoods).length > 0 ? (
@@ -361,7 +361,7 @@ export function StepSummary() {
         )}
       </div>
 
-      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
         <div className="text-center">
           <p className="text-gray-300 mb-2">
             Tu plan estara disponible por <span className="text-accent-cyan font-bold">5 semanas</span> de forma gratuita.
@@ -391,7 +391,7 @@ export function StepSummary() {
           type="button"
           onClick={handleFinalize}
           disabled={isSaving || (isAuthenticated && isPlanLoading)}
-          className="px-8 py-3 rounded-lg font-bold bg-accent-green text-black hover:shadow-lg hover:shadow-accent-green/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-3 rounded-lg font-bold bg-accent-success text-black hover:shadow-lg hover:shadow-accent-success/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <>

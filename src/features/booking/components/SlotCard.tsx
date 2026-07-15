@@ -84,7 +84,7 @@ export function SlotCard({ slot, isPreferenceMatch, canBook, onBook, onUpgrade }
           ) : (
             <button
               onClick={onUpgrade}
-              className="px-3 py-2 rounded-lg border border-accent-red/50 text-accent-red text-xs font-semibold hover:bg-accent-red/10 transition-colors"
+              className="px-3 py-2 rounded-lg border border-accent-danger/50 text-accent-danger text-xs font-semibold hover:bg-accent-danger/10 transition-colors"
             >
               Ver planes
             </button>

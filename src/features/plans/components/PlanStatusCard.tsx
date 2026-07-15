@@ -50,7 +50,7 @@ export function PlanStatusCard() {
   // No plan yet - can create
   if (!plan && canCreatePlan) {
     return (
-      <div className="bg-gradient-to-br from-accent-cyan/10 to-accent-green/10 rounded-2xl border border-accent-cyan/30 p-6">
+      <div className="bg-gradient-to-br from-accent-cyan/10 to-accent-success/10 rounded-2xl border border-accent-cyan/30 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
             <svg className="w-6 h-6 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">

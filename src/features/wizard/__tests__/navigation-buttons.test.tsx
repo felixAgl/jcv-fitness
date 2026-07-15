@@ -100,7 +100,7 @@ describe("NavigationButtons", () => {
       );
 
       const button = screen.getByText("Continuar");
-      expect(button.className).toContain("bg-accent-green");
+      expect(button.className).toContain("bg-accent-success");
     });
 
     it("should apply gray classes when canProceed is false", () => {

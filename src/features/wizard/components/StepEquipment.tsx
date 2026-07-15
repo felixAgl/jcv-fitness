@@ -121,14 +121,14 @@ export function StepEquipment() {
                 "p-5 rounded-xl border-2 transition-all duration-300 text-center",
                 "hover:scale-[1.02] active:scale-[0.98]",
                 selected
-                  ? "border-accent-green bg-accent-green/20 ring-2 ring-accent-green"
+                  ? "border-accent-success bg-accent-success/20 ring-2 ring-accent-success"
                   : "border-gray-600 bg-gradient-to-br from-gray-800/80 to-gray-900/80 hover:border-accent-cyan/50"
               )}
             >
               <span className="text-4xl block mb-2">{option.emoji}</span>
               <span className={cn(
                 "text-base font-bold block",
-                selected ? "text-accent-green" : "text-white"
+                selected ? "text-accent-success" : "text-white"
               )}>
                 {option.label}
               </span>

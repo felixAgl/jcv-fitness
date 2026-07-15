@@ -7,13 +7,71 @@ import { useAuth } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
 import { PlanViewer } from "@/features/plans/components/PlanViewer";
 import { PlanExpiredOverlay } from "@/features/plans/components/PlanExpiredOverlay";
+import { SAMPLE_PLAN } from "@/features/plans/data/sample-plan";
+
+function PreviewBanner() {
+  return (
+    <div className="bg-gradient-to-r from-accent-cyan/20 to-blue-500/20 border-b border-accent-cyan/30">
+      <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="px-2 py-0.5 bg-accent-cyan/20 text-accent-cyan rounded font-bold text-xs uppercase">
+            Ejemplo
+          </span>
+          <span className="text-gray-300">
+            Asi luce un plan generado por JCV Fitness
+          </span>
+        </div>
+        <Link
+          href="/wizard"
+          className="px-4 py-2 rounded-lg bg-accent-cyan text-black font-bold text-sm hover:shadow-lg hover:shadow-accent-cyan/50 transition-all"
+        >
+          Crear Mi Plan Gratis
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function PreviewContent() {
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") as "resumen" | "rutina" | "alimentacion" | null;
+
+  return (
+    <div className="min-h-screen bg-black relative">
+      <PreviewBanner />
+      <PlanViewer plan={SAMPLE_PLAN} initialTab={initialTab || undefined} isPreview />
+      <div className="bg-gradient-to-t from-black via-black/80 to-transparent py-12 px-4">
+        <div className="max-w-2xl mx-auto text-center">
+          <h3 className="text-2xl font-bold text-white mb-3">
+            Te gusto lo que viste?
+          </h3>
+          <p className="text-gray-400 mb-6">
+            Genera tu plan personalizado en 2 minutos. Es gratis.
+          </p>
+          <Link
+            href="/wizard"
+            className="btn-cta inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold"
+          >
+            COMENZAR MI PLAN
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PlanViewContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const isPreview = searchParams.get("preview") === "true";
   const initialTab = searchParams.get("tab") as "resumen" | "rutina" | "alimentacion" | "calendario" | null;
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const { plan, isLoading: isPlanLoading, error } = usePlan();
+
+  // Preview mode: skip auth entirely
+  if (isPreview) {
+    return <PreviewContent />;
+  }
 
   // Redirect to login if not authenticated
   useEffect(() => {

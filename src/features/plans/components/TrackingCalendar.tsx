@@ -219,7 +219,7 @@ export function TrackingCalendar({
           <div className="text-xs text-gray-500">Entrenos</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-4 text-center border border-gray-700">
-          <div className="text-2xl font-bold text-purple-400">
+          <div className="text-2xl font-bold text-accent-cyan">
             {progress.stats.completionRate}%
           </div>
           <div className="text-xs text-gray-500">Completado</div>
@@ -231,7 +231,7 @@ export function TrackingCalendar({
           <div className="text-xs text-gray-500">Semana</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-4 text-center border border-gray-700">
-          <div className="text-2xl font-bold text-blue-400">
+          <div className="text-2xl font-bold text-white">
             {daysRemaining}
           </div>
           <div className="text-xs text-gray-500">Restantes</div>

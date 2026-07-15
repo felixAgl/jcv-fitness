@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Dumbbell, Utensils, Play } from "lucide-react";
 import { useState } from "react";
@@ -12,13 +13,57 @@ export function Hero() {
       <div className="bg-pattern" />
       <div className="bg-particles" />
 
+      {/* Background transformation photos - very subtle, decorative only */}
+      <div className="absolute inset-0 z-0 pointer-events-none hidden md:block">
+        <div className="absolute left-0 top-1/4 w-56 h-72 opacity-[0.08] blur-sm -rotate-6">
+          <Image
+            src="/images/transformations/camilo-before.jpg"
+            alt=""
+            fill
+            className="object-cover rounded-3xl"
+            sizes="224px"
+            unoptimized
+          />
+        </div>
+        <div className="absolute right-0 top-1/4 w-56 h-72 opacity-[0.08] blur-sm rotate-6">
+          <Image
+            src="/images/transformations/camilo-after.jpg"
+            alt=""
+            fill
+            className="object-cover rounded-3xl"
+            sizes="224px"
+            unoptimized
+          />
+        </div>
+        <div className="absolute left-8 bottom-20 w-40 h-52 opacity-[0.05] blur-sm -rotate-3">
+          <Image
+            src="/images/transformations/result-2.jpg"
+            alt=""
+            fill
+            className="object-cover rounded-3xl"
+            sizes="160px"
+            unoptimized
+          />
+        </div>
+        <div className="absolute right-8 bottom-20 w-40 h-52 opacity-[0.05] blur-sm rotate-3">
+          <Image
+            src="/images/transformations/result-3.jpg"
+            alt=""
+            fill
+            className="object-cover rounded-3xl"
+            sizes="160px"
+            unoptimized
+          />
+        </div>
+      </div>
+
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6">
           <span className="text-white">TRANSFORMA TU</span>{" "}
           <span className="text-accent-cyan glow-cyan">CUERPO</span>
           <br />
           <span className="text-white">TRANSFORMA TU</span>{" "}
-          <span className="text-accent-red glow-red">VIDA</span>
+          <span className="text-accent-cyan glow-cyan">VIDA</span>
         </h1>
         <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
           Plan de alimentacion y entrenamiento personalizado. Resultados reales con JCV Fitness.
@@ -32,7 +77,7 @@ export function Hero() {
               className="relative w-full aspect-video bg-card border border-gray-800 rounded-2xl overflow-hidden group hover:border-accent-cyan/50 transition-colors"
             >
               {/* Thumbnail placeholder */}
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-cyan/20 to-accent-red/20" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-cyan/20 to-blue-500/20" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-20 h-20 rounded-full bg-accent-cyan/20 flex items-center justify-center group-hover:bg-accent-cyan/30 transition-colors">
                   <Play className="w-10 h-10 text-accent-cyan fill-accent-cyan" />
@@ -78,7 +123,7 @@ export function Hero() {
             <span>Plan nutricional</span>
           </div>
           <div className="flex items-center gap-2 text-gray-400">
-            <Dumbbell className="h-5 w-5 text-accent-red" />
+            <Dumbbell className="h-5 w-5 text-accent-cyan" />
             <span>Rutinas de ejercicio</span>
           </div>
         </div>
