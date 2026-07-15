@@ -9,6 +9,7 @@ import {
   FAQ,
   PDFShowcase,
   TransformationGallery,
+  StickyCTABar,
 } from "@/features/landing/components";
 import { PricingSection } from "@/features/payment/components";
 import { MealPlanSection } from "@/features/meal-plan/components";
@@ -52,6 +53,7 @@ export default function Home() {
         <FAQ />
       </main>
       <Footer />
+      <StickyCTABar />
     </>
   );
 }

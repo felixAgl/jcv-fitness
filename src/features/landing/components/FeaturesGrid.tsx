@@ -1,74 +1,32 @@
 "use client";
 
 import { Dumbbell, Utensils, Calendar, Target, Download, Trophy } from "lucide-react";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
 
-const features = [
-  {
-    icon: Target,
-    title: "Tu Objetivo",
-    description: "Perder grasa, ganar musculo o mantenerte. Todo adaptado a ti.",
-    color: "cyan",
-  },
-  {
-    icon: Dumbbell,
-    title: "Plan de Ejercicios",
-    description: "Rutinas con series, repeticiones y descansos detallados.",
-    color: "red",
-  },
-  {
-    icon: Utensils,
-    title: "Plan Nutricional",
-    description: "5 comidas diarias con macros y calorias calculadas.",
-    color: "green",
-  },
-  {
-    icon: Calendar,
-    title: "Calendario Semanal",
-    description: "Checkboxes de progreso para cada dia de entrenamiento.",
-    color: "purple",
-  },
-  {
-    icon: Download,
-    title: "PDF Profesional",
-    description: "Descarga tu plan completo en formato PDF elegante.",
-    color: "orange",
-  },
-  {
-    icon: Trophy,
-    title: "Seguimiento",
-    description: "Dashboard para ver tu progreso y mantener la motivacion.",
-    color: "yellow",
-  },
-];
+// Icons zip positionally with LANDING_STRINGS[lang].features.items.
+const featureIcons = [Target, Dumbbell, Utensils, Calendar, Download, Trophy];
 
-const cyanBadge = "bg-accent-cyan/20 text-accent-cyan border-accent-cyan/30";
-
-const colorClasses = {
-  cyan: cyanBadge,
-  red: cyanBadge,
-  green: cyanBadge,
-  purple: cyanBadge,
-  orange: cyanBadge,
-  yellow: cyanBadge,
-};
+const badgeClasses = "bg-accent-cyan/20 text-accent-cyan border-accent-cyan/30";
 
 export function FeaturesGrid() {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].features;
+
   return (
     <section className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-black text-center mb-4">
-          <span className="text-white">Todo lo que </span>
-          <span className="text-accent-cyan">INCLUYE</span>
-          <span className="text-white"> tu plan</span>
+          <span className="text-white">{t.titlePre}</span>
+          <span className="text-accent-cyan">{t.titleHighlight}</span>
+          <span className="text-white">{t.titlePost}</span>
         </h2>
-        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-          Un sistema completo para transformar tu cuerpo de manera profesional
-        </p>
+        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">{t.subtitle}</p>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((feature) => {
-            const Icon = feature.icon;
-            const colors = colorClasses[feature.color as keyof typeof colorClasses];
+          {t.items.map((feature, index) => {
+            const Icon = featureIcons[index];
+            const colors = badgeClasses;
 
             return (
               <div

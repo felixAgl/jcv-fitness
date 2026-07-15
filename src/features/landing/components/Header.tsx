@@ -8,12 +8,42 @@ import { Menu, X, User, LogOut } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
 import { useAuth, AuthModal } from "@/features/auth";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
 
-const navLinks = [
-  { href: "#meal-plan", label: "Alimentacion" },
-  { href: "#workout-plan", label: "Entrenamiento" },
-  { href: "#pricing", label: "Planes" },
-];
+function LanguageToggle() {
+  const { lang, setLang } = useLanguage();
+  const t = LANDING_STRINGS[lang].header;
+
+  return (
+    <div
+      className="flex rounded-full border border-gray-700 overflow-hidden text-xs font-semibold shrink-0"
+      role="group"
+      aria-label={t.languageToggle}
+    >
+      <button
+        type="button"
+        onClick={() => setLang("es")}
+        aria-pressed={lang === "es"}
+        className={`px-2.5 py-1 transition-colors ${
+          lang === "es" ? "bg-accent-cyan text-black" : "text-gray-400 hover:text-white"
+        }`}
+      >
+        ES
+      </button>
+      <button
+        type="button"
+        onClick={() => setLang("en")}
+        aria-pressed={lang === "en"}
+        className={`px-2.5 py-1 transition-colors ${
+          lang === "en" ? "bg-accent-cyan text-black" : "text-gray-400 hover:text-white"
+        }`}
+      >
+        EN
+      </button>
+    </div>
+  );
+}
 
 export function Header() {
   const router = useRouter();
@@ -21,6 +51,14 @@ export function Header() {
   const [showAuth, setShowAuth] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const { isAuthenticated, signOut } = useAuth();
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].header;
+
+  const navLinks = [
+    { href: "#meal-plan", label: t.navMeals },
+    { href: "#workout-plan", label: t.navWorkout },
+    { href: "#pricing", label: t.navPricing },
+  ];
 
   const handleAuthSuccess = () => {
     setShowAuth(false);
@@ -79,7 +117,7 @@ export function Header() {
                   className="flex items-center gap-2 text-foreground/70 hover:text-primary transition-colors"
                 >
                   <User className="h-4 w-4" />
-                  Mi Panel
+                  {t.myPanel}
                 </Link>
                 <Button
                   size="sm"
@@ -88,7 +126,7 @@ export function Header() {
                   className="flex items-center gap-2 text-red-400 border-red-400/50 hover:bg-red-400/10 hover:border-red-400"
                 >
                   <LogOut className="h-4 w-4" />
-                  Salir
+                  {t.signOut}
                 </Button>
               </div>
             ) : (
@@ -98,19 +136,20 @@ export function Header() {
                   onClick={openLogin}
                   className="text-foreground/70 hover:text-primary transition-colors text-sm font-medium"
                 >
-                  Iniciar sesion
+                  {t.signIn}
                 </button>
                 <Button size="sm" onClick={openRegister}>
-                  Registrarse
+                  {t.register}
                 </Button>
               </div>
             )}
+            <LanguageToggle />
           </nav>
 
           <button
             className="md:hidden p-2"
             onClick={() => setIsOpen(!isOpen)}
-            aria-label="Toggle menu"
+            aria-label={t.toggleMenu}
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -153,7 +192,7 @@ export function Header() {
                   onClick={() => setIsOpen(false)}
                 >
                   <User className="h-4 w-4" />
-                  Mi Panel
+                  {t.myPanel}
                 </Link>
                 <Button
                   size="sm"
@@ -165,7 +204,7 @@ export function Header() {
                   className="w-fit flex items-center gap-2 text-red-400 border-red-400/50 hover:bg-red-400/10"
                 >
                   <LogOut className="h-4 w-4" />
-                  Salir
+                  {t.signOut}
                 </Button>
               </>
             ) : (
@@ -175,13 +214,16 @@ export function Header() {
                   onClick={openLogin}
                   className="text-foreground/70 hover:text-primary transition-colors text-sm font-medium text-left"
                 >
-                  Iniciar sesion
+                  {t.signIn}
                 </button>
                 <Button size="sm" className="w-fit" onClick={openRegister}>
-                  Registrarse
+                  {t.register}
                 </Button>
               </div>
             )}
+            <div className="w-fit">
+              <LanguageToggle />
+            </div>
           </nav>
         </div>
       </div>

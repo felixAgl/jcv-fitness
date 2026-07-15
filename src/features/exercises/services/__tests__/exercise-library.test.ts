@@ -136,9 +136,8 @@ describe("getLibraryExercise", () => {
 describe("getMediaUrls", () => {
   it("prepends the dataset base URL to image and gif paths", () => {
     expect(getMediaUrls(fixture[1])).toEqual({
-      image:
-        "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/images/0025-abc.jpg",
-      gif: "https://raw.githubusercontent.com/hasaneyldrm/exercises-dataset/main/videos/0025-abc.gif",
+      image: "https://media.jcv24fitness.com/images/0025-abc.jpg",
+      gif: "https://media.jcv24fitness.com/videos/0025-abc.gif",
     });
   });
 });

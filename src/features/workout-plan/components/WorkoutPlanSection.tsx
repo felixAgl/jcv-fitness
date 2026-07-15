@@ -7,6 +7,8 @@ import { cn } from "@/shared/lib/cn";
 import { Dumbbell, Home, Lock } from "lucide-react";
 import type { WorkoutPlan } from "../types";
 import { WorkoutDayView } from "./WorkoutDayView";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "@/features/landing/i18n";
 
 interface WorkoutPlanSectionProps {
   gymPlan: WorkoutPlan;
@@ -19,6 +21,8 @@ const PREVIEW_DAYS = 2; // Solo mostrar 2 dias en preview
 export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: WorkoutPlanSectionProps) {
   const [activeType, setActiveType] = useState<"gym" | "home">("gym");
   const [selectedDay, setSelectedDay] = useState(0);
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].workoutPlan;
 
   const currentPlan = activeType === "gym" ? gymPlan : homePlan;
 
@@ -37,11 +41,12 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Plan de <span className="text-accent">Entrenamiento</span>
+            {t.titlePre}<span className="text-accent">{t.titleHighlight}</span>
           </h2>
           <p className="text-foreground/60 max-w-2xl mx-auto">
-            Elige entre nuestro plan de gimnasio de {gymPlan.daysPerWeek} dias o el plan para casa
-            de {homePlan.daysPerWeek} dias. Ambos diseñados para maximizar resultados.
+            {t.subtitle
+              .replace("{gymDays}", String(gymPlan.daysPerWeek))
+              .replace("{homeDays}", String(homePlan.daysPerWeek))}
           </p>
         </div>
 
@@ -52,7 +57,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
             className="gap-2"
           >
             <Dumbbell className="h-4 w-4" />
-            Gimnasio ({gymPlan.daysPerWeek} dias)
+            {t.gymButton.replace("{days}", String(gymPlan.daysPerWeek))}
           </Button>
           <Button
             variant={activeType === "home" ? "secondary" : "outline"}
@@ -60,7 +65,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
             className="gap-2"
           >
             <Home className="h-4 w-4" />
-            Casa ({homePlan.daysPerWeek} dias)
+            {t.homeButton.replace("{days}", String(homePlan.daysPerWeek))}
           </Button>
         </div>
 
@@ -87,7 +92,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
                 <div
                   key={day.day}
                   className="w-10 h-10 rounded-full bg-card/50 text-foreground/30 font-bold flex items-center justify-center cursor-not-allowed"
-                  title="Desbloquea el plan completo"
+                  title={t.lockedDayTooltip}
                 >
                   <Lock className="h-4 w-4" />
                 </div>
@@ -111,17 +116,14 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
                   <Lock className="h-8 w-8 text-accent" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">
-                  +{hiddenDaysCount} dias de entrenamiento
+                  {t.lockedTitle.replace("{count}", String(hiddenDaysCount))}
                 </h3>
-                <p className="text-foreground/60 mb-6 max-w-md mx-auto">
-                  Accede al plan completo con todos los ejercicios, series, repeticiones y videos
-                  demostrativos.
-                </p>
+                <p className="text-foreground/60 mb-6 max-w-md mx-auto">{t.lockedText}</p>
                 <Link
                   href="#pricing"
                   className="inline-flex items-center gap-2 px-8 py-3 bg-accent text-black font-bold rounded-xl hover:bg-accent/90 transition-colors"
                 >
-                  Desbloquear Plan Completo
+                  {t.unlockCta}
                 </Link>
               </div>
             </div>

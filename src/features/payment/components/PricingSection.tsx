@@ -3,15 +3,23 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui";
-import { Check } from "lucide-react";
+import { Check, ShieldCheck } from "lucide-react";
 import { cn } from "@/shared/lib/cn";
 import { CheckoutModal } from "./CheckoutModal";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
 import { useAuth, AuthModal } from "@/features/auth";
 import { SUBSCRIPTION_PLANS, type PlanType } from "@/features/subscription";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "@/features/landing/i18n";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
+import { WhatsAppIcon } from "@/features/landing/components/WhatsAppIcon";
 
 export function PricingSection() {
   const router = useRouter();
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].pricing;
+  const guarantee = LANDING_STRINGS[lang].guarantee;
+  const whatsapp = LANDING_STRINGS[lang].whatsapp;
   const { isAuthenticated, user, isLoading } = useAuth();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
@@ -60,11 +68,9 @@ export function PricingSection() {
               </span>
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Elige tu <span className="text-primary">plan</span>
+              {t.titlePre}<span className="text-primary">{t.titleHighlight}</span>
             </h2>
-            <p className="text-foreground/60 max-w-2xl mx-auto">
-              Invierte en tu salud. Elige el plan que mejor se adapte a tus objetivos.
-            </p>
+            <p className="text-foreground/60 max-w-2xl mx-auto">{t.subtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -78,14 +84,14 @@ export function PricingSection() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary text-background text-xs font-bold rounded-full">
-                    Mas popular
+                    {t.popularBadge}
                   </div>
                 )}
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl">{plan.name}</CardTitle>
                   <div className="mt-4">
                     <span className="text-4xl font-bold">{plan.priceDisplay}</span>
-                    <span className="text-foreground/60 ml-1">COP/mes</span>
+                    <span className="text-foreground/60 ml-1">{t.perMonth}</span>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -102,10 +108,25 @@ export function PricingSection() {
                     className="w-full"
                     onClick={() => handleSelectPlan(plan.id)}
                   >
-                    Seleccionar plan
+                    {t.selectPlan}
                   </Button>
+                  {/* NOTE: 40-day guarantee is a business commitment pending
+                      owner confirmation before production. */}
+                  <p className="flex items-start justify-center gap-1.5 text-xs text-foreground/60 text-center mt-3">
+                    <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
+                    <span>{guarantee.text}</span>
+                  </p>
+                  <a
+                    href={buildWhatsAppUrl(whatsapp.planMessage.replace("{plan}", plan.name))}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1.5 text-xs text-foreground/60 hover:text-foreground mt-2 transition-colors"
+                  >
+                    <WhatsAppIcon className="w-3.5 h-3.5 text-green-500" />
+                    {t.whatsappAsk}
+                  </a>
                   <p className="text-xs text-foreground/40 text-center mt-3">
-                    Pago seguro con Mercado Pago o Wompi
+                    {t.securePayment}
                   </p>
                 </CardContent>
               </Card>

@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Lang } from "@/features/exercises";
 
 const STORAGE_KEY = "jcv-lang";
 const DEFAULT_LANG: Lang = "es";
+// In-page event so every useLanguage() instance re-renders when any of them
+// changes the language (the "storage" event only fires in OTHER tabs).
+const CHANGE_EVENT = "jcv-lang-change";
 
 function readStoredLang(): Lang {
   // Static export: guard against SSR/prerender where window is undefined.
@@ -23,7 +26,20 @@ function readStoredLang(): Lang {
  * provider needed for the current per-modal usage.
  */
 export function useLanguage(): { lang: Lang; setLang: (lang: Lang) => void } {
-  const [lang, setLangState] = useState<Lang>(readStoredLang);
+  // Start with the default (matches the prerendered static HTML) and sync the
+  // stored preference after mount to avoid hydration mismatches.
+  const [lang, setLangState] = useState<Lang>(DEFAULT_LANG);
+
+  useEffect(() => {
+    const syncFromStorage = () => setLangState(readStoredLang());
+    syncFromStorage();
+    window.addEventListener(CHANGE_EVENT, syncFromStorage);
+    window.addEventListener("storage", syncFromStorage);
+    return () => {
+      window.removeEventListener(CHANGE_EVENT, syncFromStorage);
+      window.removeEventListener("storage", syncFromStorage);
+    };
+  }, []);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
@@ -32,6 +48,7 @@ export function useLanguage(): { lang: Lang; setLang: (lang: Lang) => void } {
     } catch {
       // Persisting the preference is best-effort (e.g. private mode).
     }
+    window.dispatchEvent(new Event(CHANGE_EVENT));
   }, []);
 
   return { lang, setLang };

@@ -2,14 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Dumbbell, Utensils, Play } from "lucide-react";
+import { ArrowRight, Dumbbell, Utensils, Play, ShieldCheck } from "lucide-react";
 import { useState } from "react";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
 
 export function Hero() {
   const [showVideo, setShowVideo] = useState(false);
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].hero;
+  const guarantee = LANDING_STRINGS[lang].guarantee;
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 pt-16 overflow-hidden">
+    // id="hero" is observed by StickyCTABar to know when to slide in.
+    <section
+      id="hero"
+      className="relative min-h-screen flex items-center justify-center px-4 pt-16 overflow-hidden"
+    >
       <div className="bg-pattern" />
       <div className="bg-particles" />
 
@@ -59,15 +68,13 @@ export function Hero() {
 
       <div className="relative z-10 max-w-5xl mx-auto text-center">
         <h1 className="text-5xl md:text-7xl font-black mb-6">
-          <span className="text-white">TRANSFORMA TU</span>{" "}
-          <span className="text-accent-cyan glow-cyan">CUERPO</span>
+          <span className="text-white">{t.titleLine1Pre}</span>{" "}
+          <span className="text-accent-cyan glow-cyan">{t.titleLine1Highlight}</span>
           <br />
-          <span className="text-white">TRANSFORMA TU</span>{" "}
-          <span className="text-accent-cyan glow-cyan">VIDA</span>
+          <span className="text-white">{t.titleLine2Pre}</span>{" "}
+          <span className="text-accent-cyan glow-cyan">{t.titleLine2Highlight}</span>
         </h1>
-        <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">
-          Plan de alimentacion y entrenamiento personalizado. Resultados reales con JCV Fitness.
-        </p>
+        <p className="text-xl text-gray-400 mb-8 max-w-2xl mx-auto">{t.subtitle}</p>
 
         {/* Video Preview */}
         <div className="mb-8 max-w-3xl mx-auto">
@@ -84,7 +91,7 @@ export function Hero() {
                 </div>
               </div>
               <p className="absolute bottom-4 left-0 right-0 text-gray-400 text-sm">
-                Mira como funciona en 1 minuto
+                {t.videoCaption}
               </p>
             </button>
           ) : (
@@ -95,7 +102,7 @@ export function Hero() {
                 className="w-full h-full object-cover"
                 src="/videos/promo.mp4"
               >
-                Tu navegador no soporta videos.
+                {t.videoNotSupported}
               </video>
             </div>
           )}
@@ -106,25 +113,36 @@ export function Hero() {
             href="/wizard"
             className="btn-cta inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold"
           >
-            COMENZAR AHORA
+            {t.ctaStart}
             <ArrowRight className="h-5 w-5" />
           </Link>
           <a
             href="#pricing"
             className="relative inline-flex items-center justify-center px-8 py-4 rounded-full font-bold text-accent-cyan bg-transparent border-2 border-accent-cyan hover:bg-accent-cyan/10 hover:shadow-lg hover:shadow-accent-cyan/30 transition-all hover:scale-105"
           >
-            Ver planes
+            {t.ctaPlans}
             <span className="absolute -top-1 -right-1 w-3 h-3 bg-accent-cyan rounded-full animate-pulse" />
           </a>
         </div>
+
+        {/* Compact guarantee badge.
+            NOTE: 40-day guarantee is a business commitment pending owner
+            confirmation before production. */}
+        <div className="flex justify-center -mt-6 mb-12">
+          <p className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-gray-800 bg-card/50 text-sm text-gray-400">
+            <ShieldCheck className="h-4 w-4 text-accent-cyan shrink-0" />
+            {guarantee.text}
+          </p>
+        </div>
+
         <div className="flex flex-wrap justify-center gap-8">
           <div className="flex items-center gap-2 text-gray-400">
             <Utensils className="h-5 w-5 text-accent-cyan" />
-            <span>Plan nutricional</span>
+            <span>{t.badgeNutrition}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-400">
             <Dumbbell className="h-5 w-5 text-accent-cyan" />
-            <span>Rutinas de ejercicio</span>
+            <span>{t.badgeWorkout}</span>
           </div>
         </div>
       </div>

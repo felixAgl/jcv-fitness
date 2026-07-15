@@ -1,57 +1,24 @@
 "use client";
 
 import { Star, Users, Download, Trophy } from "lucide-react";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
 
-const stats = [
-  {
-    icon: Users,
-    value: "+500",
-    label: "Usuarios activos",
-  },
-  {
-    icon: Download,
-    value: "+1,200",
-    label: "Planes generados",
-  },
-  {
-    icon: Trophy,
-    value: "4.9",
-    label: "Calificacion promedio",
-  },
-];
-
-const testimonials = [
-  {
-    name: "Maria Garcia",
-    date: "Enero 2025",
-    rating: 5,
-    text: "El plan de alimentacion es super completo. Me encanta que puedo ver las calorias de cada comida y el calendario me ayuda a no perder el ritmo.",
-    avatar: "MG",
-  },
-  {
-    name: "Carlos Rodriguez",
-    date: "Diciembre 2024",
-    rating: 5,
-    text: "Las rutinas estan muy bien estructuradas. Los videos explicativos de cada ejercicio son un plus. Ya llevo 3 meses y los resultados se notan.",
-    avatar: "CR",
-  },
-  {
-    name: "Ana Martinez",
-    date: "Enero 2025",
-    rating: 5,
-    text: "Lo mejor es que todo viene en PDF. Lo tengo en mi celular y puedo ver mi rutina en cualquier momento. Muy profesional.",
-    avatar: "AM",
-  },
-];
+// Icons zip positionally with LANDING_STRINGS[lang].socialProof.stats.
+const statIcons = [Users, Download, Trophy];
+const TESTIMONIAL_RATING = 5;
 
 export function SocialProof() {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].socialProof;
+
   return (
     <section className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
         {/* Stats */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
+          {t.stats.map((stat, index) => {
+            const Icon = statIcons[index];
             return (
               <div
                 key={stat.label}
@@ -69,15 +36,13 @@ export function SocialProof() {
 
         {/* Testimonials */}
         <h2 className="text-3xl md:text-4xl font-black text-center mb-4">
-          <span className="text-white">Lo que dicen </span>
-          <span className="text-accent-cyan">NUESTROS USUARIOS</span>
+          <span className="text-white">{t.titlePre}</span>
+          <span className="text-accent-cyan">{t.titleHighlight}</span>
         </h2>
-        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-          Personas reales con resultados reales
-        </p>
+        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">{t.subtitle}</p>
 
         <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((testimonial) => (
+          {t.testimonials.map((testimonial) => (
             <div
               key={testimonial.name}
               className="bg-card border border-gray-800 rounded-2xl p-6"
@@ -92,7 +57,7 @@ export function SocialProof() {
                 </div>
               </div>
               <div className="flex gap-1 mb-3">
-                {Array.from({ length: testimonial.rating }).map((_, i) => (
+                {Array.from({ length: TESTIMONIAL_RATING }).map((_, i) => (
                   <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                 ))}
               </div>
