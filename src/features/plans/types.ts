@@ -21,10 +21,19 @@ export interface WeekProgress {
   days: Record<string, DayProgress>; // key is YYYY-MM-DD
 }
 
+/** Racha 40 freeze: one per plan, persisted so it is never granted twice. */
+export interface StreakFreeze {
+  used: boolean;
+  /** YYYY-MM-DD of the missed day the freeze covered. */
+  usedOn: string;
+}
+
 export interface PlanProgress {
   totalWeeks: number;
   currentWeek: number;
   weeks: WeekProgress[];
+  /** Optional: absent on plans created before Racha 40 shipped. */
+  streakFreeze?: StreakFreeze;
   stats: {
     totalWorkoutsCompleted: number;
     totalWorkoutsPlanned: number;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { progressService, initializePlanProgress } from "../services/progress-service";
+import { computeStreak } from "../services/streak";
 import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
 import type { PlanProgress, DayProgress, PlanDataWithProgress } from "../types";
 import type { WorkoutDay } from "@/features/wizard/types";
@@ -205,6 +206,51 @@ export function TrackingCalendar({
   const isFutureDate = (dateStr: string): boolean => dateStr > today;
   const isToday = (dateStr: string): boolean => dateStr === today;
 
+  // Racha 40: streak with rest days as automatic streak days and ONE freeze
+  // ("congelador") per plan. Passive display only — milestones stay untouched.
+  const streakInfo = useMemo(() => {
+    if (!progress) return null;
+    const completedDates: string[] = [];
+    for (const week of progress.weeks) {
+      for (const day of Object.values(week.days)) {
+        if (day.workoutCompleted) completedDates.push(day.date);
+      }
+    }
+    const startDate = progress.weeks[0]?.startDate ?? today;
+    return computeStreak(completedDates, {
+      isRestDay,
+      today,
+      startDate,
+      freezeUsedOn: progress.streakFreeze?.used ? progress.streakFreeze.usedOn : null,
+    });
+  }, [progress, isRestDay, today]);
+
+  // Persist freeze consumption once and show the one-time notice.
+  const [freezeNotice, setFreezeNotice] = useState(false);
+  const freezePersistRef = useRef(false);
+  useEffect(() => {
+    if (
+      !streakInfo?.freezeConsumedOn ||
+      progress?.streakFreeze?.used ||
+      freezePersistRef.current
+    ) {
+      return;
+    }
+    freezePersistRef.current = true;
+    setFreezeNotice(true);
+    progressService
+      .consumeStreakFreeze(planId, streakInfo.freezeConsumedOn)
+      .then((updated) => {
+        if (updated) setProgress(updated);
+      })
+      .catch((error) => {
+        console.error("[TrackingCalendar] Error persisting streak freeze:", error);
+      });
+  }, [streakInfo, progress, planId]);
+
+  const streak = streakInfo?.streak ?? 0;
+  const freezeAvailable = streakInfo?.freezeAvailable ?? true;
+
   // Get all days flat for the grid
   const allDays = useMemo(() => {
     if (!progress) return [];
@@ -267,33 +313,41 @@ export function TrackingCalendar({
         </button>
       )}
 
-      {/* Streak Hero Section */}
-      <div className="bg-gradient-to-br from-orange-500/20 via-red-500/10 to-yellow-500/20 rounded-2xl p-6 border border-orange-500/30">
+      {/* Racha 40 Hero Section (rest days count; ONE congelador per plan) */}
+      <div
+        data-testid="streak-hero"
+        className={`bg-gradient-to-br from-orange-500/20 via-red-500/10 to-yellow-500/20 rounded-2xl p-6 border border-orange-500/30 ${
+          streak >= 7 ? "glow-cyan-soft" : ""
+        }`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="text-6xl">
-                {progress.stats.currentStreak > 0 ? "🔥" : "💪"}
+                {streak > 0 ? "🔥" : "💪"}
               </div>
-              {progress.stats.currentStreak >= 7 && (
+              {streak >= 7 && (
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-xs">
                   ⭐
                 </div>
               )}
             </div>
             <div>
-              <div className="text-4xl font-black text-white">
-                {progress.stats.currentStreak}
-                <span className="text-lg font-normal text-gray-400 ml-2">
-                  {progress.stats.currentStreak === 1 ? "dia" : "dias"}
-                </span>
+              <div className="font-display text-4xl sm:text-5xl tracking-wide text-white leading-none">
+                RACHA: {streak} {streak === 1 ? "DIA" : "DIAS"}
               </div>
-              <p className="text-orange-300 font-medium">
-                {progress.stats.currentStreak === 0
+              <p className="text-orange-300 font-medium mt-1">
+                {streak === 0
                   ? "Empieza tu racha hoy!"
-                  : progress.stats.currentStreak >= 7
+                  : streak >= 7
                     ? "Racha increible! Sigue asi!"
                     : "Vas muy bien! No pares!"}
+              </p>
+              <p
+                data-testid="freeze-indicator"
+                className={`text-xs mt-1 ${freezeAvailable ? "text-accent-cyan" : "text-gray-500"}`}
+              >
+                {freezeAvailable ? "🧊 1 congelador disponible" : "🧊 Congelador usado"}
               </p>
             </div>
           </div>
@@ -304,6 +358,26 @@ export function TrackingCalendar({
             </div>
           </div>
         </div>
+
+        {/* One-time notice when the congelador just saved the streak */}
+        {freezeNotice && (
+          <div
+            data-testid="freeze-notice"
+            className="mt-4 flex items-center justify-between gap-3 bg-accent-cyan/10 border border-accent-cyan/40 rounded-xl px-4 py-3"
+          >
+            <p className="text-sm text-accent-cyan">
+              Tu congelador salvo la racha: un dia sin entrenar no la rompio. Era el unico del plan!
+            </p>
+            <button
+              type="button"
+              onClick={() => setFreezeNotice(false)}
+              aria-label="Cerrar aviso de congelador"
+              className="text-accent-cyan/70 hover:text-accent-cyan text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Stats Row */}

@@ -12,6 +12,7 @@ import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
 import { generateMealPlan } from "@/features/wizard/data/meal-templates";
 import { TrackingCalendar } from "./TrackingCalendar";
 import { ExerciseMediaThumb } from "./ExerciseMediaThumb";
+import { Phase2Card } from "./Phase2Card";
 import type { UserPlan, PlanDataWithProgress } from "../types";
 
 type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
@@ -243,6 +244,11 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
               Renovar
             </Link>
           </div>
+        )}
+
+        {/* Fase 2 renewal preview: day 32+ (daysRemaining <= 8) or expired */}
+        {!isPreview && (plan.isExpired || plan.daysRemaining <= 8) && (
+          <Phase2Card planData={planData} />
         )}
 
         {/* Tabs */}

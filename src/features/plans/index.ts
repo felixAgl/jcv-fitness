@@ -4,6 +4,10 @@ export * from "./types";
 // Services
 export { planService } from "./services/plan-service";
 export { progressService } from "./services/progress-service";
+export { generatePhase2Preview, PHASE2_DURATION_DAYS } from "./services/phase2";
+export type { Phase2Preview, Phase2Input } from "./services/phase2";
+export { computeStreak } from "./services/streak";
+export type { StreakOptions, StreakResult } from "./services/streak";
 export type {
   CreatePlanResult,
   GetActivePlanResult,
@@ -19,4 +23,5 @@ export { ExerciseMediaThumb } from "./components/ExerciseMediaThumb";
 export { ExerciseDetailModal } from "./components/ExerciseDetailModal";
 export { PlanExpiredOverlay } from "./components/PlanExpiredOverlay";
 export { PlanStatusCard } from "./components/PlanStatusCard";
+export { Phase2Card } from "./components/Phase2Card";
 export { TrackingCalendar } from "./components/TrackingCalendar";
