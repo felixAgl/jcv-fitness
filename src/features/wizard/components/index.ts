@@ -11,3 +11,4 @@ export { StepDuration } from "./StepDuration";
 export { StepBodyData } from "./StepBodyData";
 export { StepExercises } from "./StepExercises";
 export { StepSummary } from "./StepSummary";
+export { PlanForge } from "./PlanForge";

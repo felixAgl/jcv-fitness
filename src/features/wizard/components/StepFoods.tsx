@@ -106,7 +106,7 @@ export function StepFoods() {
       </div>
 
       {!hasAppliedRecommendations && selectedFoods.length === 0 && (
-        <div className="bg-gradient-to-r from-accent-green/10 to-accent-cyan/10 rounded-xl p-4 border border-accent-green/30">
+        <div className="bg-gradient-to-r from-accent-success/10 to-accent-cyan/10 rounded-xl p-4 border border-accent-success/30">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               <p className="text-white font-medium">No sabes cuales elegir?</p>
@@ -117,7 +117,7 @@ export function StepFoods() {
             <button
               type="button"
               onClick={selectRecommended}
-              className="px-4 py-2 bg-accent-green text-black font-bold rounded-lg hover:bg-accent-green/90 transition-colors whitespace-nowrap"
+              className="px-4 py-2 bg-accent-success text-black font-bold rounded-lg hover:bg-accent-success/90 transition-colors whitespace-nowrap"
             >
               Usar recomendados
             </button>
@@ -131,7 +131,7 @@ export function StepFoods() {
           placeholder="Buscar alimento por nombre o beneficio..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full p-3 pl-10 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-green focus:outline-none"
+          className="w-full p-3 pl-10 rounded-lg border border-gray-700 bg-gray-900/50 text-white placeholder-gray-500 focus:border-accent-success focus:outline-none"
         />
         <svg
           className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"
@@ -159,7 +159,7 @@ export function StepFoods() {
               className={cn(
                 "px-4 py-2 rounded-full text-sm font-medium transition-all relative",
                 activeCategory === category
-                  ? "bg-accent-green text-black"
+                  ? "bg-accent-success text-black"
                   : "bg-gray-800 text-gray-300 hover:bg-gray-700"
               )}
             >
@@ -200,7 +200,7 @@ export function StepFoods() {
         {recommendedForCategory.length > 0 && !searchTerm && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-accent-green text-sm font-bold">Recomendados por JCV</span>
+              <span className="text-accent-success text-sm font-bold">Recomendados por JCV</span>
               <span className="text-xs text-gray-500">- Alimentos base para tu dieta</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

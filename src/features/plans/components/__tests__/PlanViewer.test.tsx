@@ -29,7 +29,7 @@ vi.mock("@/features/wizard/data/workout-templates", () => ({
       muscleGroups: ["pecho", "triceps"],
       exercises: [
         { exerciseId: "bench_press", sets: 4, reps: "8-10", rest: "90s", notes: "Controlar el movimiento" },
-        { exerciseId: "incline_press", sets: 3, reps: "10-12", rest: "60s" },
+        { exerciseId: "incline_press", sets: 3, reps: "10-12", rest: "60s", notes: "Ejecuta con buena tecnica" },
       ],
     },
     {
@@ -92,6 +92,12 @@ vi.mock("@/features/wizard/data/exercises", () => ({
   ],
 }));
 
+// Mock exercise media (no media -> emoji fallback, current behavior)
+vi.mock("@/features/wizard/data/exercise-media", () => ({
+  EXERCISE_MEDIA: {},
+  getExerciseMedia: () => undefined,
+}));
+
 vi.mock("@/features/wizard/data/foods", () => ({
   foods: [
     { id: "chicken", name: "Pollo" },
@@ -140,6 +146,7 @@ describe("PlanViewer", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.clear();
     mockUseAuth.mockReturnValue({
       profile: createMockProfile({ has_active_subscription: true }),
     });
@@ -275,8 +282,18 @@ describe("PlanViewer", () => {
       await user.click(screen.getByText("Rutina Semanal"));
 
       expect(screen.getByText("Press de Banca")).toBeInTheDocument();
-      expect(screen.getByText("4 series")).toBeInTheDocument();
-      expect(screen.getByText("8-10 reps")).toBeInTheDocument();
+      expect(screen.getByText("4×")).toBeInTheDocument();
+      expect(screen.getAllByText("series").length).toBeGreaterThan(0);
+      expect(screen.getByText("8-10")).toBeInTheDocument();
+    });
+
+    it("should show real tips but hide the generic default note", async () => {
+      render(<PlanViewer plan={createMockPlan()} />);
+
+      await user.click(screen.getByText("Rutina Semanal"));
+
+      expect(screen.getByText("Tip: Controlar el movimiento")).toBeInTheDocument();
+      expect(screen.queryByText(/Ejecuta con buena tecnica/)).not.toBeInTheDocument();
     });
 
     it("should show rest day content", async () => {
@@ -358,6 +375,51 @@ describe("PlanViewer", () => {
 
       // Streak section shows best streak
       expect(screen.getByText("Mejor racha")).toBeInTheDocument();
+    });
+  });
+
+  describe("Modo Gimnasio", () => {
+    beforeEach(() => {
+      window.localStorage.removeItem("jcv-gym-mode");
+    });
+
+    it("should toggle gym mode, persist it, and restore it on a fresh mount", async () => {
+      const { unmount } = render(<PlanViewer plan={createMockPlan()} initialTab="rutina" />);
+
+      const toggle = screen.getByRole("button", { name: /Modo Gimnasio/ });
+      expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+      await user.click(toggle);
+
+      expect(toggle).toHaveAttribute("aria-pressed", "true");
+      expect(window.localStorage.getItem("jcv-gym-mode")).toBe("1");
+
+      unmount();
+
+      // Fresh mount restores the persisted preference
+      render(<PlanViewer plan={createMockPlan()} initialTab="rutina" />);
+      expect(screen.getByRole("button", { name: /Modo Gimnasio/ })).toHaveAttribute(
+        "aria-pressed",
+        "true"
+      );
+      window.localStorage.removeItem("jcv-gym-mode");
+    });
+
+    it("should show giant numerals and hide tips in gym mode", async () => {
+      render(<PlanViewer plan={createMockPlan()} initialTab="rutina" />);
+
+      // Normal mode shows the tip and the compact chips
+      expect(screen.getByText("Tip: Controlar el movimiento")).toBeInTheDocument();
+
+      await user.click(screen.getByRole("button", { name: /Modo Gimnasio/ }));
+
+      // One-thumb layout: giant Bebas numerals with uppercase labels
+      expect(screen.getAllByText("Series").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("Reps").length).toBeGreaterThan(0);
+      // Simplified chrome: tips and muscle chips hidden
+      expect(screen.queryByText("Tip: Controlar el movimiento")).not.toBeInTheDocument();
+      expect(screen.queryByText("Pecho")).not.toBeInTheDocument();
+      window.localStorage.removeItem("jcv-gym-mode");
     });
   });
 

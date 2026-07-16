@@ -8,3 +8,5 @@ export { HowItWorks } from "./HowItWorks";
 export { SocialProof } from "./SocialProof";
 export { FAQ } from "./FAQ";
 export { PDFShowcase } from "./PDFShowcase";
+export { StickyCTABar } from "./StickyCTABar";
+export { WhatsAppIcon } from "./WhatsAppIcon";

@@ -35,24 +35,24 @@ describe("WizardProgress", () => {
   });
 
   describe("step states", () => {
-    it("should show active step with white background", () => {
+    it("should show active step with filled cyan background", () => {
       const { container } = render(<WizardProgress currentStep={3} totalSteps={8} />);
 
-      // Step 3 should have white bg (active)
+      // Step 3 should have filled cyan bg (active)
       const circles = container.querySelectorAll(".w-10.h-10.rounded-full");
       const activeCircle = circles[2]; // 0-indexed
-      expect(activeCircle.className).toContain("bg-white");
+      expect(activeCircle.className).toContain("bg-accent-cyan text-black");
     });
 
-    it("should show completed steps with amber background", () => {
+    it("should show completed steps with cyan-tinted background", () => {
       const { container } = render(<WizardProgress currentStep={4} totalSteps={8} />);
 
-      // Steps 1, 2, 3 should have amber bg (completed)
+      // Steps 1, 2, 3 should have cyan-tinted bg (completed)
       const circles = container.querySelectorAll(".w-10.h-10.rounded-full");
 
-      expect(circles[0].className).toContain("bg-amber-500");
-      expect(circles[1].className).toContain("bg-amber-500");
-      expect(circles[2].className).toContain("bg-amber-500");
+      expect(circles[0].className).toContain("bg-accent-cyan/25");
+      expect(circles[1].className).toContain("bg-accent-cyan/25");
+      expect(circles[2].className).toContain("bg-accent-cyan/25");
     });
 
     it("should show pending steps with gray background", () => {
@@ -106,15 +106,15 @@ describe("WizardProgress", () => {
       expect(connectors).toHaveLength(7);
     });
 
-    it("should color completed connectors with amber", () => {
+    it("should color completed connectors with cyan", () => {
       const { container } = render(<WizardProgress currentStep={4} totalSteps={8} />);
 
       const connectors = container.querySelectorAll(".flex-1.h-1.mx-2");
 
-      // First 3 connectors should be amber (between completed steps)
-      expect(connectors[0].className).toContain("bg-amber-500");
-      expect(connectors[1].className).toContain("bg-amber-500");
-      expect(connectors[2].className).toContain("bg-amber-500");
+      // First 3 connectors should be cyan (between completed steps)
+      expect(connectors[0].className).toContain("bg-accent-cyan");
+      expect(connectors[1].className).toContain("bg-accent-cyan");
+      expect(connectors[2].className).toContain("bg-accent-cyan");
     });
 
     it("should color pending connectors with gray", () => {
@@ -134,8 +134,8 @@ describe("WizardProgress", () => {
 
       const circles = container.querySelectorAll(".w-10.h-10.rounded-full");
 
-      // First step active (white)
-      expect(circles[0].className).toContain("bg-white");
+      // First step active (filled cyan)
+      expect(circles[0].className).toContain("bg-accent-cyan text-black");
       // All others pending (gray)
       expect(circles[1].className).toContain("bg-gray-700");
     });
@@ -145,13 +145,13 @@ describe("WizardProgress", () => {
 
       const circles = container.querySelectorAll(".w-10.h-10.rounded-full");
 
-      // All steps 1-7 completed (amber)
+      // All steps 1-7 completed (cyan-tinted)
       for (let i = 0; i < 7; i++) {
-        expect(circles[i].className).toContain("bg-amber-500");
+        expect(circles[i].className).toContain("bg-accent-cyan/25");
       }
 
-      // Last step active (white)
-      expect(circles[7].className).toContain("bg-white");
+      // Last step active (filled cyan)
+      expect(circles[7].className).toContain("bg-accent-cyan text-black");
     });
   });
 });

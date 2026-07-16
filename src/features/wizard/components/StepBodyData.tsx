@@ -213,7 +213,7 @@ export function StepBodyData() {
       </div>
 
       {calories && calories.bmr > 0 && (
-        <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-blue/10 rounded-xl p-6 border border-accent-cyan/30">
+        <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
           <h3 className="text-lg font-bold text-white mb-4 text-center">
             Tu estimación de calorías diarias
           </h3>

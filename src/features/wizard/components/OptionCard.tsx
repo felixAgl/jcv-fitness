@@ -9,6 +9,7 @@ interface OptionCardProps {
   emoji?: string;
   isSelected: boolean;
   onClick: () => void;
+  /** Kept for API compatibility — selection styling is always cyan. */
   color?: string;
   size?: "sm" | "md" | "lg";
 }
@@ -20,29 +21,19 @@ export function OptionCard({
   emoji,
   isSelected,
   onClick,
-  color = "cyan",
   size = "md",
 }: OptionCardProps) {
-  const selectedColorClasses = {
-    cyan: "border-accent-cyan bg-accent-cyan/30 ring-2 ring-accent-cyan shadow-lg shadow-accent-cyan/20",
-    red: "border-accent-red bg-accent-red/30 ring-2 ring-accent-red shadow-lg shadow-accent-red/20",
-    green: "border-accent-green bg-accent-green/30 ring-2 ring-accent-green shadow-lg shadow-accent-green/20",
-    blue: "border-accent-blue bg-accent-blue/30 ring-2 ring-accent-blue shadow-lg shadow-accent-blue/20",
-    yellow: "border-yellow-500 bg-yellow-500/30 ring-2 ring-yellow-500 shadow-lg shadow-yellow-500/20",
-    purple: "border-purple-500 bg-purple-500/30 ring-2 ring-purple-500 shadow-lg shadow-purple-500/20",
-    orange: "border-orange-500 bg-orange-500/30 ring-2 ring-orange-500 shadow-lg shadow-orange-500/20",
-    pink: "border-pink-500 bg-pink-500/30 ring-2 ring-pink-500 shadow-lg shadow-pink-500/20",
-  };
+  const selectedClasses =
+    "border-accent-cyan bg-accent-cyan/30 ring-2 ring-accent-cyan shadow-lg shadow-accent-cyan/30 glow-cyan-soft";
 
-  const unselectedClasses = "border-gray-600 bg-gray-900/80 hover:border-gray-500 hover:bg-gray-800/60";
+  const unselectedClasses =
+    "border-gray-600 bg-gray-900/80 hover:border-accent-cyan/40 hover:bg-gray-800/60";
 
   const sizeClasses = {
     sm: "p-3",
     md: "p-4",
     lg: "p-6",
   };
-
-  const colorKey = color as keyof typeof selectedColorClasses;
 
   return (
     <button
@@ -52,21 +43,12 @@ export function OptionCard({
         "relative w-full rounded-xl border-2 transition-all duration-300 text-left",
         "hover:scale-[1.02] active:scale-[0.98]",
         sizeClasses[size],
-        isSelected
-          ? selectedColorClasses[colorKey] || selectedColorClasses.cyan
-          : unselectedClasses
+        isSelected ? selectedClasses : unselectedClasses
       )}
     >
       {isSelected && (
         <div className="absolute top-2 right-2">
-          <div className={cn(
-            "w-6 h-6 rounded-full flex items-center justify-center",
-            color === "cyan" && "bg-accent-cyan",
-            color === "red" && "bg-accent-red",
-            color === "green" && "bg-accent-green",
-            color === "blue" && "bg-accent-blue",
-            !["cyan", "red", "green", "blue"].includes(color) && "bg-accent-cyan"
-          )}>
+          <div className="w-6 h-6 rounded-full flex items-center justify-center bg-accent-cyan">
             <svg className="w-4 h-4 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>

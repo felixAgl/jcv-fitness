@@ -76,7 +76,7 @@ export function HeroSection() {
 
           <div className="relative order-1 lg:order-2 hidden md:block">
             <div className="relative aspect-[3/4] max-w-md mx-auto">
-              <div className="absolute inset-0 bg-gradient-to-br from-accent-cyan/30 to-accent-red/30 rounded-3xl blur-3xl" />
+              <div className="absolute inset-0 bg-gradient-to-br from-accent-cyan/30 to-blue-500/30 rounded-3xl blur-3xl" />
               <div className="relative w-full h-full rounded-3xl overflow-hidden border-2 border-accent-cyan/20 shadow-2xl">
                 <Image
                   src={heroImage.url}
@@ -89,7 +89,7 @@ export function HeroSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
               </div>
-              <div className="absolute -top-4 -right-4 bg-accent-red text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse">
+              <div className="absolute -top-4 -right-4 bg-accent-cyan text-black px-4 py-2 rounded-full font-bold text-sm shadow-lg animate-pulse">
                 RESULTADOS REALES
               </div>
               <div className="absolute -bottom-4 -left-4 bg-accent-cyan text-black px-4 py-2 rounded-full font-bold text-sm shadow-lg">

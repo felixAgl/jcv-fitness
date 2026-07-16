@@ -7,6 +7,7 @@ import { ProtectedRoute, useAuth } from "@/features/auth";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, CardHeader, CardTitle, CardContent } from "@/shared/components/ui";
 import { JCVLogoMini } from "@/shared/components/JCVLogo";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 export default function SettingsPage() {
   const { user, profile, refreshSession } = useAuth();
@@ -216,7 +217,7 @@ export default function SettingsPage() {
                   Para eliminar tu cuenta o cancelar tu suscripción, contacta con soporte.
                 </p>
                 <a
-                  href="https://wa.me/573143826430?text=Hola,%20necesito%20ayuda%20con%20mi%20cuenta%20de%20JCV%20Fitness"
+                  href={buildWhatsAppUrl("Hola, necesito ayuda con mi cuenta de JCV Fitness")}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-red-400 hover:text-red-300 transition-colors"

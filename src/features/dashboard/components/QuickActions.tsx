@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSubscription } from "@/features/subscription";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 export function QuickActions() {
   const { hasActiveSubscription } = useSubscription();
@@ -58,7 +59,7 @@ export function QuickActions() {
     {
       title: "Contactar Soporte",
       description: "Habla con un asesor",
-      href: "https://wa.me/573001234567",
+      href: buildWhatsAppUrl("Hola, necesito ayuda con mi cuenta de JCV Fitness"),
       icon: (
         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -77,19 +78,19 @@ export function QuickActions() {
       hover: "hover:border-accent-cyan/50",
     },
     purple: {
-      bg: "bg-purple-500/10",
-      text: "text-purple-400",
-      hover: "hover:border-purple-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-accent-cyan/40",
     },
     green: {
-      bg: "bg-green-500/10",
-      text: "text-green-400",
-      hover: "hover:border-green-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-accent-cyan/40",
     },
     orange: {
-      bg: "bg-orange-500/10",
-      text: "text-orange-400",
-      hover: "hover:border-orange-500/50",
+      bg: "bg-white/5",
+      text: "text-slate-300",
+      hover: "hover:border-accent-cyan/40",
     },
   };
 
@@ -101,8 +102,8 @@ export function QuickActions() {
 
         const content = (
           <div
-            className={`bg-gray-900 rounded-xl border border-gray-800 p-4 transition-all ${
-              isDisabled ? "opacity-50 cursor-not-allowed" : colors.hover
+            className={`bg-card rounded-xl border border-gray-800 p-4 ${
+              isDisabled ? "opacity-50 cursor-not-allowed transition-all" : `hover-lift ${colors.hover}`
             }`}
           >
             <div className="flex items-start gap-4">

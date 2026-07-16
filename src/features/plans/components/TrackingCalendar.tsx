@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { progressService, initializePlanProgress } from "../services/progress-service";
+import { computeStreak } from "../services/streak";
+import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
+import { ProgressPhotosSection } from "./ProgressPhotosSection";
 import type { PlanProgress, DayProgress, PlanDataWithProgress } from "../types";
 import type { WorkoutDay } from "@/features/wizard/types";
 
@@ -11,11 +14,42 @@ interface TrackingCalendarProps {
   workoutPlan: WorkoutDay[];
   planStartDate: Date;
   daysRemaining: number;
+  /** When present, progress photos (guided moments + compare + share) render. */
+  userId?: string;
   onProgressUpdate?: (progress: PlanProgress) => void;
 }
 
 const DAYS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const DAYS_FULL = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+
+/** Completed-workout counts that earn a full-width milestone moment. */
+const MILESTONE_LABELS: Record<number, string> = {
+  7: "7 DIAS",
+  20: "20 DIAS",
+  40: "MITAD DEL CAMINO",
+};
+
+/** How long the ring + burst celebration stays on a day cell. */
+const CELEBRATION_MS = 1600;
+/** Milestone overlay auto-dismiss. */
+const MILESTONE_MS = 2500;
+
+/** 10 CSS particle offsets, evenly spread around the cell center. */
+const PARTICLE_OFFSETS = Array.from({ length: 10 }, (_, i) => {
+  const angle = (i / 10) * Math.PI * 2;
+  return {
+    x: `${Math.round(Math.cos(angle) * 26)}px`,
+    y: `${Math.round(Math.sin(angle) * 26)}px`,
+  };
+});
+
+function findDayProgress(progress: PlanProgress, date: string): DayProgress | undefined {
+  for (const week of progress.weeks) {
+    const day = week.days[date];
+    if (day) return day;
+  }
+  return undefined;
+}
 
 function getDurationWeeks(duration: string | null): number {
   const durationMap: Record<string, number> = {
@@ -37,12 +71,30 @@ export function TrackingCalendar({
   workoutPlan,
   planStartDate,
   daysRemaining,
+  userId,
   onProgressUpdate,
 }: TrackingCalendarProps) {
   const [progress, setProgress] = useState<PlanProgress | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [updatingDate, setUpdatingDate] = useState<string | null>(null);
+  // Ring-close celebration on the day cell + milestone overlay (#9)
+  const [celebratingDate, setCelebratingDate] = useState<string | null>(null);
+  const [milestone, setMilestone] = useState<number | null>(null);
+  const celebrationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-dismiss the milestone overlay (also dismissible by tap).
+  useEffect(() => {
+    if (milestone === null) return;
+    const timer = setTimeout(() => setMilestone(null), MILESTONE_MS);
+    return () => clearTimeout(timer);
+  }, [milestone]);
+
+  useEffect(() => {
+    return () => {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+    };
+  }, []);
 
   const today = useMemo(() => new Date().toISOString().split("T")[0], []);
 
@@ -93,17 +145,48 @@ export function TrackingCalendar({
   const handleToggleWorkout = async (date: string) => {
     if (updatingDate || isRestDay(date)) return;
 
+    const wasCompleted = progress ? findDayProgress(progress, date)?.workoutCompleted ?? false : false;
+
     setUpdatingDate(date);
     try {
       const updatedProgress = await progressService.toggleWorkoutCompleted(planId, date);
       if (updatedProgress) {
         setProgress(updatedProgress);
         onProgressUpdate?.(updatedProgress);
+
+        const nowCompleted = findDayProgress(updatedProgress, date)?.workoutCompleted ?? false;
+        if (nowCompleted && !wasCompleted) {
+          celebrateCompletion(date, updatedProgress.stats.totalWorkoutsCompleted);
+        }
       }
     } catch (error) {
       console.error("[TrackingCalendar] Error toggling workout:", error);
     } finally {
       setUpdatingDate(null);
+    }
+  };
+
+  /**
+   * Day marked complete: draw a cyan ring around the cell, burst particles and
+   * pop the day number; haptic tick on supported devices. At 7/20/40 completed
+   * workouts, a full-width milestone moment. Reduced motion keeps only the
+   * existing color change (and a static milestone overlay).
+   */
+  const celebrateCompletion = (date: string, totalCompleted: number) => {
+    const reduced = prefersReducedMotion();
+
+    if (!reduced && typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(50);
+    }
+
+    if (!reduced) {
+      if (celebrationTimer.current) clearTimeout(celebrationTimer.current);
+      setCelebratingDate(date);
+      celebrationTimer.current = setTimeout(() => setCelebratingDate(null), CELEBRATION_MS);
+    }
+
+    if (MILESTONE_LABELS[totalCompleted]) {
+      setMilestone(totalCompleted);
     }
   };
 
@@ -126,6 +209,51 @@ export function TrackingCalendar({
 
   const isFutureDate = (dateStr: string): boolean => dateStr > today;
   const isToday = (dateStr: string): boolean => dateStr === today;
+
+  // Racha 40: streak with rest days as automatic streak days and ONE freeze
+  // ("congelador") per plan. Passive display only — milestones stay untouched.
+  const streakInfo = useMemo(() => {
+    if (!progress) return null;
+    const completedDates: string[] = [];
+    for (const week of progress.weeks) {
+      for (const day of Object.values(week.days)) {
+        if (day.workoutCompleted) completedDates.push(day.date);
+      }
+    }
+    const startDate = progress.weeks[0]?.startDate ?? today;
+    return computeStreak(completedDates, {
+      isRestDay,
+      today,
+      startDate,
+      freezeUsedOn: progress.streakFreeze?.used ? progress.streakFreeze.usedOn : null,
+    });
+  }, [progress, isRestDay, today]);
+
+  // Persist freeze consumption once and show the one-time notice.
+  const [freezeNotice, setFreezeNotice] = useState(false);
+  const freezePersistRef = useRef(false);
+  useEffect(() => {
+    if (
+      !streakInfo?.freezeConsumedOn ||
+      progress?.streakFreeze?.used ||
+      freezePersistRef.current
+    ) {
+      return;
+    }
+    freezePersistRef.current = true;
+    setFreezeNotice(true);
+    progressService
+      .consumeStreakFreeze(planId, streakInfo.freezeConsumedOn)
+      .then((updated) => {
+        if (updated) setProgress(updated);
+      })
+      .catch((error) => {
+        console.error("[TrackingCalendar] Error persisting streak freeze:", error);
+      });
+  }, [streakInfo, progress, planId]);
+
+  const streak = streakInfo?.streak ?? 0;
+  const freezeAvailable = streakInfo?.freezeAvailable ?? true;
 
   // Get all days flat for the grid
   const allDays = useMemo(() => {
@@ -171,33 +299,59 @@ export function TrackingCalendar({
 
   return (
     <div className="space-y-6">
-      {/* Streak Hero Section */}
-      <div className="bg-gradient-to-br from-orange-500/20 via-red-500/10 to-yellow-500/20 rounded-2xl p-6 border border-orange-500/30">
+      {/* Milestone moment: full-width overlay, auto-dismiss or tap */}
+      {milestone !== null && (
+        <button
+          type="button"
+          onClick={() => setMilestone(null)}
+          data-testid="milestone-overlay"
+          aria-label="Cerrar celebracion"
+          className="milestone-overlay fixed inset-0 z-[90] flex flex-col items-center justify-center gap-3 bg-black/85 backdrop-blur-sm cursor-pointer"
+        >
+          <span className="milestone-text font-display text-6xl sm:text-8xl tracking-widest text-accent-cyan px-6 text-center leading-none">
+            {MILESTONE_LABELS[milestone]}
+          </span>
+          <span className="milestone-text text-gray-300 text-sm uppercase tracking-[0.3em]">
+            {milestone === 40 ? "40 entrenos completados" : "Sigue asi"}
+          </span>
+        </button>
+      )}
+
+      {/* Racha 40 Hero Section (rest days count; ONE congelador per plan) */}
+      <div
+        data-testid="streak-hero"
+        className={`bg-gradient-to-br from-orange-500/20 via-red-500/10 to-yellow-500/20 rounded-2xl p-6 border border-orange-500/30 ${
+          streak >= 7 ? "glow-cyan-soft" : ""
+        }`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="text-6xl">
-                {progress.stats.currentStreak > 0 ? "🔥" : "💪"}
+                {streak > 0 ? "🔥" : "💪"}
               </div>
-              {progress.stats.currentStreak >= 7 && (
+              {streak >= 7 && (
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center text-xs">
                   ⭐
                 </div>
               )}
             </div>
             <div>
-              <div className="text-4xl font-black text-white">
-                {progress.stats.currentStreak}
-                <span className="text-lg font-normal text-gray-400 ml-2">
-                  {progress.stats.currentStreak === 1 ? "dia" : "dias"}
-                </span>
+              <div className="font-display text-4xl sm:text-5xl tracking-wide text-white leading-none">
+                RACHA: {streak} {streak === 1 ? "DIA" : "DIAS"}
               </div>
-              <p className="text-orange-300 font-medium">
-                {progress.stats.currentStreak === 0
+              <p className="text-orange-300 font-medium mt-1">
+                {streak === 0
                   ? "Empieza tu racha hoy!"
-                  : progress.stats.currentStreak >= 7
+                  : streak >= 7
                     ? "Racha increible! Sigue asi!"
                     : "Vas muy bien! No pares!"}
+              </p>
+              <p
+                data-testid="freeze-indicator"
+                className={`text-xs mt-1 ${freezeAvailable ? "text-accent-cyan" : "text-gray-500"}`}
+              >
+                {freezeAvailable ? "🧊 1 congelador disponible" : "🧊 Congelador usado"}
               </p>
             </div>
           </div>
@@ -208,7 +362,32 @@ export function TrackingCalendar({
             </div>
           </div>
         </div>
+
+        {/* One-time notice when the congelador just saved the streak */}
+        {freezeNotice && (
+          <div
+            data-testid="freeze-notice"
+            className="mt-4 flex items-center justify-between gap-3 bg-accent-cyan/10 border border-accent-cyan/40 rounded-xl px-4 py-3"
+          >
+            <p className="text-sm text-accent-cyan">
+              Tu congelador salvo la racha: un dia sin entrenar no la rompio. Era el unico del plan!
+            </p>
+            <button
+              type="button"
+              onClick={() => setFreezeNotice(false)}
+              aria-label="Cerrar aviso de congelador"
+              className="text-accent-cyan/70 hover:text-accent-cyan text-lg leading-none"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Progress photos: guided moments (dia 1/20/40), compare + share (#11) */}
+      {userId && (
+        <ProgressPhotosSection planStartDate={planStartDate} userId={userId} />
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-3">
@@ -219,7 +398,7 @@ export function TrackingCalendar({
           <div className="text-xs text-gray-500">Entrenos</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-4 text-center border border-gray-700">
-          <div className="text-2xl font-bold text-purple-400">
+          <div className="text-2xl font-bold text-accent-cyan">
             {progress.stats.completionRate}%
           </div>
           <div className="text-xs text-gray-500">Completado</div>
@@ -231,7 +410,7 @@ export function TrackingCalendar({
           <div className="text-xs text-gray-500">Semana</div>
         </div>
         <div className="bg-gray-800/50 rounded-xl p-4 text-center border border-gray-700">
-          <div className="text-2xl font-bold text-blue-400">
+          <div className="text-2xl font-bold text-white">
             {daysRemaining}
           </div>
           <div className="text-xs text-gray-500">Restantes</div>
@@ -260,6 +439,7 @@ export function TrackingCalendar({
               const future = isFutureDate(day.date);
               const todayClass = isToday(day.date);
               const isSelected = selectedDate === day.date;
+              const isCelebrating = celebratingDate === day.date;
               const dayNum = new Date(day.date + "T12:00:00").getDate();
 
               // Determine cell style
@@ -312,6 +492,39 @@ export function TrackingCalendar({
                   {/* Meals indicator */}
                   {day.mealsTracked && !restDay && (
                     <span className="absolute bottom-1 right-1 w-2 h-2 bg-orange-400 rounded-full" />
+                  )}
+
+                  {/* Ring-close celebration: ring draws shut, particles burst, day number pops */}
+                  {isCelebrating && (
+                    <span
+                      className="pointer-events-none absolute inset-0 z-10"
+                      data-testid="day-celebration"
+                      aria-hidden="true"
+                    >
+                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 40 40" fill="none">
+                        <circle
+                          cx="20"
+                          cy="20"
+                          r="17"
+                          stroke="var(--accent-cyan)"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          pathLength={100}
+                          className="celebrate-ring"
+                          transform="rotate(-90 20 20)"
+                        />
+                      </svg>
+                      {PARTICLE_OFFSETS.map((offset, i) => (
+                        <span
+                          key={i}
+                          className="celebrate-particle"
+                          style={{ "--burst-x": offset.x, "--burst-y": offset.y } as React.CSSProperties}
+                        />
+                      ))}
+                      <span className="celebrate-pop absolute inset-0 flex items-center justify-center font-display text-xl tracking-wide text-accent-cyan">
+                        {dayNum}
+                      </span>
+                    </span>
                   )}
                 </button>
               );

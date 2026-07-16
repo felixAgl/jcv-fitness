@@ -57,7 +57,7 @@ export function AboutSection() {
                 </div>
               </div>
             </div>
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-accent-red/20 rounded-full blur-3xl" />
+            <div className="absolute -top-4 -right-4 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl" />
             <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-accent-cyan/20 rounded-full blur-3xl" />
           </div>
 
@@ -71,15 +71,15 @@ export function AboutSection() {
             </p>
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-accent-green" />
+                <div className="w-2 h-2 rounded-full bg-accent-success" />
                 <span className="text-foreground/80">Más de 500 clientes transformados</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-accent-green" />
+                <div className="w-2 h-2 rounded-full bg-accent-success" />
                 <span className="text-foreground/80">Metodología basada en ciencia</span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-accent-green" />
+                <div className="w-2 h-2 rounded-full bg-accent-success" />
                 <span className="text-foreground/80">Acompañamiento personalizado</span>
               </div>
             </div>

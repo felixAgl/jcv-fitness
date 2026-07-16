@@ -1,0 +1,10 @@
+# jcv-analytics — first-party RUM + funnel beacon worker.
+# Separate from mercadopago-jcv (wrangler.toml). Deploy with:
+#   npx wrangler deploy -c wrangler-analytics.toml
+name = "jcv-analytics"
+main = "analytics-worker.js"
+compatibility_date = "2025-01-01"
+
+[[analytics_engine_datasets]]
+binding = "FUNNEL"
+dataset = "jcv_funnel"

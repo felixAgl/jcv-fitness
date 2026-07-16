@@ -9,6 +9,8 @@ import { foods, FOOD_TRANSLATIONS, type FoodCategory } from "../data/foods";
 import { TRANSLATIONS } from "../types";
 import { useAuth, AuthModal } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
+import { track } from "@/features/shared/analytics/track";
+import { PlanForge } from "./PlanForge";
 
 interface SummarySectionProps {
   title: string;
@@ -36,6 +38,8 @@ export function StepSummary() {
   const [isSaving, setIsSaving] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Plan created: show the forging sequence before navigating to the viewer.
+  const [forging, setForging] = useState(false);
 
   const state = useWizardStore();
   const {
@@ -58,6 +62,19 @@ export function StepSummary() {
   );
 
   const calories = calculateCalories();
+
+  // Bebas-stamped lines for the forge sequence: uppercase, sin acentos.
+  const stamp = (value: string) =>
+    value.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const forgeLines = [
+    level ? `NIVEL: ${stamp(TRANSLATIONS.levels[level])}` : null,
+    goal ? `OBJETIVO: ${stamp(TRANSLATIONS.goals[goal])}` : null,
+    `${time} MIN / SESION`,
+    duration ? `DURACION: ${stamp(TRANSLATIONS.durations[duration])}` : null,
+    equipment.length > 0
+      ? `EQUIPO: ${stamp(equipment.map((e) => TRANSLATIONS.equipment[e]).join(" + "))}`
+      : null,
+  ].filter((line): line is string => line !== null);
 
   const groupedExercises = selectedExercisesList.reduce((acc, exercise) => {
     if (!acc[exercise.category]) {
@@ -100,8 +117,10 @@ export function StepSummary() {
       const result = await createPlan(planData, "free");
 
       if (result.success) {
-        // Redirect to plan viewer
-        router.push("/plan/view");
+        track("wizard_complete");
+        // Forge sequence first; it redirects to the plan viewer when it ends
+        // (or immediately under prefers-reduced-motion / "saltar").
+        setForging(true);
       } else {
         setError(result.error || "Error al guardar el plan");
       }
@@ -204,7 +223,7 @@ export function StepSummary() {
         </p>
       </div>
 
-      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
         <label htmlFor="userName" className="block text-sm font-medium text-gray-300 mb-2">
           Tu nombre (para personalizar el plan)
         </label>
@@ -290,8 +309,8 @@ export function StepSummary() {
                   <div className="text-xs text-gray-400">TDEE</div>
                 </div>
                 <div>
-                  <div className="text-xl font-bold text-accent-green">{calories.target}</div>
-                  <div className="text-xs text-accent-green">Objetivo</div>
+                  <div className="text-xl font-bold text-accent-success">{calories.target}</div>
+                  <div className="text-xs text-accent-success">Objetivo</div>
                 </div>
               </div>
             </div>
@@ -331,7 +350,7 @@ export function StepSummary() {
       </div>
 
       <div className="bg-gray-900/50 rounded-xl p-6 border border-gray-800">
-        <h3 className="text-lg font-bold text-accent-green mb-4">
+        <h3 className="text-lg font-bold text-accent-success mb-4">
           Alimentos seleccionados ({selectedFoods.length})
         </h3>
         {Object.entries(groupedFoods).length > 0 ? (
@@ -361,7 +380,7 @@ export function StepSummary() {
         )}
       </div>
 
-      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+      <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
         <div className="text-center">
           <p className="text-gray-300 mb-2">
             Tu plan estara disponible por <span className="text-accent-cyan font-bold">5 semanas</span> de forma gratuita.
@@ -391,7 +410,7 @@ export function StepSummary() {
           type="button"
           onClick={handleFinalize}
           disabled={isSaving || (isAuthenticated && isPlanLoading)}
-          className="px-8 py-3 rounded-lg font-bold bg-accent-green text-black hover:shadow-lg hover:shadow-accent-green/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-3 rounded-lg font-bold bg-accent-success text-black hover:shadow-lg hover:shadow-accent-success/50 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isSaving ? (
             <>
@@ -416,6 +435,14 @@ export function StepSummary() {
         onSuccess={handleAuthSuccess}
         showStepIndicator={false}
       />
+
+      {forging && (
+        <PlanForge
+          lines={forgeLines}
+          planName={userName ? `PLAN DE ${userName.toUpperCase()}` : "TU PLAN PERSONALIZADO"}
+          onDone={() => router.push("/plan/view")}
+        />
+      )}
     </div>
   );
 }

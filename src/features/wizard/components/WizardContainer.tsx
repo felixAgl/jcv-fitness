@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { track } from "@/features/shared/analytics/track";
 import { useWizardStore } from "../store/wizard-store";
 import { WizardProgress } from "./WizardProgress";
 import { StepLevel } from "./StepLevel";
@@ -17,6 +19,17 @@ const TOTAL_STEPS = 9;
 
 export function WizardContainer() {
   const { currentStep } = useWizardStore();
+  // Anonymous funnel events: wizard_start once per mount, wizard_step on change.
+  const prevStepRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (prevStepRef.current === null) {
+      track("wizard_start");
+    } else if (currentStep !== prevStepRef.current) {
+      track("wizard_step", currentStep);
+    }
+    prevStepRef.current = currentStep;
+  }, [currentStep]);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -44,8 +57,9 @@ export function WizardContainer() {
   };
 
   return (
-    <div className="min-h-screen bg-black py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="relative min-h-screen bg-black py-8 px-4 overflow-hidden">
+      <div className="bg-pattern" aria-hidden />
+      <div className="relative z-10 max-w-4xl mx-auto">
         <Link href="/" className="block text-center mb-8 hover:opacity-80 transition-opacity cursor-pointer">
           <h1 className="text-3xl md:text-4xl font-black">
             <span className="text-accent-cyan">JCV</span>{" "}
@@ -56,7 +70,7 @@ export function WizardContainer() {
 
         <WizardProgress currentStep={currentStep} totalSteps={TOTAL_STEPS} />
 
-        <div className="mt-8 bg-gray-950/50 rounded-2xl border border-gray-800 p-6 md:p-8">
+        <div className="mt-8 bg-card/70 backdrop-blur-sm rounded-2xl border border-border p-6 md:p-8">
           {renderStep()}
         </div>
       </div>

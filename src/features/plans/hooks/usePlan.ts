@@ -18,6 +18,46 @@ interface UsePlanState {
   error: string | null;
   canCreatePlan: boolean;
   canCreateReason?: "already_has_plan" | "free_used" | "not_authenticated";
+  /** True when the plan shown is a localStorage mirror (fetch failed). */
+  isOffline: boolean;
+}
+
+// Offline mirror of the last successfully fetched plan (PWA gym-basement
+// mode): lets /plan/view render from cache when Supabase is unreachable.
+const PLAN_CACHE_PREFIX = "jcv-plan-cache-";
+
+function savePlanMirror(userId: string, plan: ActivePlan | null) {
+  try {
+    const key = `${PLAN_CACHE_PREFIX}${userId}`;
+    if (plan) {
+      window.localStorage.setItem(key, JSON.stringify(plan));
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  } catch {
+    // Storage unavailable/full: offline fallback simply won't exist.
+  }
+}
+
+function readPlanMirror(userId: string): ActivePlan | null {
+  try {
+    const raw = window.localStorage.getItem(`${PLAN_CACHE_PREFIX}${userId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ActivePlan;
+    // Revive Dates (JSON serialized them as ISO strings) and recompute
+    // expiry locally so a stale mirror never shows wrong days remaining.
+    const expiresAt = new Date(parsed.expiresAt);
+    return {
+      ...parsed,
+      createdAt: new Date(parsed.createdAt),
+      updatedAt: new Date(parsed.updatedAt),
+      expiresAt,
+      isExpired: planService.isPlanExpired(expiresAt),
+      daysRemaining: planService.getDaysRemaining(expiresAt),
+    };
+  } catch {
+    return null;
+  }
 }
 
 interface UsePlanActions {
@@ -37,6 +77,7 @@ export function usePlan(): UsePlanState & UsePlanActions {
     error: null,
     canCreatePlan: false,
     canCreateReason: undefined,
+    isOffline: false,
   });
 
   const fetchPlan = useCallback(async () => {
@@ -47,44 +88,55 @@ export function usePlan(): UsePlanState & UsePlanActions {
         error: null,
         canCreatePlan: false,
         canCreateReason: "not_authenticated",
+        isOffline: false,
       });
       return;
     }
+    const userId = user.id;
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       // Fetch both plan and canCreate status in parallel
       const [planResult, canCreateResult] = await Promise.all([
-        planService.getActivePlan(user.id),
-        planService.canCreatePlan(user.id),
+        planService.getActivePlan(userId),
+        planService.canCreatePlan(userId),
       ]);
 
       if (planResult.error) {
+        // Fetch failed (offline gym, flaky data): serve the last mirror.
+        const mirrored = readPlanMirror(userId);
         setState({
-          plan: null,
+          plan: mirrored,
           isLoading: false,
-          error: planResult.error,
+          error: mirrored ? null : planResult.error,
           canCreatePlan: canCreateResult.canCreate,
           canCreateReason: canCreateResult.reason,
+          isOffline: mirrored !== null,
         });
         return;
       }
 
+      savePlanMirror(userId, planResult.plan);
       setState({
         plan: planResult.plan,
         isLoading: false,
         error: null,
         canCreatePlan: canCreateResult.canCreate,
         canCreateReason: canCreateResult.reason,
+        isOffline: false,
       });
     } catch (error) {
+      const mirrored = readPlanMirror(userId);
       setState({
-        plan: null,
+        plan: mirrored,
         isLoading: false,
-        error: error instanceof Error ? error.message : "Error desconocido",
+        error: mirrored
+          ? null
+          : error instanceof Error ? error.message : "Error desconocido",
         canCreatePlan: false,
         canCreateReason: undefined,
+        isOffline: mirrored !== null,
       });
     }
   }, [user?.id]);

@@ -1,15 +1,21 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Dumbbell, WifiOff } from "lucide-react";
 import { useAuth } from "@/features/auth";
+import { InstallPill } from "@/features/shared/pwa";
 import { exercises } from "@/features/wizard/data/exercises";
 import { foods } from "@/features/wizard/data/foods";
 import { TRANSLATIONS, type TrainingLevel, type TrainingGoal, type WorkoutDay, type MealPlanDay } from "@/features/wizard/types";
 import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
 import { generateMealPlan } from "@/features/wizard/data/meal-templates";
 import { TrackingCalendar } from "./TrackingCalendar";
+import { ExerciseMediaThumb } from "./ExerciseMediaThumb";
+import { ExerciseLogSection } from "./ExerciseLogSection";
+import { Phase2Card } from "./Phase2Card";
+import { useWorkoutLog } from "../hooks/useWorkoutLog";
 import type { UserPlan, PlanDataWithProgress } from "../types";
 
 type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
@@ -17,19 +23,101 @@ type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
 interface PlanViewerProps {
   plan: UserPlan & { isExpired: boolean; daysRemaining: number };
   initialTab?: TabType;
+  isPreview?: boolean;
+  /** Plan served from the localStorage mirror (no connection). */
+  isOffline?: boolean;
 }
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
-export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
+// Default filler note emitted by generateWorkoutPlan when an exercise has no
+// specific tip; hidden at render to avoid repeating it on every card.
+const GENERIC_EXERCISE_NOTE = "Ejecuta con buena tecnica";
+
+// Modo Gimnasio preference (rutina tab, one-thumb high-contrast layout).
+const GYM_MODE_STORAGE_KEY = "jcv-gym-mode";
+
+type WakeLockSentinelLike = { release: () => Promise<void> };
+type NavigatorWithWakeLock = Navigator & {
+  wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> };
+};
+
+export function PlanViewer({ plan, initialTab, isPreview = false, isOffline = false }: PlanViewerProps) {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab || "resumen");
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
   const [selectedMealDay, setSelectedMealDay] = useState(0);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [gymMode, setGymMode] = useState(false);
+
+  // Restore Modo Gimnasio preference (client only, static export safe).
+  useEffect(() => {
+    try {
+      setGymMode(window.localStorage.getItem(GYM_MODE_STORAGE_KEY) === "1");
+    } catch {
+      // Storage unavailable (private mode): default off.
+    }
+  }, []);
+
+  const toggleGymMode = () => {
+    setGymMode((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(GYM_MODE_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // Preference simply won't persist.
+      }
+      return next;
+    });
+  };
+
+  // Keep the screen awake while training in Modo Gimnasio. The browser
+  // releases the lock when the tab hides; re-acquire when it comes back.
+  useEffect(() => {
+    if (!gymMode || activeTab !== "rutina") return;
+    const nav = navigator as NavigatorWithWakeLock;
+    if (!nav.wakeLock) return;
+
+    let active = true;
+    let sentinel: WakeLockSentinelLike | null = null;
+
+    const acquire = async () => {
+      try {
+        const lock = await nav.wakeLock!.request("screen");
+        if (!active) {
+          lock.release().catch(() => {});
+          return;
+        }
+        sentinel = lock;
+      } catch {
+        // Unsupported, denied or low battery: degrade silently.
+      }
+    };
+
+    acquire();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      sentinel?.release().catch(() => {});
+    };
+  }, [gymMode, activeTab]);
 
   const planData = plan.planData;
   const hasSubscription = profile?.has_active_subscription ?? false;
+
+  // Workout logging (idea #10): optimistic per-set logging with PR detection.
+  // Disabled in preview mode (no real plan row to persist into).
+  const { log: workoutLog, logSet } = useWorkoutLog(
+    plan.id,
+    planData.workoutLog,
+    !isPreview
+  );
 
   // Generate workout plan based on user selections
   const workoutPlan: WorkoutDay[] = useMemo(() => {
@@ -42,10 +130,9 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
     );
   }, [planData.level, planData.goal, planData.selectedExercises, planData.time]);
 
-  // Generate meal plan based on calorie target
-  const mealPlan: MealPlanDay[] = useMemo(() => {
-    if (!planData.userBodyData) return [];
-    // Calculate target calories (simplified - in real app use the calculateCalories function)
+  // Calorie targets (simplified - in real app use the calculateCalories function)
+  const calories = useMemo(() => {
+    if (!planData.userBodyData) return null;
     const { currentWeight, targetWeight, height, age, gender, activityLevel } = planData.userBodyData;
 
     // Harris-Benedict BMR
@@ -70,8 +157,28 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
       targetCalories = tdee + 300; // Surplus for weight gain
     }
 
-    return generateMealPlan(targetCalories, planData.userBodyData.weightGoal, 7);
+    return { bmr: Math.round(bmr), tdee, target: targetCalories };
   }, [planData.userBodyData]);
+
+  // Generate meal plan based on calorie target
+  const mealPlan: MealPlanDay[] = useMemo(() => {
+    if (!planData.userBodyData || !calories) return [];
+    return generateMealPlan(calories.target, planData.userBodyData.weightGoal, 7);
+  }, [planData.userBodyData, calories]);
+
+  const handleDownloadPdf = async () => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      // Lazy import: keeps jspdf/qrcode out of the initial bundle
+      const { generateWorkoutPDF } = await import("@/features/wizard/utils/generate-pdf");
+      await generateWorkoutPDF({ state: planData, exercises, calories });
+    } catch (error) {
+      console.error("Error generando el PDF:", error);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   // Get exercise details by ID
   const getExerciseById = (exerciseId: string) => {
@@ -86,12 +193,15 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
     planData.selectedFoods.includes(food.id)
   );
 
-  const tabs: { id: TabType; label: string; icon: string }[] = [
+  const allTabs: { id: TabType; label: string; icon: string }[] = [
     { id: "resumen", label: "Resumen", icon: "📋" },
     { id: "rutina", label: "Rutina Semanal", icon: "💪" },
     { id: "alimentacion", label: "Plan Alimenticio", icon: "🥗" },
     { id: "calendario", label: "Calendario", icon: "📅" },
   ];
+
+  // Hide calendar tab in preview mode (requires Supabase for progress tracking)
+  const tabs = isPreview ? allTabs.filter((t) => t.id !== "calendario") : allTabs;
 
   // Current workout day details
   const currentWorkout = workoutPlan[selectedWorkoutDay];
@@ -103,32 +213,52 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <button
-              type="button"
-              onClick={() => router.back()}
-              className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Volver
-            </button>
+            {!isPreview && (
+              <button
+                type="button"
+                onClick={() => router.back()}
+                className="text-gray-500 hover:text-white text-sm mb-2 inline-flex items-center gap-1 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Volver
+              </button>
+            )}
             <h1 className="text-2xl md:text-3xl font-bold text-white">
-              {planData.userName ? `Plan de ${planData.userName}` : "Tu Plan de Entrenamiento"}
+              {isPreview
+                ? "Plan de Ejemplo - JCV Fitness"
+                : planData.userName ? `Plan de ${planData.userName}` : "Tu Plan de Entrenamiento"}
             </h1>
           </div>
-          {!plan.isExpired && (
+          {!isPreview && !plan.isExpired && (
             <div className="text-right">
               <div className="text-sm text-gray-500">Tiempo restante</div>
-              <div className="text-lg font-bold text-accent-cyan">
+              <div className="font-display text-2xl tracking-wide text-accent-cyan">
                 {plan.daysRemaining} dias
               </div>
             </div>
           )}
         </div>
 
+        {/* Offline banner: plan served from the localStorage mirror */}
+        {!isPreview && isOffline && (
+          <div className="bg-gray-800/80 border border-gray-600 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <WifiOff className="w-5 h-5 text-accent-cyan flex-shrink-0" aria-hidden="true" />
+            <div>
+              <span className="text-white font-semibold text-sm">Modo offline</span>
+              <p className="text-gray-400 text-xs">
+                Estas viendo tu plan guardado. El progreso se sincronizara cuando vuelva la conexion.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Install prompt: engaged users only (never on the landing) */}
+        {!isPreview && <InstallPill />}
+
         {/* Status Banner */}
-        {!plan.isExpired && plan.daysRemaining <= 7 && (
+        {!isPreview && !plan.isExpired && plan.daysRemaining <= 7 && (
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <svg className="w-6 h-6 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -145,6 +275,11 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
           </div>
         )}
 
+        {/* Fase 2 renewal preview: day 32+ (daysRemaining <= 8) or expired */}
+        {!isPreview && (plan.isExpired || plan.daysRemaining <= 8) && (
+          <Phase2Card planData={planData} />
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {tabs.map((tab) => (
@@ -154,7 +289,7 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
               onClick={() => setActiveTab(tab.id)}
               className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
                 activeTab === tab.id
-                  ? "bg-accent-cyan text-black"
+                  ? "bg-accent-cyan text-black glow-cyan-soft"
                   : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
               }`}
             >
@@ -210,19 +345,19 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                   <h2 className="text-lg font-bold text-accent-cyan mb-4">Datos Corporales</h2>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.currentWeight}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.currentWeight}</div>
                       <div className="text-gray-300 text-xs">kg actuales</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-accent-green">{planData.userBodyData.targetWeight}</div>
+                      <div className="font-display text-4xl tracking-wide text-accent-success">{planData.userBodyData.targetWeight}</div>
                       <div className="text-gray-300 text-xs">kg objetivo</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.height}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.height}</div>
                       <div className="text-gray-300 text-xs">cm altura</div>
                     </div>
                     <div className="bg-gray-800/50 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-white">{planData.userBodyData.age}</div>
+                      <div className="font-display text-4xl tracking-wide text-white">{planData.userBodyData.age}</div>
                       <div className="text-gray-300 text-xs">años</div>
                     </div>
                   </div>
@@ -231,23 +366,40 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
 
               {/* Quick Stats */}
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30">
-                  <div className="text-3xl font-bold text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
+                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-cyan">{workoutPlan.filter(d => !d.restDay).length}</div>
                   <div className="text-gray-400 text-sm">Dias de Entreno</div>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 rounded-xl p-6 border border-purple-500/30">
-                  <div className="text-3xl font-bold text-purple-400">{selectedExercises.length}</div>
+                <div className="bg-gradient-to-br from-accent-cyan/20 to-accent-cyan/5 rounded-xl p-6 border border-accent-cyan/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-cyan">{selectedExercises.length}</div>
                   <div className="text-gray-400 text-sm">Ejercicios</div>
                 </div>
-                <div className="bg-gradient-to-br from-accent-green/20 to-accent-green/5 rounded-xl p-6 border border-accent-green/30">
-                  <div className="text-3xl font-bold text-accent-green">{selectedFoods.length}</div>
+                <div className="bg-gradient-to-br from-accent-success/20 to-accent-success/5 rounded-xl p-6 border border-accent-success/30 hover-lift">
+                  <div className="font-display text-5xl tracking-wide text-accent-success">{selectedFoods.length}</div>
                   <div className="text-gray-400 text-sm">Alimentos</div>
                 </div>
               </div>
 
-              {/* Download CTA */}
-              {!plan.isExpired && (
-                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-6 border border-accent-cyan/30">
+              {/* Download CTA / Preview CTA */}
+              {isPreview ? (
+                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-1">Quieres tu plan personalizado?</h3>
+                      <p className="text-gray-400 text-sm">
+                        Genera el tuyo gratis en 2 minutos con nuestro wizard
+                      </p>
+                    </div>
+                    <Link
+                      href="/wizard"
+                      className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2"
+                    >
+                      Crear Mi Plan Gratis
+                    </Link>
+                  </div>
+                </div>
+              ) : !plan.isExpired && (
+                <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-6 border border-accent-cyan/30">
                   <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div>
                       <h3 className="text-lg font-bold text-white mb-1">Descarga tu plan en PDF</h3>
@@ -260,12 +412,25 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                     {hasSubscription ? (
                       <button
                         type="button"
-                        className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2"
+                        onClick={handleDownloadPdf}
+                        disabled={isGeneratingPdf}
+                        className="px-6 py-3 rounded-lg bg-accent-cyan text-black font-bold hover:shadow-lg hover:shadow-accent-cyan/50 transition-all flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Descargar PDF
+                        {isGeneratingPdf ? (
+                          <>
+                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Generando PDF...
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Descargar PDF
+                          </>
+                        )}
                       </button>
                     ) : (
                       <Link
@@ -284,6 +449,23 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
           {/* RUTINA TAB */}
           {activeTab === "rutina" && (
             <div className="space-y-6">
+              {/* Modo Gimnasio toggle */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={toggleGymMode}
+                  aria-pressed={gymMode}
+                  className={`min-h-14 inline-flex items-center gap-2 px-5 rounded-xl font-semibold text-sm transition-all ${
+                    gymMode
+                      ? "bg-accent-cyan text-black glow-cyan-soft"
+                      : "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700 hover:text-white"
+                  }`}
+                >
+                  <Dumbbell className="w-5 h-5" aria-hidden="true" />
+                  Modo Gimnasio
+                </button>
+              </div>
+
               {/* Day Selector */}
               <div className="flex gap-2 overflow-x-auto pb-2">
                 {workoutPlan.map((day, index) => (
@@ -291,16 +473,20 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                     key={index}
                     type="button"
                     onClick={() => setSelectedWorkoutDay(index)}
-                    className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
+                    className={`flex-shrink-0 rounded-lg font-medium transition-all ${
+                      gymMode ? "min-h-14 px-5 py-3 text-base" : "px-4 py-3 text-sm"
+                    } ${
                       selectedWorkoutDay === index
                         ? day.restDay
                           ? "bg-gray-600 text-white"
-                          : "bg-accent-cyan text-black"
-                        : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                          : "bg-accent-cyan text-black glow-cyan-soft"
+                        : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
                     }`}
                   >
                     <div className="text-xs opacity-70">{DAYS_OF_WEEK[index]}</div>
-                    <div className="font-semibold">{day.restDay ? "Descanso" : `Dia ${index + 1}`}</div>
+                    <div className={day.restDay ? "font-semibold" : `font-display tracking-wide ${gymMode ? "text-2xl" : "text-lg"}`}>
+                      {day.restDay ? "Descanso" : `Dia ${index + 1}`}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -328,8 +514,8 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                     </div>
                   ) : (
                     <div className="p-6 space-y-4">
-                      {/* Muscle groups */}
-                      {currentWorkout.muscleGroups.length > 0 && (
+                      {/* Muscle groups (hidden in Modo Gimnasio: simplified chrome) */}
+                      {!gymMode && currentWorkout.muscleGroups.length > 0 && (
                         <div className="flex flex-wrap gap-2 mb-4">
                           {currentWorkout.muscleGroups.map((muscle) => (
                             <span key={muscle} className="px-3 py-1 bg-accent-cyan/20 text-accent-cyan rounded-full text-xs font-medium">
@@ -340,42 +526,87 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                       )}
 
                       {/* Exercise List */}
-                      <div className="space-y-3">
+                      <div className="flex flex-col gap-3">
                         {currentWorkout.exercises.map((exercise, idx) => {
                           const exerciseDetails = getExerciseById(exercise.exerciseId);
                           return (
                             <div
                               key={idx}
-                              className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+                              className={
+                                gymMode
+                                  ? "bg-black rounded-xl p-4 border-2 border-gray-600"
+                                  : "bg-gray-800/50 rounded-lg p-3 sm:p-4 border border-gray-700 hover:border-accent-cyan/40 transition-colors"
+                              }
                             >
-                              <div className="flex items-start gap-4">
-                                <div className="w-10 h-10 rounded-full bg-accent-cyan/20 flex items-center justify-center text-lg shrink-0">
-                                  {exerciseDetails?.emoji || "🏋️"}
-                                </div>
+                              <div className="flex items-start gap-3 sm:gap-4">
+                                <ExerciseMediaThumb
+                                  exerciseId={exercise.exerciseId}
+                                  emoji={exerciseDetails?.emoji}
+                                  name={exerciseDetails?.name}
+                                  workoutLog={workoutLog}
+                                />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <h4 className="font-semibold text-white truncate">
-                                      {exerciseDetails?.name || exercise.exerciseId}
-                                    </h4>
-                                    <div className="flex gap-2 shrink-0">
-                                      <span className="px-2 py-1 bg-accent-cyan/20 text-accent-cyan rounded text-xs font-medium">
-                                        {exercise.sets} series
+                                  <h4 className={`font-semibold text-white ${gymMode ? "text-2xl leading-tight" : ""}`}>
+                                    {exerciseDetails?.name || exercise.exerciseId}
+                                  </h4>
+                                  {!gymMode && exerciseDetails?.altName && (
+                                    <p className="text-xs text-gray-500 mt-0.5">{exerciseDetails.altName}</p>
+                                  )}
+                                  {gymMode ? (
+                                    /* One-thumb layout: giant Bebas numerals, 56px+ blocks */
+                                    <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-accent-cyan">
+                                          {exercise.sets}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Series
+                                        </div>
+                                      </div>
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-white whitespace-nowrap">
+                                          {exercise.reps}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Reps
+                                        </div>
+                                      </div>
+                                      <div className="min-h-14 bg-white/5 ring-1 ring-white/15 rounded-xl py-2 px-1 flex flex-col justify-center">
+                                        <div className="font-display text-4xl sm:text-5xl leading-none text-white whitespace-nowrap">
+                                          {exercise.rest}
+                                        </div>
+                                        <div className="text-xs text-gray-300 uppercase tracking-widest mt-1">
+                                          Descanso
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.sets}×</span> series
                                       </span>
-                                      <span className="px-2 py-1 bg-purple-500/20 text-purple-400 rounded text-xs font-medium">
-                                        {exercise.reps} reps
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.reps}</span> reps
                                       </span>
-                                      <span className="px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-xs font-medium">
-                                        {exercise.rest}
+                                      <span className="px-2 py-1 bg-white/5 text-foreground/70 ring-1 ring-white/10 rounded text-xs">
+                                        <span className="font-bold text-white">{exercise.rest}</span> descanso
                                       </span>
                                     </div>
-                                  </div>
-                                  {exerciseDetails?.altName && (
-                                    <p className="text-sm text-gray-500 mt-1">{exerciseDetails.altName}</p>
                                   )}
-                                  {exercise.notes && (
+                                  {!gymMode && exercise.notes && exercise.notes !== GENERIC_EXERCISE_NOTE && (
                                     <p className="text-sm text-gray-400 mt-2 italic">
                                       Tip: {exercise.notes}
                                     </p>
+                                  )}
+                                  {/* Workout logging (works in normal and gym mode) */}
+                                  {!isPreview && (
+                                    <ExerciseLogSection
+                                      exerciseId={exercise.exerciseId}
+                                      setsCount={exercise.sets}
+                                      log={workoutLog}
+                                      onLogSet={logSet}
+                                      gymMode={gymMode}
+                                    />
                                   )}
                                 </div>
                               </div>
@@ -408,7 +639,7 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                     onClick={() => setSelectedMealDay(index)}
                     className={`flex-shrink-0 px-4 py-3 rounded-lg font-medium text-sm transition-all ${
                       selectedMealDay === index
-                        ? "bg-accent-green text-black"
+                        ? "bg-accent-success text-black"
                         : "bg-gray-800 text-gray-400 hover:bg-gray-700"
                     }`}
                   >
@@ -427,19 +658,19 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                       <h3 className="text-lg font-bold text-white">{DAYS_OF_WEEK[selectedMealDay]} - Resumen Nutricional</h3>
                       <div className="flex gap-4">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-accent-green">{currentMealDay.totalCalories}</div>
+                          <div className="text-2xl font-bold text-accent-success">{currentMealDay.totalCalories}</div>
                           <div className="text-xs text-gray-500">kcal</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-blue-400">{currentMealDay.macros.protein}g</div>
+                          <div className="text-xl font-bold text-macro-protein">{currentMealDay.macros.protein}g</div>
                           <div className="text-xs text-gray-500">Proteina</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-yellow-400">{currentMealDay.macros.carbs}g</div>
+                          <div className="text-xl font-bold text-macro-carbs">{currentMealDay.macros.carbs}g</div>
                           <div className="text-xs text-gray-500">Carbos</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-xl font-bold text-orange-400">{currentMealDay.macros.fat}g</div>
+                          <div className="text-xl font-bold text-macro-fat">{currentMealDay.macros.fat}g</div>
                           <div className="text-xs text-gray-500">Grasas</div>
                         </div>
                       </div>
@@ -462,7 +693,7 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                               <span className="text-xs text-gray-500">{meal.time}</span>
                             </div>
                           </div>
-                          <div className="text-accent-green font-bold">{meal.calories} kcal</div>
+                          <div className="text-accent-success font-bold">{meal.calories} kcal</div>
                         </div>
                         <div className="p-4">
                           <div className="space-y-2">
@@ -474,9 +705,9 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
                                 </div>
                                 <div className="flex gap-3 text-xs">
                                   <span className="text-gray-400">{food.calories} kcal</span>
-                                  <span className="text-blue-400">P:{food.protein}g</span>
-                                  <span className="text-yellow-400">C:{food.carbs}g</span>
-                                  <span className="text-orange-400">G:{food.fat}g</span>
+                                  <span className="text-macro-protein">P:{food.protein}g</span>
+                                  <span className="text-macro-carbs">C:{food.carbs}g</span>
+                                  <span className="text-macro-fat">G:{food.fat}g</span>
                                 </div>
                               </div>
                             ))}
@@ -506,6 +737,7 @@ export function PlanViewer({ plan, initialTab }: PlanViewerProps) {
               workoutPlan={workoutPlan}
               planStartDate={plan.createdAt}
               daysRemaining={plan.daysRemaining}
+              userId={user?.id}
             />
           )}
         </div>

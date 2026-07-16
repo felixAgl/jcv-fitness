@@ -6,6 +6,8 @@ import { cn } from "@/shared/lib/cn";
 import { Calendar, Lock } from "lucide-react";
 import { DayPlanView } from "./DayPlanView";
 import type { MealPlanConfig } from "../types";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "@/features/landing/i18n";
 
 interface MealPlanSectionProps {
   config: MealPlanConfig;
@@ -16,6 +18,8 @@ const PREVIEW_DAYS = 2; // Solo mostrar 2 dias en preview
 
 export function MealPlanSection({ config, isPreview = true }: MealPlanSectionProps) {
   const [selectedDay, setSelectedDay] = useState(0);
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].mealPlan;
 
   // En preview mode, solo mostrar los primeros dias
   const visibleDays = isPreview ? config.days.slice(0, PREVIEW_DAYS) : config.days;
@@ -27,17 +31,19 @@ export function MealPlanSection({ config, isPreview = true }: MealPlanSectionPro
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
-            Plan de <span className="text-primary">Alimentacion</span>
+            {t.titlePre}<span className="text-primary">{t.titleHighlight}</span>
           </h2>
           <p className="text-foreground/60 max-w-2xl mx-auto">
-            {config.phaseName} - {config.duration}. {config.dailyMeals} comidas diarias
-            diseñadas para optimizar tu metabolismo y resultados.
+            {t.subtitle
+              .replace("{phase}", config.phaseName)
+              .replace("{duration}", config.duration)
+              .replace("{meals}", String(config.dailyMeals))}
           </p>
         </div>
 
         <div className="flex items-center justify-center gap-2 mb-8">
           <Calendar className="h-5 w-5 text-primary" />
-          <span className="text-foreground/60">Vista previa del plan semanal</span>
+          <span className="text-foreground/60">{t.previewLabel}</span>
         </div>
 
         {/* Day selector - solo dias visibles */}
@@ -63,7 +69,7 @@ export function MealPlanSection({ config, isPreview = true }: MealPlanSectionPro
                 <div
                   key={day.day}
                   className="w-10 h-10 rounded-full bg-card/50 text-foreground/30 font-bold flex items-center justify-center cursor-not-allowed"
-                  title="Desbloquea el plan completo"
+                  title={t.lockedDayTooltip}
                 >
                   <Lock className="h-4 w-4" />
                 </div>
@@ -87,17 +93,14 @@ export function MealPlanSection({ config, isPreview = true }: MealPlanSectionPro
                   <Lock className="h-8 w-8 text-primary" />
                 </div>
                 <h3 className="text-2xl font-bold mb-2">
-                  +{hiddenDaysCount} dias de plan nutricional
+                  {t.lockedTitle.replace("{count}", String(hiddenDaysCount))}
                 </h3>
-                <p className="text-foreground/60 mb-6 max-w-md mx-auto">
-                  Accede al plan completo con todas las comidas, recetas detalladas y tabla de
-                  intercambios de alimentos.
-                </p>
+                <p className="text-foreground/60 mb-6 max-w-md mx-auto">{t.lockedText}</p>
                 <Link
                   href="#pricing"
                   className="inline-flex items-center gap-2 px-8 py-3 bg-primary text-background font-bold rounded-xl hover:bg-primary/90 transition-colors"
                 >
-                  Desbloquear Plan Completo
+                  {t.unlockCta}
                 </Link>
               </div>
             </div>
