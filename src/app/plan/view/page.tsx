@@ -66,7 +66,7 @@ function PlanViewContent() {
   const isPreview = searchParams.get("preview") === "true";
   const initialTab = searchParams.get("tab") as "resumen" | "rutina" | "alimentacion" | "calendario" | null;
   const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { plan, isLoading: isPlanLoading, error } = usePlan();
+  const { plan, isLoading: isPlanLoading, error, isOffline } = usePlan();
 
   // Preview mode: skip auth entirely
   if (isPreview) {
@@ -153,7 +153,7 @@ function PlanViewContent() {
 
   return (
     <div className="min-h-screen bg-black relative">
-      <PlanViewer plan={plan} initialTab={initialTab || undefined} />
+      <PlanViewer plan={plan} initialTab={initialTab || undefined} isOffline={isOffline} />
       {plan.isExpired && <PlanExpiredOverlay />}
     </div>
   );

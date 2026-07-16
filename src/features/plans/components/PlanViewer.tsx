@@ -3,8 +3,9 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Dumbbell } from "lucide-react";
+import { Dumbbell, WifiOff } from "lucide-react";
 import { useAuth } from "@/features/auth";
+import { InstallPill } from "@/features/shared/pwa";
 import { exercises } from "@/features/wizard/data/exercises";
 import { foods } from "@/features/wizard/data/foods";
 import { TRANSLATIONS, type TrainingLevel, type TrainingGoal, type WorkoutDay, type MealPlanDay } from "@/features/wizard/types";
@@ -23,6 +24,8 @@ interface PlanViewerProps {
   plan: UserPlan & { isExpired: boolean; daysRemaining: number };
   initialTab?: TabType;
   isPreview?: boolean;
+  /** Plan served from the localStorage mirror (no connection). */
+  isOffline?: boolean;
 }
 
 const DAYS_OF_WEEK = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
@@ -39,7 +42,7 @@ type NavigatorWithWakeLock = Navigator & {
   wakeLock?: { request: (type: "screen") => Promise<WakeLockSentinelLike> };
 };
 
-export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerProps) {
+export function PlanViewer({ plan, initialTab, isPreview = false, isOffline = false }: PlanViewerProps) {
   const router = useRouter();
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab || "resumen");
@@ -237,6 +240,22 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
             </div>
           )}
         </div>
+
+        {/* Offline banner: plan served from the localStorage mirror */}
+        {!isPreview && isOffline && (
+          <div className="bg-gray-800/80 border border-gray-600 rounded-xl p-4 mb-6 flex items-center gap-3">
+            <WifiOff className="w-5 h-5 text-accent-cyan flex-shrink-0" aria-hidden="true" />
+            <div>
+              <span className="text-white font-semibold text-sm">Modo offline</span>
+              <p className="text-gray-400 text-xs">
+                Estas viendo tu plan guardado. El progreso se sincronizara cuando vuelva la conexion.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Install prompt: engaged users only (never on the landing) */}
+        {!isPreview && <InstallPill />}
 
         {/* Status Banner */}
         {!isPreview && !plan.isExpired && plan.daysRemaining <= 7 && (
