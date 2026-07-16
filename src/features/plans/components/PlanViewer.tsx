@@ -12,7 +12,9 @@ import { generateWorkoutPlan } from "@/features/wizard/data/workout-templates";
 import { generateMealPlan } from "@/features/wizard/data/meal-templates";
 import { TrackingCalendar } from "./TrackingCalendar";
 import { ExerciseMediaThumb } from "./ExerciseMediaThumb";
+import { ExerciseLogSection } from "./ExerciseLogSection";
 import { Phase2Card } from "./Phase2Card";
+import { useWorkoutLog } from "../hooks/useWorkoutLog";
 import type { UserPlan, PlanDataWithProgress } from "../types";
 
 type TabType = "resumen" | "rutina" | "alimentacion" | "calendario";
@@ -39,7 +41,7 @@ type NavigatorWithWakeLock = Navigator & {
 
 export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerProps) {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>(initialTab || "resumen");
   const [selectedWorkoutDay, setSelectedWorkoutDay] = useState(0);
   const [selectedMealDay, setSelectedMealDay] = useState(0);
@@ -105,6 +107,14 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
 
   const planData = plan.planData;
   const hasSubscription = profile?.has_active_subscription ?? false;
+
+  // Workout logging (idea #10): optimistic per-set logging with PR detection.
+  // Disabled in preview mode (no real plan row to persist into).
+  const { log: workoutLog, logSet } = useWorkoutLog(
+    plan.id,
+    planData.workoutLog,
+    !isPreview
+  );
 
   // Generate workout plan based on user selections
   const workoutPlan: WorkoutDay[] = useMemo(() => {
@@ -514,6 +524,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                                   exerciseId={exercise.exerciseId}
                                   emoji={exerciseDetails?.emoji}
                                   name={exerciseDetails?.name}
+                                  workoutLog={workoutLog}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <h4 className={`font-semibold text-white ${gymMode ? "text-2xl leading-tight" : ""}`}>
@@ -567,6 +578,16 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
                                     <p className="text-sm text-gray-400 mt-2 italic">
                                       Tip: {exercise.notes}
                                     </p>
+                                  )}
+                                  {/* Workout logging (works in normal and gym mode) */}
+                                  {!isPreview && (
+                                    <ExerciseLogSection
+                                      exerciseId={exercise.exerciseId}
+                                      setsCount={exercise.sets}
+                                      log={workoutLog}
+                                      onLogSet={logSet}
+                                      gymMode={gymMode}
+                                    />
                                   )}
                                 </div>
                               </div>
@@ -697,6 +718,7 @@ export function PlanViewer({ plan, initialTab, isPreview = false }: PlanViewerPr
               workoutPlan={workoutPlan}
               planStartDate={plan.createdAt}
               daysRemaining={plan.daysRemaining}
+              userId={user?.id}
             />
           )}
         </div>

@@ -7,11 +7,14 @@ import { getExerciseMedia } from "@/features/wizard/data/exercise-media";
 import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
 import { track } from "@/features/shared/analytics/track";
 import { ExerciseDetailModal } from "./ExerciseDetailModal";
+import type { LoggedSet } from "../types";
 
 interface ExerciseMediaThumbProps {
   exerciseId: string;
   emoji?: string;
   name?: string;
+  /** Optional workout log, forwarded to the modal's "Fuerza" trend section. */
+  workoutLog?: LoggedSet[];
 }
 
 type DocumentWithViewTransition = Document & {
@@ -36,7 +39,7 @@ function viewTransitionNameFor(exerciseId: string): string {
  * across the exercise list are impossible. jsdom and older browsers take the
  * plain setState path.
  */
-export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThumbProps) {
+export function ExerciseMediaThumb({ exerciseId, emoji, name, workoutLog }: ExerciseMediaThumbProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const thumbRef = useRef<HTMLImageElement>(null);
@@ -110,6 +113,7 @@ export function ExerciseMediaThumb({ exerciseId, emoji, name }: ExerciseMediaThu
           exerciseId={exerciseId}
           name={label}
           mediaViewTransitionName={vtName}
+          workoutLog={workoutLog}
           onClose={() => toggleModal(false)}
         />
       )}

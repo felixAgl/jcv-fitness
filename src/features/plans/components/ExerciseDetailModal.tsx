@@ -13,6 +13,8 @@ import {
   type LibraryExercise,
 } from "@/features/exercises";
 import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { buildSparklinePoints, getSessionMaxes } from "../services/workout-log";
+import type { LoggedSet } from "../types";
 
 interface ExerciseDetailModalProps {
   exerciseId: string;
@@ -23,22 +25,35 @@ interface ExerciseDetailModalProps {
    * browser can morph thumb -> modal media (see ExerciseMediaThumb).
    */
   mediaViewTransitionName?: string;
+  /**
+   * Optional workout log (all exercises). When sets exist for this exercise a
+   * compact "Fuerza" trend section renders: last 8 sessions max weight as a
+   * pure-SVG sparkline plus the current max in Bebas.
+   */
+  workoutLog?: LoggedSet[];
   onClose: () => void;
 }
 
 /** UI strings for the modal, per language. */
-const STRINGS: Record<Lang, { muscles: string; instructions: string; close: string; loading: string }> = {
+const STRINGS: Record<
+  Lang,
+  { muscles: string; instructions: string; close: string; loading: string; strength: string; sessions: string }
+> = {
   es: {
     muscles: "Músculos trabajados",
     instructions: "Instrucciones",
     close: "Cerrar",
     loading: "Cargando detalles...",
+    strength: "Fuerza",
+    sessions: "sesiones",
   },
   en: {
     muscles: "Muscles worked",
     instructions: "Instructions",
     close: "Close",
     loading: "Loading details...",
+    strength: "Strength",
+    sessions: "sessions",
   },
 };
 
@@ -138,6 +153,7 @@ export function ExerciseDetailModal({
   name,
   altName,
   mediaViewTransitionName,
+  workoutLog,
   onClose,
 }: ExerciseDetailModalProps) {
   const media = getExerciseMedia(exerciseId);
@@ -206,6 +222,17 @@ export function ExerciseDetailModal({
     ? [libraryExercise.target, ...libraryExercise.secondary_muscles]
     : [];
   const steps = libraryExercise ? getInstructionSteps(libraryExercise, lang) : [];
+
+  // "Fuerza" mini-chart: last 8 sessions max weight (pure SVG, no chart lib).
+  const sessionMaxes = workoutLog ? getSessionMaxes(workoutLog, exerciseId, 8) : [];
+  const currentMax = sessionMaxes.length > 0
+    ? Math.max(...sessionMaxes.map((s) => s.maxWeightKg))
+    : 0;
+  const sparklinePoints = buildSparklinePoints(
+    sessionMaxes.map((s) => s.maxWeightKg),
+    160,
+    48
+  );
 
   const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3">
@@ -319,6 +346,44 @@ export function ExerciseDetailModal({
 
         {/* Details (scrollable) */}
         <div className="overflow-y-auto p-4 space-y-4">
+          {/* Fuerza trend from the workout log (idea #10) */}
+          {sessionMaxes.length > 0 && (
+            <section data-testid="strength-trend">
+              <h3 className="text-white font-semibold text-sm mb-2">{t.strength}</h3>
+              <div className="flex items-center gap-4 bg-white/5 ring-1 ring-white/10 rounded-xl p-3">
+                <div className="shrink-0">
+                  <div className="font-display text-4xl tracking-wide text-accent-cyan leading-none">
+                    {Math.round(currentMax * 10) / 10}
+                    <span className="text-lg ml-0.5">kg</span>
+                  </div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">
+                    {sessionMaxes.length} {t.sessions}
+                  </div>
+                </div>
+                <svg
+                  viewBox="0 0 160 48"
+                  className="flex-1 h-12"
+                  role="img"
+                  aria-label={`${t.strength}: ${sessionMaxes
+                    .map((s) => `${s.maxWeightKg}kg`)
+                    .join(", ")}`}
+                >
+                  <polyline
+                    points={sparklinePoints}
+                    fill="none"
+                    stroke="var(--accent-cyan)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {sessionMaxes.length === 1 && (
+                    <circle cx="80" cy="24" r="3" fill="var(--accent-cyan)" />
+                  )}
+                </svg>
+              </div>
+            </section>
+          )}
+
           {libraryState === "loading" && (
             <div className="space-y-2" aria-label={t.loading}>
               <div className="h-4 w-40 bg-gray-800 rounded animate-pulse" />

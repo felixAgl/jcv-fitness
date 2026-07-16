@@ -20,6 +20,8 @@ export type AnalyticsEvent =
   | "whatsapp_click"
   | "exercise_modal_open" // meta = exercise id
   | "language_toggle" // meta = new lang
+  | "pr_detected" // value = weightKg, meta = exercise id
+  | "share_card_generated"
   | "web_vital_lcp" // value = ms
   | "web_vital_cls" // value = score
   | "web_vital_inp"; // value = ms

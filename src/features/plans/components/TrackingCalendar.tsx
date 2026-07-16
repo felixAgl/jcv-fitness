@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { progressService, initializePlanProgress } from "../services/progress-service";
 import { computeStreak } from "../services/streak";
 import { prefersReducedMotion } from "@/features/shared/utils/reduced-motion";
+import { ProgressPhotosSection } from "./ProgressPhotosSection";
 import type { PlanProgress, DayProgress, PlanDataWithProgress } from "../types";
 import type { WorkoutDay } from "@/features/wizard/types";
 
@@ -13,6 +14,8 @@ interface TrackingCalendarProps {
   workoutPlan: WorkoutDay[];
   planStartDate: Date;
   daysRemaining: number;
+  /** When present, progress photos (guided moments + compare + share) render. */
+  userId?: string;
   onProgressUpdate?: (progress: PlanProgress) => void;
 }
 
@@ -68,6 +71,7 @@ export function TrackingCalendar({
   workoutPlan,
   planStartDate,
   daysRemaining,
+  userId,
   onProgressUpdate,
 }: TrackingCalendarProps) {
   const [progress, setProgress] = useState<PlanProgress | null>(null);
@@ -379,6 +383,11 @@ export function TrackingCalendar({
           </div>
         )}
       </div>
+
+      {/* Progress photos: guided moments (dia 1/20/40), compare + share (#11) */}
+      {userId && (
+        <ProgressPhotosSection planStartDate={planStartDate} userId={userId} />
+      )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-4 gap-3">

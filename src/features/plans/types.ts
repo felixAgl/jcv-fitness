@@ -43,8 +43,26 @@ export interface PlanProgress {
   };
 }
 
+/**
+ * One logged working set for an exercise. Persisted under
+ * plan_data.workoutLog as a flat append-only array; a set is uniquely
+ * identified by date + exerciseId + setIndex (re-logging the same set on the
+ * same day replaces the entry instead of duplicating it).
+ */
+export interface LoggedSet {
+  /** YYYY-MM-DD */
+  date: string;
+  exerciseId: string;
+  /** 0-based index within the day's planned sets. */
+  setIndex: number;
+  reps: number;
+  weightKg: number;
+}
+
 export interface PlanDataWithProgress extends WizardState {
   progress?: PlanProgress;
+  /** Workout logging (idea #10). Absent on plans created before it shipped. */
+  workoutLog?: LoggedSet[];
 }
 
 export interface UserPlan {

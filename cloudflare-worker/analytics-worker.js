@@ -25,6 +25,8 @@ const ALLOWED_EVENTS = new Set([
   "whatsapp_click",
   "exercise_modal_open",
   "language_toggle",
+  "pr_detected",
+  "share_card_generated",
   "web_vital_lcp",
   "web_vital_cls",
   "web_vital_inp",
