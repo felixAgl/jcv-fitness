@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuth, AuthModal } from "@/features/auth";
 import { useSubscription, useWizardData, SUBSCRIPTION_PLANS } from "@/features/subscription";
 import type { PlanType, PaymentProvider } from "@/features/subscription";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 function SuccessContent() {
   const searchParams = useSearchParams();
@@ -176,7 +177,8 @@ function SuccessContent() {
         </div>
 
         <p className="text-xs text-gray-600 mt-8">
-          Si tienes alguna pregunta, contáctanos por WhatsApp: 314 382 64 30
+          Si tienes alguna pregunta, contáctanos por{" "}
+          <a href={buildWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400">WhatsApp</a>
         </p>
       </div>
 

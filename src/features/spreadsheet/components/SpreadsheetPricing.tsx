@@ -1,5 +1,6 @@
 import { Check, Crown, Zap } from "lucide-react";
 import Link from "next/link";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 const subscriberFeatures: readonly string[] = [
   "Las 4 versiones completas",
@@ -114,7 +115,7 @@ export function SpreadsheetPricing() {
 
             {/* CTA */}
             <a
-              href="https://wa.me/573143826430?text=Hola%2C%20quiero%20comprar%20la%20hoja%20de%20evaluacion%20fisica"
+              href={buildWhatsAppUrl("Hola, quiero comprar la hoja de evaluacion fisica")}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full text-center py-4 rounded-xl border border-gray-600 text-white font-bold text-lg hover:border-accent-cyan/50 hover:bg-gray-800 transition-all"

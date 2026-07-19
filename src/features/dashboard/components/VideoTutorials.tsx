@@ -10,8 +10,8 @@ import {
 } from "../data/video-tutorials";
 
 const categoryColors = {
-  ejercicios: { bg: "bg-purple-500/20", text: "text-purple-400" },
-  nutricion: { bg: "bg-green-500/20", text: "text-green-400" },
+  ejercicios: { bg: "bg-slate-500/20", text: "text-slate-300" },
+  nutricion: { bg: "bg-slate-500/20", text: "text-slate-300" },
   tecnica: { bg: "bg-accent-cyan/20", text: "text-accent-cyan" },
 };
 
@@ -29,7 +29,7 @@ export function VideoTutorials() {
   };
 
   return (
-    <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+    <div className="bg-card rounded-2xl border border-gray-800 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Video Tutoriales</h3>
         {!hasActiveSubscription && (
@@ -95,7 +95,7 @@ export function VideoTutorials() {
       </div>
 
       {!hasActiveSubscription && (
-        <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-accent-cyan/10 to-purple-500/10 border border-accent-cyan/20">
+        <div className="mt-4 p-4 rounded-lg bg-gradient-to-r from-accent-cyan/10 to-blue-500/10 border border-accent-cyan/20">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-accent-cyan/20 flex items-center justify-center shrink-0">
               <svg

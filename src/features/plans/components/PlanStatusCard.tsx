@@ -11,7 +11,7 @@ export function PlanStatusCard() {
 
   if (isLoading) {
     return (
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6 animate-pulse">
+      <div className="bg-card rounded-2xl border border-gray-800 p-6 animate-pulse">
         <div className="h-6 bg-gray-800 rounded w-1/3 mb-4" />
         <div className="h-4 bg-gray-800 rounded w-2/3 mb-2" />
         <div className="h-4 bg-gray-800 rounded w-1/2" />
@@ -22,7 +22,7 @@ export function PlanStatusCard() {
   // No plan and can't create (free used)
   if (!plan && !canCreatePlan && canCreateReason === "free_used") {
     return (
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 p-6">
+      <div className="bg-card rounded-2xl border border-gray-800 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-red-500/10 flex items-center justify-center">
             <svg className="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -50,7 +50,7 @@ export function PlanStatusCard() {
   // No plan yet - can create
   if (!plan && canCreatePlan) {
     return (
-      <div className="bg-gradient-to-br from-accent-cyan/10 to-accent-green/10 rounded-2xl border border-accent-cyan/30 p-6">
+      <div className="bg-gradient-to-br from-accent-cyan/10 to-accent-success/10 rounded-2xl border border-accent-cyan/30 p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-xl bg-accent-cyan/20 flex items-center justify-center">
             <svg className="w-6 h-6 text-accent-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,10 +84,10 @@ export function PlanStatusCard() {
     return (
       <div className={`rounded-2xl border p-6 ${
         isExpired
-          ? "bg-gray-900 border-red-500/30"
+          ? "bg-card border-red-500/30"
           : daysRemaining <= 7
-            ? "bg-gray-900 border-yellow-500/30"
-            : "bg-gray-900 border-gray-800"
+            ? "bg-card border-yellow-500/30"
+            : "bg-card border-gray-800"
       }`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -111,7 +111,7 @@ export function PlanStatusCard() {
           </div>
           {!isExpired && (
             <div className="text-right">
-              <div className={`text-2xl font-bold ${daysRemaining <= 7 ? "text-yellow-400" : "text-accent-cyan"}`}>
+              <div className={`font-display text-4xl tracking-wide ${daysRemaining <= 7 ? "text-yellow-400" : "text-accent-cyan"}`}>
                 {daysRemaining}
               </div>
               <div className="text-xs text-gray-500">dias restantes</div>

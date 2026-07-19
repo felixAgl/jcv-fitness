@@ -68,25 +68,25 @@ const versions: readonly Version[] = [
 ] as const;
 
 function GenderIcon({ gender }: { gender: "male" | "female" }) {
-  const color = gender === "male" ? "text-blue-400" : "text-pink-400";
+  const color = gender === "male" ? "text-accent-cyan" : "text-slate-300";
   return <User className={`w-6 h-6 ${color}`} />;
 }
 
 function MethodIcon({ method }: { method: "adipometer" | "bioimpedance" }) {
-  const color = method === "adipometer" ? "text-orange-400" : "text-green-400";
+  const color = method === "adipometer" ? "text-slate-300" : "text-accent-cyan";
   return <Activity className={`w-6 h-6 ${color}`} />;
 }
 
 function getCardBorderAccent(gender: "male" | "female"): string {
   return gender === "male"
-    ? "hover:border-blue-400/50"
-    : "hover:border-pink-400/50";
+    ? "hover:border-accent-cyan/50"
+    : "hover:border-slate-400/50";
 }
 
 function getIconBg(gender: "male" | "female"): string {
   return gender === "male"
-    ? "from-blue-500/20 to-blue-900/20"
-    : "from-pink-500/20 to-pink-900/20";
+    ? "from-accent-cyan/20 to-accent-cyan/5"
+    : "from-slate-500/20 to-slate-900/20";
 }
 
 export function SpreadsheetVersions() {
@@ -137,7 +137,7 @@ export function SpreadsheetVersions() {
                     key={feature}
                     className="flex items-start gap-2 text-sm text-gray-400"
                   >
-                    <Check className="w-4 h-4 text-accent-green shrink-0 mt-0.5" />
+                    <Check className="w-4 h-4 text-accent-success shrink-0 mt-0.5" />
                     <span>{feature}</span>
                   </li>
                 ))}

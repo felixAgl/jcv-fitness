@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/ui";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import { transformationImages } from "../data/transformations";
 import { JCVLogo } from "@/shared/components/JCVLogo";
+import { buildWhatsAppUrl } from "../utils/whatsapp";
 
 export function CTASection() {
   const promoImage = transformationImages[1]; // promo-40dias
@@ -41,7 +42,7 @@ export function CTASection() {
               <Button variant="outline" size="lg" className="gap-2">
                 <MessageCircle className="h-5 w-5" />
                 <a
-                  href="https://wa.me/573143826430?text=Hola,%20quiero%20informacion%20sobre%20JCV%20Fitness"
+                  href={buildWhatsAppUrl("Hola, quiero informacion sobre JCV Fitness")}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -64,7 +65,7 @@ export function CTASection() {
                   unoptimized
                 />
               </div>
-              <div className="absolute -bottom-4 -right-4 bg-accent-red text-white px-6 py-3 rounded-xl font-bold shadow-lg transform rotate-3">
+              <div className="absolute -bottom-4 -right-4 bg-accent-cyan text-black px-6 py-3 rounded-xl font-bold shadow-lg transform rotate-3">
                 JCV 24
               </div>
             </div>

@@ -48,7 +48,7 @@ export function NavigationButtons({
             "px-8 py-3 rounded-lg font-bold transition-all duration-300",
             "flex items-center gap-2",
             canProceed
-              ? "bg-accent-green text-black hover:shadow-lg hover:shadow-accent-green/50 hover:scale-105"
+              ? "bg-accent-success text-black hover:shadow-lg hover:shadow-accent-success/50 hover:scale-105"
               : "bg-gray-800/80 text-gray-500 border border-gray-700 cursor-not-allowed"
           )}
         >

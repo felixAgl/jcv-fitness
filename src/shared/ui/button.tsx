@@ -14,7 +14,7 @@ const variants: Record<ButtonVariant, string> = {
     "bg-primary text-black hover:bg-primary-dark font-semibold",
   secondary:
     "bg-card border border-border text-foreground hover:bg-card-hover",
-  accent: "bg-accent text-white hover:bg-accent-dark font-semibold",
+  accent: "bg-accent text-black hover:bg-accent-dark font-semibold",
   ghost: "bg-transparent hover:bg-card text-foreground",
 };
 

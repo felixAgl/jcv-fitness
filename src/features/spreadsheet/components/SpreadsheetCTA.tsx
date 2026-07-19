@@ -7,12 +7,12 @@ export function SpreadsheetCTA() {
 
       {/* Decorative blurs */}
       <div className="absolute top-0 left-1/3 w-80 h-80 bg-accent-cyan/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-accent-red/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl" />
 
       <div className="relative z-10 max-w-4xl mx-auto text-center">
         <div className="rounded-3xl border border-gray-800 bg-gray-900/50 p-8 md:p-16 backdrop-blur-sm">
           {/* Icon */}
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-accent-red/20 border border-accent-cyan/20 flex items-center justify-center mx-auto mb-8">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent-cyan/20 to-blue-500/20 border border-accent-cyan/20 flex items-center justify-center mx-auto mb-8">
             <FileSpreadsheet className="w-10 h-10 text-accent-cyan" />
           </div>
 

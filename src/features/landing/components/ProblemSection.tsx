@@ -1,81 +1,104 @@
 "use client";
 
-import { FileX, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
 
 export function ProblemSection() {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].problem;
+
   return (
-    <section className="py-20 px-4 bg-gradient-to-b from-background to-background-light">
-      <div className="max-w-6xl mx-auto">
+    <section className="py-20 px-4 bg-gradient-to-b from-background to-background-light relative overflow-hidden">
+      {/* Subtle background photo - faded large result image */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute -right-32 top-0 bottom-0 w-96 opacity-[0.04] blur-md">
+          <Image
+            src="/images/transformations/result-3.jpg"
+            alt=""
+            fill
+            className="object-cover"
+            sizes="384px"
+            unoptimized
+          />
+        </div>
+      </div>
+
+      <div className="max-w-6xl mx-auto relative z-10">
         <h2 className="text-3xl md:text-4xl font-black text-center mb-4">
-          <span className="text-white">No basta con </span>
-          <span className="text-accent-cyan">QUERER</span>
-          <span className="text-white"> cambiar...</span>
+          <span className="text-white">{t.titlePre}</span>
+          <span className="text-accent-cyan">{t.titleHighlight}</span>
+          <span className="text-white">{t.titlePost}</span>
         </h2>
-        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">
-          Sin un plan estructurado, terminas perdiendo tiempo y motivacion
-        </p>
+        <p className="text-xl text-gray-400 text-center mb-12 max-w-2xl mx-auto">{t.subtitle}</p>
 
         <div className="grid md:grid-cols-3 gap-8 items-center">
           {/* Before */}
-          <div className="bg-card border border-red-500/30 rounded-2xl p-8 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
-              <FileX className="w-10 h-10 text-red-400" />
+          <div className="bg-card border border-red-500/30 rounded-2xl overflow-hidden">
+            {/* Photo */}
+            <div className="relative h-48 w-full bg-red-500/10">
+              <Image
+                src="/images/transformations/camilo-before.jpg"
+                alt={t.beforeAlt}
+                fill
+                className="object-cover object-top opacity-70"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+              <div className="absolute bottom-3 left-3 px-3 py-1 bg-red-500/80 rounded-full text-white text-xs font-bold uppercase tracking-wider">
+                {t.beforeBadge}
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-red-400 mb-4">Sin Plan</h3>
-            <ul className="text-gray-400 space-y-2 text-left">
-              <li className="flex items-start gap-2">
-                <span className="text-red-400">x</span>
-                <span>Dietas genericas de internet</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400">x</span>
-                <span>Rutinas que no van con tu nivel</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400">x</span>
-                <span>Sin seguimiento ni calendario</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-red-400">x</span>
-                <span>Abandonas en 2 semanas</span>
-              </li>
-            </ul>
+            <div className="p-6">
+              <ul className="text-gray-400 space-y-2 text-left">
+                {t.beforeItems.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-red-400 font-bold shrink-0">x</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* VS */}
           <div className="flex items-center justify-center">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-accent-cyan to-accent-red flex items-center justify-center animate-pulse">
-                <span className="text-2xl font-black text-white">VS</span>
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-accent-cyan to-blue-500 flex items-center justify-center animate-pulse">
+                <span className="text-2xl font-black text-white">{t.vs}</span>
               </div>
-              <div className="absolute -inset-4 bg-gradient-to-r from-accent-cyan/20 to-accent-red/20 rounded-full blur-xl -z-10" />
+              <div className="absolute -inset-4 bg-gradient-to-r from-accent-cyan/20 to-blue-500/20 rounded-full blur-xl -z-10" />
             </div>
           </div>
 
           {/* After */}
-          <div className="bg-card border border-accent-cyan/30 rounded-2xl p-8 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-accent-cyan/20 flex items-center justify-center">
-              <Sparkles className="w-10 h-10 text-accent-cyan" />
+          <div className="bg-card border border-accent-cyan/30 rounded-2xl overflow-hidden">
+            {/* Photo */}
+            <div className="relative h-48 w-full bg-accent-cyan/10">
+              <Image
+                src="/images/transformations/camilo-after.jpg"
+                alt={t.afterAlt}
+                fill
+                className="object-cover object-top opacity-80"
+                sizes="(max-width: 768px) 100vw, 33vw"
+                unoptimized
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-card via-card/20 to-transparent" />
+              <div className="absolute bottom-3 left-3 px-3 py-1 bg-accent-cyan/80 rounded-full text-black text-xs font-bold uppercase tracking-wider">
+                {t.afterBadge}
+              </div>
             </div>
-            <h3 className="text-xl font-bold text-accent-cyan mb-4">Con JCV Fitness</h3>
-            <ul className="text-gray-400 space-y-2 text-left">
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">+</span>
-                <span>Plan 100% personalizado</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">+</span>
-                <span>Adaptado a TU nivel y objetivo</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">+</span>
-                <span>Calendario con checkboxes</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-green-400">+</span>
-                <span>PDF profesional descargable</span>
-              </li>
-            </ul>
+            <div className="p-6">
+              <ul className="text-gray-400 space-y-2 text-left">
+                {t.afterItems.map((item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <span className="text-green-400 font-bold shrink-0">+</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </div>

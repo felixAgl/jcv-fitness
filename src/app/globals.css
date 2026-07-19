@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --bg-primary: #000000;
-  --bg-secondary: #0a0a0a;
-  --bg-card: rgba(15, 25, 45, 0.8);
-  --bg-card-hover: rgba(20, 35, 60, 0.9);
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #131824;
+  --bg-card: #1a2029;
+  --bg-card-hover: #212936;
   --accent-cyan: #22d3ee;
-  --accent-blue: #3b82f6;
-  --accent-green: #4ade80;
-  --accent-neon: #39ff14;
-  --accent-orange: #f59e0b;
-  --accent-pink: #ec4899;
-  --accent-purple: #8b5cf6;
-  --accent-red: #ef4444;
+  --accent-success: #34d399;
+  --accent-danger: #f87171;
+  --accent-danger-strong: #dc2626;
   --text-primary: #ffffff;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --border-color: rgba(34, 211, 238, 0.3);
+  --border-color: #2b3444;
+  /* Macro triad — semantic, used ONLY in FoodCard */
+  --macro-protein: #34d399;
+  --macro-carbs: #fbbf24;
+  --macro-fat: #f472b6;
 }
 
 @theme inline {
@@ -24,29 +24,21 @@
   --color-foreground: var(--text-primary);
   --color-primary: var(--accent-cyan);
   --color-primary-dark: #06b6d4;
-  --color-accent: var(--accent-red);
-  --color-accent-dark: #dc2626;
+  --color-accent: var(--accent-cyan);
+  --color-accent-dark: #06b6d4;
   --color-card: var(--bg-card);
   --color-card-hover: var(--bg-card-hover);
   --color-border: var(--border-color);
   --color-secondary: var(--text-secondary);
   --color-muted: var(--text-muted);
   --color-cyan: var(--accent-cyan);
-  --color-blue: var(--accent-blue);
-  --color-green: var(--accent-green);
-  --color-neon: var(--accent-neon);
-  --color-orange: var(--accent-orange);
-  --color-pink: var(--accent-pink);
-  --color-purple: var(--accent-purple);
-  --color-red: var(--accent-red);
   --color-accent-cyan: var(--accent-cyan);
-  --color-accent-blue: var(--accent-blue);
-  --color-accent-green: var(--accent-green);
-  --color-accent-neon: var(--accent-neon);
-  --color-accent-orange: var(--accent-orange);
-  --color-accent-pink: var(--accent-pink);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-red: var(--accent-red);
+  --color-accent-success: var(--accent-success);
+  --color-accent-danger: var(--accent-danger);
+  --color-accent-danger-strong: var(--accent-danger-strong);
+  --color-macro-protein: var(--macro-protein);
+  --color-macro-carbs: var(--macro-carbs);
+  --color-macro-fat: var(--macro-fat);
   --font-sans: var(--font-inter);
   --font-display: var(--font-bebas);
 }
@@ -54,13 +46,13 @@
 body {
   background: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-inter), system-ui, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
 }
 
 h1, h2, h3 {
-  font-family: var(--font-display), system-ui, sans-serif;
+  font-family: var(--font-bebas), system-ui, sans-serif;
 }
 
 .bg-pattern {
@@ -70,12 +62,12 @@ h1, h2, h3 {
   width: 100%;
   height: 100%;
   background:
-    radial-gradient(ellipse at -10% 50%, rgba(239, 68, 68, 0.2) 0%, transparent 40%),
-    radial-gradient(ellipse at 110% 50%, rgba(34, 211, 238, 0.25) 0%, transparent 45%),
-    radial-gradient(ellipse at 50% 110%, rgba(59, 130, 246, 0.15) 0%, transparent 35%),
-    radial-gradient(ellipse at 50% -10%, rgba(57, 255, 20, 0.08) 0%, transparent 30%),
-    radial-gradient(circle at 10% 90%, rgba(239, 68, 68, 0.1) 0%, transparent 25%),
-    radial-gradient(circle at 90% 10%, rgba(34, 211, 238, 0.15) 0%, transparent 30%);
+    radial-gradient(ellipse at 50% -10%, rgba(34, 211, 238, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at -10% 50%, rgba(59, 130, 246, 0.2) 0%, transparent 40%),
+    radial-gradient(ellipse at 110% 50%, rgba(34, 211, 238, 0.28) 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 110%, rgba(59, 130, 246, 0.16) 0%, transparent 35%),
+    radial-gradient(circle at 10% 90%, rgba(59, 130, 246, 0.1) 0%, transparent 25%),
+    radial-gradient(circle at 90% 10%, rgba(34, 211, 238, 0.16) 0%, transparent 30%);
   pointer-events: none;
   z-index: 0;
   animation: pulseGlow 6s ease-in-out infinite alternate;
@@ -116,23 +108,176 @@ h1, h2, h3 {
   background-clip: text;
 }
 
-.gradient-text-fire {
-  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
 .glow-cyan {
   box-shadow: 0 0 20px rgba(34, 211, 238, 0.5), 0 0 40px rgba(34, 211, 238, 0.3), 0 0 60px rgba(34, 211, 238, 0.1);
 }
 
-.glow-red {
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3);
+/* Softer glow for active tabs, selected cards and secondary CTAs. */
+.glow-cyan-soft {
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.35), 0 0 28px rgba(34, 211, 238, 0.15);
 }
 
-.glow-neon {
-  box-shadow: 0 0 20px rgba(57, 255, 20, 0.5), 0 0 40px rgba(57, 255, 20, 0.3);
+/* Subtle cyan wash behind section headers / stat blocks. */
+.wash-cyan {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(59, 130, 246, 0.05) 60%, transparent 100%);
+}
+
+/* Hover lift for cards. Guarded by prefers-reduced-motion below. */
+.hover-lift {
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 211, 238, 0.12);
+}
+
+/* ---------------------------------------------------------------------------
+ * View Transitions: exercise thumb <-> detail modal morph (~300ms).
+ * The shared view-transition-name is applied per exercise by
+ * ExerciseMediaThumb/ExerciseDetailModal; only the active pair carries it.
+ * ------------------------------------------------------------------------- */
+::view-transition-group(*) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 300ms;
+}
+
+/* ---------------------------------------------------------------------------
+ * Ring-close day celebration (TrackingCalendar).
+ * ------------------------------------------------------------------------- */
+.celebrate-ring {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: celebrate-ring-draw 0.5s ease-out forwards;
+}
+
+@keyframes celebrate-ring-draw {
+  to { stroke-dashoffset: 0; }
+}
+
+.celebrate-particle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--accent-cyan);
+  opacity: 0;
+  animation: celebrate-burst 0.7s ease-out 0.45s forwards;
+}
+
+@keyframes celebrate-burst {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--burst-x, 0px)), calc(-50% + var(--burst-y, 0px))) scale(0.4);
+  }
+}
+
+.celebrate-pop {
+  opacity: 0;
+  animation: celebrate-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s forwards;
+}
+
+@keyframes celebrate-pop-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  60% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.milestone-overlay {
+  animation: milestone-fade-in 0.3s ease-out both;
+}
+
+@keyframes milestone-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.milestone-text {
+  text-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
+  animation: milestone-pop 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes milestone-pop {
+  from { opacity: 0; transform: scale(0.75); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---------------------------------------------------------------------------
+ * Plan Forge sequence (wizard -> plan reveal).
+ * ------------------------------------------------------------------------- */
+.forge-stamp {
+  animation: forge-stamp-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes forge-stamp-in {
+  from { opacity: 0; transform: scale(1.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.forge-reveal {
+  text-shadow: 0 0 24px rgba(34, 211, 238, 0.45);
+  animation: forge-reveal-in 0.7s ease-out both;
+}
+
+@keyframes forge-reveal-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-pattern,
+  .bg-particles,
+  .btn-cta,
+  .btn-generate {
+    animation: none;
+  }
+
+  .hover-lift,
+  .hover-lift:hover,
+  .btn-cta:hover {
+    transform: none;
+  }
+
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+
+  .celebrate-ring,
+  .celebrate-pop,
+  .milestone-overlay,
+  .milestone-text,
+  .forge-stamp,
+  .forge-reveal {
+    animation: none;
+  }
+
+  /* Keyframe-revealed elements must still be visible without animation. */
+  .celebrate-pop,
+  .milestone-overlay,
+  .milestone-text,
+  .forge-stamp,
+  .forge-reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .celebrate-particle {
+    display: none;
+  }
 }
 
 .btn-cta {
@@ -141,9 +286,9 @@ h1, h2, h3 {
   justify-content: center;
   gap: 12px;
   padding: 18px 50px;
-  background: linear-gradient(135deg, #ef4444 0%, #f59e0b 100%);
-  color: white;
-  font-family: var(--font-display), system-ui, sans-serif;
+  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 100%);
+  color: #0a0a0a;
+  font-family: var(--font-bebas), system-ui, sans-serif;
   font-size: 24px;
   letter-spacing: 2px;
   text-decoration: none;
@@ -152,7 +297,7 @@ h1, h2, h3 {
   cursor: pointer;
   transition: all 0.3s ease;
   animation: bounce 2s infinite;
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 0 30px rgba(34, 211, 238, 0.4);
 }
 
 .btn-cta svg {
@@ -161,7 +306,7 @@ h1, h2, h3 {
 
 .btn-cta:hover {
   transform: scale(1.05);
-  box-shadow: 0 0 50px rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 50px rgba(34, 211, 238, 0.6);
 }
 
 @keyframes bounce {
@@ -171,7 +316,7 @@ h1, h2, h3 {
 }
 
 .btn-generate {
-  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 35%, #f59e0b 70%, #ef4444 100%);
+  background: linear-gradient(135deg, #22d3ee 0%, #3b82f6 35%, #22d3ee 70%, #3b82f6 100%);
   background-size: 300% 300%;
   animation: shimmer 2.5s ease-in-out infinite;
 }

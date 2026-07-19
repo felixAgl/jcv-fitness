@@ -111,7 +111,7 @@ export function StepExercises() {
       </div>
 
       {!hasAppliedRecommendations && selectedExercises.length === 0 && (
-        <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-green/10 rounded-xl p-4 border border-accent-cyan/30">
+        <div className="bg-gradient-to-r from-accent-cyan/10 to-accent-success/10 rounded-xl p-4 border border-accent-cyan/30">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
             <div>
               <p className="text-white font-medium">No sabes cuales elegir?</p>
@@ -120,7 +120,7 @@ export function StepExercises() {
             <button
               type="button"
               onClick={selectRecommended}
-              className="px-4 py-2 bg-accent-green text-black font-bold rounded-lg hover:bg-accent-green/90 transition-colors whitespace-nowrap"
+              className="px-4 py-2 bg-accent-success text-black font-bold rounded-lg hover:bg-accent-success/90 transition-colors whitespace-nowrap"
             >
               Usar recomendados
             </button>
@@ -168,7 +168,7 @@ export function StepExercises() {
             >
               {TRANSLATIONS.categories[category]}
               {count > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent-red text-white text-xs rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-accent-cyan text-black text-xs rounded-full flex items-center justify-center">
                   {count}
                 </span>
               )}
@@ -203,7 +203,7 @@ export function StepExercises() {
         {recommendedForCategory.length > 0 && !searchTerm && (
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-accent-green text-sm font-bold">Recomendados por JCV</span>
+              <span className="text-accent-success text-sm font-bold">Recomendados por JCV</span>
               <span className="text-xs text-gray-500">- Los básicos que no pueden faltar</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

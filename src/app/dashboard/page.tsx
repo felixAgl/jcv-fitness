@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ProtectedRoute } from "@/features/auth";
 import { SubscriptionCard, QuickActions, UserProfile, VideoTutorials } from "@/features/dashboard";
 import { PlanStatusCard } from "@/features/plans/components/PlanStatusCard";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 export default function DashboardPage() {
   return (
@@ -42,7 +43,7 @@ export default function DashboardPage() {
                   Nuestro equipo está disponible para ayudarte con cualquier pregunta.
                 </p>
                 <a
-                  href="https://wa.me/573143826430"
+                  href={buildWhatsAppUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block w-full py-2 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-400 font-medium text-center transition-colors text-sm"

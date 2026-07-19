@@ -264,6 +264,42 @@ export class ProgressService {
     return this.updateDayProgress(planId, date, { mealsTracked: !currentStatus });
   }
 
+  /**
+   * Persist the one-per-plan streak freeze ("congelador") consumption in
+   * plan_data.progress, using the same plan_data update mechanism as day
+   * progress. Idempotent: once used it is never overwritten.
+   */
+  async consumeStreakFreeze(planId: string, date: string): Promise<PlanProgress | null> {
+    const { data: plan, error: fetchError } = await this.getSupabase()
+      .from("user_plans")
+      .select("plan_data")
+      .eq("id", planId)
+      .single();
+
+    if (fetchError || !plan) {
+      console.error("[ProgressService] Error fetching plan for streak freeze:", fetchError);
+      return null;
+    }
+
+    const planData = plan.plan_data as PlanDataWithProgress;
+    if (!planData.progress) return null;
+    if (planData.progress.streakFreeze?.used) return planData.progress;
+
+    planData.progress.streakFreeze = { used: true, usedOn: date };
+
+    const { error: updateError } = await this.getSupabase()
+      .from("user_plans")
+      .update({ plan_data: planData })
+      .eq("id", planId);
+
+    if (updateError) {
+      console.error("[ProgressService] Error persisting streak freeze:", updateError);
+      return null;
+    }
+
+    return planData.progress;
+  }
+
   async initializeProgressIfNeeded(planId: string, planData: PlanDataWithProgress): Promise<PlanProgress> {
     if (planData.progress) {
       return planData.progress;

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { buildWhatsAppUrl } from "@/features/landing/utils/whatsapp";
 
 function FailureContent() {
   const searchParams = useSearchParams();
@@ -61,7 +62,8 @@ function FailureContent() {
         </div>
 
         <p className="text-xs text-gray-600 mt-8">
-          ¿Necesitas ayuda? Contáctanos por WhatsApp: 314 382 64 30
+          ¿Necesitas ayuda? Contáctanos por{" "}
+          <a href={buildWhatsAppUrl()} target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400">WhatsApp</a>
         </p>
       </div>
     </div>

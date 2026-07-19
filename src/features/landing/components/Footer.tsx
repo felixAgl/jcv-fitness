@@ -1,8 +1,17 @@
+"use client";
+
 import Link from "next/link";
 import { JCVLogo } from "@/shared/components/JCVLogo";
 import { Instagram, Phone, Mail } from "lucide-react";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "../i18n";
+import { buildWhatsAppUrl } from "../utils/whatsapp";
 
 export function Footer() {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].footer;
+  const whatsappUrl = buildWhatsAppUrl(LANDING_STRINGS[lang].whatsapp.genericMessage);
+
   return (
     <footer className="py-12 px-4 border-t border-border bg-background/50">
       <div className="max-w-7xl mx-auto">
@@ -12,10 +21,7 @@ export function Footer() {
             <Link href="/" className="inline-block mb-4">
               <JCVLogo variant="cyan" size="md" showText />
             </Link>
-            <p className="text-foreground/60 mb-4 max-w-md">
-              Transforma tu cuerpo con planes de alimentacion personalizados y rutinas de entrenamiento
-              disenadas por JCV 24 Fitness.
-            </p>
+            <p className="text-foreground/60 mb-4 max-w-md">{t.description}</p>
             <div className="flex items-center gap-4">
               <a
                 href="https://www.instagram.com/jcv_24/"
@@ -26,7 +32,7 @@ export function Footer() {
                 <Instagram className="w-5 h-5 text-primary" />
               </a>
               <a
-                href="https://wa.me/573143826430"
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center hover:bg-green-500/20 transition-colors"
@@ -44,26 +50,31 @@ export function Footer() {
 
           {/* Enlaces rapidos */}
           <div>
-            <h4 className="font-bold text-foreground mb-4">Enlaces</h4>
+            <h4 className="font-bold text-foreground mb-4">{t.linksTitle}</h4>
             <ul className="space-y-2">
               <li>
                 <a href="#meal-plan" className="text-foreground/60 hover:text-primary transition-colors">
-                  Plan Alimenticio
+                  {t.linkMeals}
                 </a>
               </li>
               <li>
                 <a href="#workout-plan" className="text-foreground/60 hover:text-primary transition-colors">
-                  Plan de Entrenamiento
+                  {t.linkWorkout}
                 </a>
               </li>
               <li>
                 <a href="#pricing" className="text-foreground/60 hover:text-primary transition-colors">
-                  Precios
+                  {t.linkPricing}
                 </a>
               </li>
               <li>
                 <Link href="/generator" className="text-foreground/60 hover:text-primary transition-colors">
-                  Generador de Rutinas
+                  {t.linkGenerator}
+                </Link>
+              </li>
+              <li>
+                <Link href="/nutricion" className="text-foreground/60 hover:text-primary transition-colors">
+                  {t.linkNutrition}
                 </Link>
               </li>
             </ul>
@@ -71,11 +82,11 @@ export function Footer() {
 
           {/* Contacto */}
           <div>
-            <h4 className="font-bold text-foreground mb-4">Contacto</h4>
+            <h4 className="font-bold text-foreground mb-4">{t.contactTitle}</h4>
             <ul className="space-y-2 text-foreground/60">
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-green-500" />
-                <span>+57 314 382 6430</span>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">WhatsApp</a>
               </li>
               <li className="flex items-center gap-2">
                 <Instagram className="w-4 h-4 text-pink-500" />
@@ -94,12 +105,12 @@ export function Footer() {
         {/* Copyright */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-foreground/40 text-sm">
-            &copy; {new Date().getFullYear()} JCV 24 Fitness. Todos los derechos reservados.
+            &copy; {new Date().getFullYear()} JCV 24 Fitness. {t.rightsReserved}
           </p>
           <div className="flex items-center gap-2 text-foreground/40 text-xs">
-            <span>Desarrollado con</span>
-            <span className="text-accent">amor</span>
-            <span>para guerreros</span>
+            <span>{t.madeWithPre}</span>
+            <span className="text-accent">{t.madeWithHeart}</span>
+            <span>{t.madeWithPost}</span>
           </div>
         </div>
       </div>

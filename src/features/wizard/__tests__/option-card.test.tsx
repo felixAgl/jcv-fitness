@@ -118,7 +118,7 @@ describe("OptionCard", () => {
     const colors = ["cyan", "red", "green", "blue", "yellow", "purple", "orange", "pink"];
 
     colors.forEach((color) => {
-      it(`should apply ${color} color when selected`, () => {
+      it(`should apply the cyan selected state regardless of "${color}" color prop`, () => {
         render(
           <OptionCard
             title="Test"
@@ -129,11 +129,7 @@ describe("OptionCard", () => {
         );
 
         const button = screen.getByRole("button");
-        if (color === "cyan" || color === "red" || color === "green" || color === "blue") {
-          expect(button.className).toContain(`border-accent-${color}`);
-        } else {
-          expect(button.className).toContain(`border-${color}-500`);
-        }
+        expect(button.className).toContain("border-accent-cyan");
       });
     });
   });
