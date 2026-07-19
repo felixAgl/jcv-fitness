@@ -1,0 +1,166 @@
+# =============================================================================
+# Nightly encrypted database backup (audit item #10)
+# =============================================================================
+# WHAT
+#   Every night: pg_dump the Supabase Postgres DB over the pooler connection,
+#   GPG-encrypt the dump (AES-256, symmetric passphrase), upload it to a
+#   Cloudflare R2 bucket via the S3-compatible API, then prune backups older
+#   than 30 days.
+#
+# FAIL-SAFE
+#   If the required secrets are not configured, the "guard" step emits a warning
+#   and every later step is skipped. The workflow SUCCEEDS (does not fail) so an
+#   unconfigured fork / preview environment stays green.
+#
+# REQUIRED GITHUB SECRETS  (Settings -> Secrets and variables -> Actions)
+#   SUPABASE_DB_URL       Postgres connection string for pg_dump, using the
+#                         Supabase POOLER host, e.g.
+#                         postgresql://postgres.<ref>:<pwd>@aws-0-<region>.pooler.supabase.com:5432/postgres
+#   BACKUP_PASSPHRASE     Symmetric passphrase used to GPG-encrypt the dump.
+#                         KEEP IT SAFE — without it the backups are unrecoverable.
+#   R2_ACCOUNT_ID         Cloudflare account id (used to build the R2 S3 endpoint
+#                         https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com).
+#   R2_ACCESS_KEY_ID      R2 S3 API access key id (R2 -> Manage API Tokens).
+#   R2_SECRET_ACCESS_KEY  R2 S3 API secret access key.
+#   R2_BUCKET             Target R2 bucket name (e.g. jcv-db-backups).
+#
+# RESTORE (summary — full runbook in docs/DB-NOTES.md)
+#   aws s3 cp s3://$R2_BUCKET/<file>.sql.gpg . \
+#     --endpoint-url https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com
+#   gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" -o restore.sql -d <file>.sql.gpg
+#   psql "$SUPABASE_DB_URL" -f restore.sql   # ideally against a fresh/staging DB first
+# =============================================================================
+name: Nightly DB Backup
+
+on:
+  schedule:
+    - cron: "30 6 * * *" # daily at 06:30 UTC (~01:30 America/Bogota, low traffic)
+  workflow_dispatch: {} # allow manual runs
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      RETENTION_DAYS: "30"
+      AWS_DEFAULT_REGION: auto
+    steps:
+      - name: Guard — verify required secrets are present
+        id: guard
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for var in SUPABASE_DB_URL BACKUP_PASSPHRASE R2_ACCOUNT_ID \
+                     R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET; do
+            if [ -z "${!var:-}" ]; then
+              echo "::warning::Secret $var is not set"
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 0 ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Backup secrets missing — skipping backup (workflow stays green)."
+          fi
+
+      - name: Install PostgreSQL client (matching server major version)
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+          pg_dump --version
+
+      - name: Dump database
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          STAMP="$(date -u +%Y%m%d-%H%M%S)"
+          echo "OBJECT_KEY=jcv-db-${STAMP}.sql.gpg" >> "$GITHUB_ENV"
+          # --no-owner/--no-privileges keep the dump portable across environments.
+          pg_dump "$SUPABASE_DB_URL" \
+            --no-owner --no-privileges --format=plain \
+            --file=backup.sql
+          echo "Dump size: $(du -h backup.sql | cut -f1)"
+
+      - name: Encrypt dump (GPG AES-256)
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          gpg --batch --yes --quiet \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            --cipher-algo AES256 \
+            --symmetric --output "$OBJECT_KEY" backup.sql
+          rm -f backup.sql
+          echo "Encrypted: $OBJECT_KEY ($(du -h "$OBJECT_KEY" | cut -f1))"
+
+      - name: Upload to R2 and prune backups older than 30 days
+        if: steps.guard.outputs.ready == 'true'
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+        run: |
+          set -euo pipefail
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+
+          # Upload today's encrypted backup.
+          aws s3 cp "$OBJECT_KEY" "s3://${R2_BUCKET}/${OBJECT_KEY}" \
+            --endpoint-url "$ENDPOINT"
+          echo "Uploaded s3://${R2_BUCKET}/${OBJECT_KEY}"
+
+          # Retention: delete objects whose LastModified is older than 30 days.
+          CUTOFF=$(date -u -d "-${RETENTION_DAYS} days" +%s)
+          aws s3api list-objects-v2 --bucket "$R2_BUCKET" \
+            --endpoint-url "$ENDPOINT" \
+            --query 'Contents[].{Key: Key, LastModified: LastModified}' \
+            --output json > objects.json || echo '[]' > objects.json
+          # Compute the list of expired keys with python, then delete them.
+          python3 - "$CUTOFF" > expired_keys.txt <<'PY'
+          import json, sys, datetime
+          cutoff = int(sys.argv[1])
+          try:
+              items = json.load(open("objects.json")) or []
+          except Exception:
+              items = []
+          for it in items:
+              lm = it.get("LastModified")
+              if not lm:
+                  continue
+              ts = int(datetime.datetime.fromisoformat(lm.replace("Z", "+00:00")).timestamp())
+              if ts < cutoff:
+                  print(it["Key"])
+          PY
+          while read -r key; do
+            [ -z "$key" ] && continue
+            echo "Pruning old backup: $key"
+            aws s3 rm "s3://${R2_BUCKET}/${key}" --endpoint-url "$ENDPOINT"
+          done < expired_keys.txt
+
+      - name: Clean up local artifacts
+        if: always()
+        run: rm -f backup.sql *.sql.gpg objects.json
