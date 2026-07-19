@@ -68,94 +68,99 @@ describe("SubscriptionService", () => {
     });
   });
 
-  describe("createSubscription", () => {
-    it("should create subscription and update profile", async () => {
-      const mockSub = createMockSubscription();
-      mockSupabase.mocks.single.mockResolvedValueOnce({
-        data: mockSub,
-        error: null,
-      });
-      // Profile update
-      mockSupabase.mocks.eq.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
-
-      const result = await service.createSubscription({
-        userId: "test-user-id",
-        planType: "PLAN_PRO",
-        paymentProvider: "mercadopago",
-        paymentReference: "test-ref",
-        amountPaid: 39900,
-      });
-
-      expect(result).toEqual(mockSub);
-      expect(mockSupabase.mocks.insert).toHaveBeenCalled();
-      expect(mockSupabase.mocks.update).toHaveBeenCalled();
+  // SECURITY: createSubscription was removed. The service must NEVER write a
+  // subscriptions row or a profiles entitlement column — those are granted only
+  // by the verified-payment webhook (service role). These tests lock that in.
+  describe("no client entitlement writes", () => {
+    it("does not expose a createSubscription method", () => {
+      expect(
+        (service as unknown as Record<string, unknown>).createSubscription
+      ).toBeUndefined();
     });
 
-    it("should throw error when insert fails", async () => {
-      mockSupabase.mocks.single.mockResolvedValueOnce({
-        data: null,
-        error: { message: "Insert failed" },
-      });
-
-      await expect(
-        service.createSubscription({
-          userId: "test-user-id",
-          planType: "PLAN_PRO",
-          paymentProvider: "mercadopago",
-          paymentReference: "test-ref",
-          amountPaid: 39900,
-        })
-      ).rejects.toThrow("Insert failed");
+    it("does not expose a checkAndExpireSubscriptions method", () => {
+      expect(
+        (service as unknown as Record<string, unknown>).checkAndExpireSubscriptions
+      ).toBeUndefined();
     });
 
-    it("should throw error when no data returned", async () => {
-      mockSupabase.mocks.single.mockResolvedValueOnce({
-        data: null,
-        error: null,
-      });
+    it("getActiveSubscription performs no insert/update", async () => {
+      mockSupabase.mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
 
-      await expect(
-        service.createSubscription({
-          userId: "test-user-id",
-          planType: "PLAN_PRO",
-          paymentProvider: "mercadopago",
-          paymentReference: "test-ref",
-          amountPaid: 39900,
-        })
-      ).rejects.toThrow("Failed to create subscription");
+      await service.getActiveSubscription("test-user-id");
+
+      expect(mockSupabase.mocks.insert).not.toHaveBeenCalled();
+      expect(mockSupabase.mocks.update).not.toHaveBeenCalled();
     });
   });
 
-  describe("cancelSubscription", () => {
-    it.skip("should cancel subscription and update profile when no other active subs", async () => {
-      // TODO: This test requires complex mock chaining that doesn't work well with current setup
-      // Integration test would be more appropriate for this scenario
-      mockSupabase.mocks.single.mockResolvedValueOnce({
-        data: { user_id: "test-user-id" },
-        error: null,
+  describe("findSubscriptionByPaymentReference (activation poll)", () => {
+    it("returns the webhook-created subscription without any write", async () => {
+      const mockSub = createMockSubscription({ payment_reference: "mp-123" });
+      mockSupabase.mocks.maybeSingle.mockResolvedValue({ data: mockSub, error: null });
+
+      const result = await service.findSubscriptionByPaymentReference("mp-123");
+
+      expect(result).toEqual(mockSub);
+      expect(mockSupabase.mocks.from).toHaveBeenCalledWith("subscriptions");
+      expect(mockSupabase.mocks.eq).toHaveBeenCalledWith("payment_reference", "mp-123");
+      // Purely a read — no writes.
+      expect(mockSupabase.mocks.insert).not.toHaveBeenCalled();
+      expect(mockSupabase.mocks.update).not.toHaveBeenCalled();
+      expect(mockSupabase.mocks.rpc).not.toHaveBeenCalled();
+    });
+
+    it("returns null for an empty reference without querying", async () => {
+      const result = await service.findSubscriptionByPaymentReference("");
+      expect(result).toBeNull();
+      expect(mockSupabase.mocks.from).not.toHaveBeenCalled();
+    });
+
+    it("returns null and logs on query error", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockSupabase.mocks.maybeSingle.mockResolvedValue({
+        data: null,
+        error: { message: "boom" },
       });
-      mockSupabase.mocks.limit.mockResolvedValueOnce({
-        data: [],
-        error: null,
-      });
+
+      const result = await service.findSubscriptionByPaymentReference("mp-x");
+
+      expect(result).toBeNull();
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("cancelSubscription (SECURITY DEFINER RPC path)", () => {
+    it("routes cancellation through the cancel_subscription RPC, not a direct update", async () => {
+      mockSupabase.mocks.rpc.mockResolvedValue({ data: true, error: null });
 
       await service.cancelSubscription("test-subscription-id");
 
-      expect(mockSupabase.mocks.update).toHaveBeenCalledWith({ status: "cancelled" });
+      expect(mockSupabase.mocks.rpc).toHaveBeenCalledWith("cancel_subscription", {
+        p_subscription_id: "test-subscription-id",
+      });
+      // Must NOT touch subscriptions/profiles directly from the client.
+      expect(mockSupabase.mocks.update).not.toHaveBeenCalled();
+      expect(mockSupabase.mocks.insert).not.toHaveBeenCalled();
     });
 
-    it("should throw error when subscription not found", async () => {
-      mockSupabase.mocks.single.mockResolvedValueOnce({
-        data: null,
-        error: { message: "Not found" },
-      });
+    it("throws when the RPC reports the subscription was not found/owned", async () => {
+      mockSupabase.mocks.rpc.mockResolvedValue({ data: false, error: null });
 
       await expect(
         service.cancelSubscription("non-existent-id")
       ).rejects.toThrow("Subscription not found");
+    });
+
+    it("throws on RPC error", async () => {
+      mockSupabase.mocks.rpc.mockResolvedValue({
+        data: null,
+        error: { message: "rpc failed" },
+      });
+
+      await expect(
+        service.cancelSubscription("test-subscription-id")
+      ).rejects.toThrow("rpc failed");
     });
   });
 

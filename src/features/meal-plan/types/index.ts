@@ -1,20 +1,25 @@
+import type { BilingualText } from "@/features/exercises";
+
+export type { BilingualText };
+
 export interface FoodItem {
-  name: string;
+  name: BilingualText;
   grams: number;
-  unit?: string;
+  /** Optional display unit, e.g. "1 unidad" / "1 unit". */
+  unit?: BilingualText;
 }
 
 export interface Meal {
   id: string;
-  name: string;
+  name: BilingualText;
   time: string;
   foods: FoodItem[];
-  notes?: string;
+  notes?: BilingualText;
 }
 
 export interface DayPlan {
   day: number;
-  dayName: string;
+  dayName: BilingualText;
   meals: Meal[];
 }
 
@@ -27,8 +32,8 @@ export interface FoodExchange {
 
 export interface MealPlanConfig {
   phase: number;
-  phaseName: string;
-  duration: string;
+  phaseName: BilingualText;
+  duration: BilingualText;
   dailyMeals: number;
   days: DayPlan[];
   exchanges: FoodExchange[];

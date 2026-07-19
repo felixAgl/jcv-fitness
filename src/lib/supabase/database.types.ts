@@ -203,6 +203,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: number;
       };
+      cancel_subscription: {
+        Args: { p_subscription_id: string };
+        Returns: boolean;
+      };
       can_create_plan: {
         Args: { user_uuid: string };
         Returns: { can_create: boolean; reason: string | null }[];

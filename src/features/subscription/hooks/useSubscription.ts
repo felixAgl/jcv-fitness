@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/features/auth";
 import { subscriptionService } from "../services/subscription-service";
-import type { Subscription, PlanType, PaymentProvider } from "../types";
+import type { Subscription } from "../types";
 
 export function useSubscription() {
   const { user, profile } = useAuth();
@@ -34,23 +34,6 @@ export function useSubscription() {
     loadSubscription();
   }, [loadSubscription]);
 
-  const createSubscription = async (params: {
-    planType: PlanType;
-    paymentProvider: PaymentProvider;
-    paymentReference: string;
-    amountPaid: number;
-  }) => {
-    if (!user) throw new Error("User not authenticated");
-
-    const newSub = await subscriptionService.createSubscription({
-      userId: user.id,
-      ...params,
-    });
-
-    setSubscription(newSub);
-    return newSub;
-  };
-
   const cancelSubscription = async () => {
     if (!subscription) throw new Error("No active subscription");
 
@@ -69,7 +52,6 @@ export function useSubscription() {
     error,
     hasActiveSubscription,
     daysRemaining,
-    createSubscription,
     cancelSubscription,
     refresh: loadSubscription,
   };

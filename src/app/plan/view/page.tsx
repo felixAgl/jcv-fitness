@@ -3,6 +3,7 @@
 import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { JCVLogo } from "@/shared/components/JCVLogo";
 import { useAuth } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
 import { PlanViewer } from "@/features/plans/components/PlanViewer";
@@ -13,11 +14,14 @@ function PreviewBanner() {
   return (
     <div className="bg-gradient-to-r from-accent-cyan/20 to-blue-500/20 border-b border-accent-cyan/30">
       <div className="max-w-5xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-3 text-sm">
+          <Link href="/" aria-label="Volver al inicio" className="shrink-0 hover:opacity-80 transition-opacity">
+            <JCVLogo variant="cyan" size="sm" showText />
+          </Link>
           <span className="px-2 py-0.5 bg-accent-cyan/20 text-accent-cyan rounded font-bold text-xs uppercase">
             Ejemplo
           </span>
-          <span className="text-gray-300">
+          <span className="text-gray-300 hidden sm:inline">
             Asi luce un plan generado por JCV Fitness
           </span>
         </div>

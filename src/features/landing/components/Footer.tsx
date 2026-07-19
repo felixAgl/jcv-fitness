@@ -68,7 +68,7 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <Link href="/generator" className="text-foreground/60 hover:text-primary transition-colors">
+                <Link href="/wizard" className="text-foreground/60 hover:text-primary transition-colors">
                   {t.linkGenerator}
                 </Link>
               </li>

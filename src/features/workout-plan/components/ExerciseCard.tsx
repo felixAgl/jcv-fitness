@@ -3,6 +3,8 @@
 import { Card } from "@/shared/components/ui";
 import { Dumbbell, Timer, RotateCcw, Play, Youtube } from "lucide-react";
 import type { Exercise } from "../types";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "@/features/landing/i18n";
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -10,6 +12,9 @@ interface ExerciseCardProps {
 }
 
 export function ExerciseCard({ exercise, index }: ExerciseCardProps) {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].workoutPlan;
+
   return (
     <Card hover className="p-4">
       <div className="flex items-start gap-4">
@@ -17,23 +22,27 @@ export function ExerciseCard({ exercise, index }: ExerciseCardProps) {
           {index + 1}
         </div>
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-foreground mb-2">{exercise.name}</h4>
+          <h4 className="font-semibold text-foreground mb-2">{exercise.name[lang]}</h4>
           <div className="flex flex-wrap gap-4 text-sm text-foreground/60">
             <div className="flex items-center gap-1">
               <Dumbbell className="h-4 w-4 text-primary" />
-              <span>{exercise.sets} series</span>
+              <span>
+                {exercise.sets} {t.setsLabel}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <RotateCcw className="h-4 w-4 text-primary" />
-              <span>{exercise.reps} reps</span>
+              <span>
+                {exercise.reps[lang]} {t.repsLabel}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Timer className="h-4 w-4 text-primary" />
-              <span>{exercise.rest}</span>
+              <span>{exercise.rest[lang]}</span>
             </div>
           </div>
           {exercise.notes && (
-            <p className="mt-2 text-xs text-foreground/50 italic">{exercise.notes}</p>
+            <p className="mt-2 text-xs text-foreground/50 italic">{exercise.notes[lang]}</p>
           )}
         </div>
         <div className="shrink-0">

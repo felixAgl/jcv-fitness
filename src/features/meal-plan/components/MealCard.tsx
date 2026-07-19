@@ -3,16 +3,19 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui";
 import { Clock, Utensils } from "lucide-react";
 import type { Meal } from "../types";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
 
 interface MealCardProps {
   meal: Meal;
 }
 
 export function MealCard({ meal }: MealCardProps) {
+  const { lang } = useLanguage();
+
   return (
     <Card hover className="h-full">
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="text-lg text-primary">{meal.name}</CardTitle>
+        <CardTitle className="text-lg text-primary">{meal.name[lang]}</CardTitle>
         <div className="flex items-center gap-1 text-sm text-foreground/60">
           <Clock className="h-4 w-4" />
           <span>{meal.time}</span>
@@ -24,9 +27,9 @@ export function MealCard({ meal }: MealCardProps) {
             <li key={index} className="flex items-start gap-2">
               <Utensils className="h-4 w-4 mt-0.5 text-primary/60 shrink-0" />
               <span className="text-sm">
-                <span className="font-medium">{food.name}</span>
+                <span className="font-medium">{food.name[lang]}</span>
                 <span className="text-foreground/60 ml-1">
-                  {food.unit ?? `${food.grams}g`}
+                  {food.unit ? food.unit[lang] : `${food.grams}g`}
                 </span>
               </span>
             </li>
@@ -34,7 +37,7 @@ export function MealCard({ meal }: MealCardProps) {
         </ul>
         {meal.notes && (
           <p className="mt-4 text-xs text-foreground/50 italic border-t border-border pt-3">
-            {meal.notes}
+            {meal.notes[lang]}
           </p>
         )}
       </CardContent>

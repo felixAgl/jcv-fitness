@@ -15,6 +15,7 @@ export const createMockSupabaseClient = () => {
   const mockLimit = vi.fn();
   const mockSingle = vi.fn();
   const mockMaybeSingle = vi.fn();
+  const mockRpc = vi.fn();
 
   // Chain methods
   const chainMethods = {
@@ -39,8 +40,12 @@ export const createMockSupabaseClient = () => {
 
   mockFrom.mockReturnValue(chainMethods);
 
+  // rpc resolves to a success envelope by default; tests override per-case.
+  mockRpc.mockResolvedValue({ data: true, error: null });
+
   const client = {
     from: mockFrom,
+    rpc: mockRpc,
     auth: {
       getSession: vi.fn(),
       getUser: vi.fn(),
@@ -67,6 +72,7 @@ export const createMockSupabaseClient = () => {
       limit: mockLimit,
       single: mockSingle,
       maybeSingle: mockMaybeSingle,
+      rpc: mockRpc,
     },
   };
 };

@@ -5,6 +5,7 @@ import { cn } from "@/shared/lib/cn";
 import type { MealPlanConfig } from "../types";
 import { DayPlanView } from "./DayPlanView";
 import { FoodExchangeTable } from "./FoodExchangeTable";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
 
 interface MealPlanWeekProps {
   config: MealPlanConfig;
@@ -13,15 +14,16 @@ interface MealPlanWeekProps {
 export function MealPlanWeek({ config }: MealPlanWeekProps) {
   const [selectedDay, setSelectedDay] = useState(1);
   const [showExchanges, setShowExchanges] = useState(false);
+  const { lang } = useLanguage();
 
   const currentDayPlan = config.days.find((d) => d.day === selectedDay);
 
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h2 className="text-4xl font-bold text-primary mb-2">{config.phaseName}</h2>
+        <h2 className="text-4xl font-bold text-primary mb-2">{config.phaseName[lang]}</h2>
         <p className="text-foreground/60">
-          Duracion: {config.duration} | {config.dailyMeals} comidas diarias
+          Duracion: {config.duration[lang]} | {config.dailyMeals} comidas diarias
         </p>
       </div>
 
@@ -37,7 +39,7 @@ export function MealPlanWeek({ config }: MealPlanWeekProps) {
                 : "bg-card hover:bg-card-hover text-foreground border border-border"
             )}
           >
-            {day.dayName}
+            {day.dayName[lang]}
           </button>
         ))}
       </div>

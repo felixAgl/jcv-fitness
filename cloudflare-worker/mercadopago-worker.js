@@ -25,11 +25,24 @@ const ALLOWED_ORIGINS = [
   'http://localhost:5173',
 ];
 
+// Amount (COP, no decimals) -> plan. This is the SINGLE SOURCE OF TRUTH for
+// valid prices. A transaction_amount that is not an exact key here is rejected.
 const PLAN_CONFIG = {
   49900: { type: 'PLAN_BASICO', days: 40 },
   89900: { type: 'PLAN_PRO', days: 40 },
   149900: { type: 'PLAN_PREMIUM', days: 40 },
 };
+
+// Reverse map: planType -> server-side price. Used to derive unit_price during
+// preference creation so the client can NEVER dictate the amount charged.
+const PLAN_PRICES = {
+  PLAN_BASICO: 49900,
+  PLAN_PRO: 89900,
+  PLAN_PREMIUM: 149900,
+};
+
+// Currency is fixed for this business; never trust a client-supplied currency.
+const PLAN_CURRENCY = 'COP';
 
 // =============================================================================
 // ERROR TYPES - Distinguir errores recuperables vs permanentes
@@ -95,6 +108,116 @@ function validateEnvConfig(env) {
   }
 }
 
+/**
+ * Resolve the worker's runtime environment ('production' | anything else).
+ * Priority: explicit ENVIRONMENT var -> inferred from MP token prefix.
+ * TEST- tokens imply a non-production environment.
+ */
+function resolveEnvironment(env) {
+  if (env.ENVIRONMENT) return env.ENVIRONMENT.toLowerCase();
+  return (env.MP_ACCESS_TOKEN || '').startsWith('TEST-') ? 'test' : 'production';
+}
+
+// Constant-time comparison of two hex strings (avoids leaking match position).
+function timingSafeEqualHex(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) {
+    return false;
+  }
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+/**
+ * Verify a MercadoPago webhook signature per the official spec.
+ *
+ * MP sends:
+ *   x-signature:  "ts=<unix_ts>,v1=<hmac_sha256_hex>"
+ *   x-request-id: "<uuid>"
+ * The signed manifest is: `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`
+ * HMAC-SHA256 with the webhook secret, compared (timing-safe) against v1.
+ *
+ * FALLBACK: if MP_WEBHOOK_SECRET is unset we log a loud warning and let the
+ * request through (enforced=false) so a mid-deploy secret rotation cannot drop
+ * live payments. The orchestrator MUST set MP_WEBHOOK_SECRET and then this path
+ * becomes strict automatically (reject 401 on mismatch).
+ */
+async function verifyWebhookSignature(request, body, env) {
+  const secret = env.MP_WEBHOOK_SECRET;
+
+  if (!secret) {
+    console.warn(
+      '[Webhook][SECURITY] MP_WEBHOOK_SECRET is NOT set — signature verification SKIPPED. ' +
+      'Any actor can POST forged webhooks. Set the secret ASAP to enforce strict mode.'
+    );
+    return { valid: true, enforced: false, reason: 'secret_unset' };
+  }
+
+  const xSignature = request.headers.get('x-signature') || '';
+  const xRequestId = request.headers.get('x-request-id') || '';
+
+  // Parse "ts=...,v1=..." into { ts, v1 }
+  const parts = {};
+  for (const segment of xSignature.split(',')) {
+    const idx = segment.indexOf('=');
+    if (idx === -1) continue;
+    parts[segment.slice(0, idx).trim()] = segment.slice(idx + 1).trim();
+  }
+  const ts = parts.ts;
+  const v1 = parts.v1;
+
+  if (!ts || !v1) {
+    return { valid: false, enforced: true, reason: 'missing_ts_or_v1' };
+  }
+
+  // MP manifest uses the data.id value; alphanumeric ids are lowercased.
+  const rawId = body?.data?.id != null ? String(body.data.id) : '';
+  const dataId = /[a-zA-Z]/.test(rawId) ? rawId.toLowerCase() : rawId;
+  const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sigBuffer = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(manifest));
+  const computed = [...new Uint8Array(sigBuffer)]
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  const valid = timingSafeEqualHex(computed, v1);
+  return { valid, enforced: true, reason: valid ? 'ok' : 'signature_mismatch' };
+}
+
+/**
+ * Call a Supabase RPC (SECURITY DEFINER function) with the service role key.
+ */
+async function callRpc(env, fn, args = {}) {
+  const response = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: {
+      'apikey': env.SUPABASE_SERVICE_KEY,
+      'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(args),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new WorkerError(
+      `RPC ${fn} failed: ${response.status} ${text.slice(0, 200)}`,
+      ErrorType.SERVER_ERROR,
+      { fn, status: response.status }
+    );
+  }
+  return response.json().catch(() => null);
+}
+
 // =============================================================================
 // MAIN HANDLER
 // =============================================================================
@@ -115,6 +238,16 @@ export default {
       await reconcilePayments(env);
     } catch (e) {
       console.error('[Reconcile] Sweep failed:', e.message);
+    }
+
+    // Expiration sweep — deactivate plans/subscriptions whose end_date has passed.
+    // Runs with the service role; RPCs are SECURITY DEFINER maintenance functions.
+    try {
+      const expiredSubs = await callRpc(env, 'expire_old_subscriptions');
+      const expiredPlans = await callRpc(env, 'expire_old_plans');
+      console.log('[Expire] Sweep done:', { subscriptions: expiredSubs, plans: expiredPlans });
+    } catch (e) {
+      console.error('[Expire] RPC sweep failed:', e.message);
     }
   },
 
@@ -173,6 +306,27 @@ async function handleWebhook(request, env, origin) {
       headers: Object.fromEntries(request.headers),
       payment_id: data?.id ? parseInt(data.id) : null,
     });
+
+    // STEP 1.5: Verificar firma HMAC del webhook (MercadoPago x-signature)
+    const sig = await verifyWebhookSignature(request, body, env);
+    if (sig.enforced && !sig.valid) {
+      await updateWebhookLog(env, logId, {
+        status: 'rejected',
+        error_message: `Webhook signature verification failed: ${sig.reason}`,
+        error_details: { signature: sig.reason, x_request_id: request.headers.get('x-request-id') },
+        processed_at: new Date().toISOString(),
+        processing_time_ms: Date.now() - startTime,
+      });
+      console.warn('[Webhook][SECURITY] Rejected webhook with invalid signature:', sig.reason);
+      return jsonResponse({ error: 'Invalid signature', log_id: logId }, 401);
+    }
+    if (!sig.enforced) {
+      // Fallback mode — flag on the audit record so it is greppable until the
+      // secret is set and strict enforcement kicks in.
+      await updateWebhookLog(env, logId, {
+        error_details: { signature: 'unverified_secret_unset' },
+      });
+    }
 
     // STEP 2: Validar tipo de notificacion
     if (type !== 'payment' && action !== 'payment.updated' && action !== 'payment.created') {
@@ -472,7 +626,7 @@ async function updateWebhookLog(env, logId, data) {
 
   try {
     await fetch(
-      `${env.SUPABASE_URL}/rest/v1/webhook_logs?id=eq.${logId}`,
+      `${env.SUPABASE_URL}/rest/v1/webhook_logs?id=eq.${encodeURIComponent(logId)}`,
       {
         method: 'PATCH',
         headers: {
@@ -491,7 +645,7 @@ async function updateWebhookLog(env, logId, data) {
 async function checkDuplicateWebhook(env, paymentId, action) {
   try {
     const response = await fetch(
-      `${env.SUPABASE_URL}/rest/v1/webhook_logs?payment_id=eq.${paymentId}&webhook_action=eq.${action}&status=eq.success&limit=1`,
+      `${env.SUPABASE_URL}/rest/v1/webhook_logs?payment_id=eq.${encodeURIComponent(paymentId)}&webhook_action=eq.${encodeURIComponent(action ?? '')}&status=eq.success&limit=1`,
       {
         headers: {
           'apikey': env.SUPABASE_SERVICE_KEY,
@@ -518,6 +672,48 @@ async function activateSubscription(payment, env, webhookLogId) {
   const { SUPABASE_URL: supabaseUrl, SUPABASE_SERVICE_KEY: supabaseKey } = env;
   const operations = [];
 
+  // ---------------------------------------------------------------------------
+  // HARD MONEY GUARDS — validated BEFORE any DB work. No fallbacks: an unexpected
+  // amount/currency/live_mode means we refuse to grant access rather than guess.
+  // ---------------------------------------------------------------------------
+
+  // #17 live_mode: never create a production subscription from a TEST payment
+  // (or vice-versa). MP marks each payment with live_mode true/false.
+  const environment = resolveEnvironment(env);
+  const expectLive = environment === 'production';
+  if (typeof payment.live_mode === 'boolean' && payment.live_mode !== expectLive) {
+    throw new WorkerError(
+      `live_mode mismatch: payment.live_mode=${payment.live_mode} but environment=${environment}`,
+      ErrorType.VALIDATION_ERROR,
+      { live_mode: payment.live_mode, environment }
+    );
+  }
+
+  // #2/#8 amount: must be an EXACT recognized plan price. No PLAN_BASICO fallback.
+  const amount = payment.transaction_amount;
+  const planConfig = PLAN_CONFIG[amount];
+  if (!planConfig) {
+    throw new WorkerError(
+      `Rejected: transaction_amount ${amount} is not a recognized plan price`,
+      ErrorType.VALIDATION_ERROR,
+      { amount, valid_amounts: Object.keys(PLAN_CONFIG) }
+    );
+  }
+
+  // #2/#8 currency: must be COP.
+  const currency = payment.currency_id;
+  if (currency !== PLAN_CURRENCY) {
+    throw new WorkerError(
+      `Rejected: currency ${currency} is not ${PLAN_CURRENCY}`,
+      ErrorType.VALIDATION_ERROR,
+      { currency, amount }
+    );
+  }
+
+  const planType = planConfig.type;
+  const planDays = planConfig.days;
+  operations.push({ op: 'money_validated', amount, currency, plan: planType, environment });
+
   // Extract user info
   const externalRef = payment.external_reference || '';
   const payerEmail = payment.payer?.email;
@@ -535,19 +731,19 @@ async function activateSubscription(payment, env, webhookLogId) {
   let userLookupMethod = null;
 
   if (userId) {
-    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${userId}`);
+    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${encodeURIComponent(userId)}`);
     if (user) userLookupMethod = 'metadata_user_id';
     operations.push({ op: 'user_lookup_metadata', success: !!user, value: userId });
   }
 
   if (!user && userIdFromRef) {
-    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${userIdFromRef}`);
+    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `id=eq.${encodeURIComponent(userIdFromRef)}`);
     if (user) userLookupMethod = 'external_reference';
     operations.push({ op: 'user_lookup_ref', success: !!user, value: userIdFromRef });
   }
 
   if (!user && payerEmail) {
-    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `email=eq.${payerEmail}`);
+    user = await supabaseQuery(supabaseUrl, supabaseKey, 'profiles', 'id,email', `email=eq.${encodeURIComponent(payerEmail)}`);
     if (user) userLookupMethod = 'payer_email';
     operations.push({ op: 'user_lookup_email', success: !!user, value: payerEmail });
   }
@@ -570,27 +766,42 @@ async function activateSubscription(payment, env, webhookLogId) {
     });
   }
 
-  // Determine plan type from amount
-  const amount = payment.transaction_amount;
-  const planConfig = PLAN_CONFIG[amount];
+  // planType/planDays already derived from the validated amount above.
 
-  if (!planConfig) {
-    console.warn(`[Webhook] Amount ${amount} not in PLAN_CONFIG, using fallback`);
-    operations.push({ op: 'plan_lookup', success: false, amount, fallback: true });
-  } else {
-    operations.push({ op: 'plan_lookup', success: true, amount, plan: planConfig.type });
-  }
-
-  const planType = planConfig?.type || payment.metadata?.plan_type || 'PLAN_BASICO';
-  const planDays = planConfig?.days || 40;
-
-  // Check if subscription already exists (idempotency)
+  // Check if subscription already exists (idempotency). Match on the SAME key as
+  // the UNIQUE index: (payment_provider, payment_reference).
+  const paymentRefEnc = encodeURIComponent(String(payment.id));
   const existingSub = await supabaseQuery(
-    supabaseUrl, supabaseKey, 'subscriptions', 'id', `payment_reference=eq.${payment.id}`
+    supabaseUrl, supabaseKey, 'subscriptions', 'id,end_date,plan_type,status',
+    `payment_provider=eq.mercadopago&payment_reference=eq.${paymentRefEnc}`
   );
 
   if (existingSub) {
     operations.push({ op: 'subscription_exists', subscription_id: existingSub.id });
+
+    // #13 Self-healing: the subscription row exists but the profile entitlement
+    // may have drifted (e.g. a prior run inserted the sub then failed before the
+    // profile update). Idempotently re-assert entitlement — but ONLY if the
+    // existing subscription is still active and not expired, so a re-fired
+    // webhook for an old payment cannot silently re-activate a lapsed plan.
+    const stillActive =
+      existingSub.status === 'active' &&
+      existingSub.end_date && new Date(existingSub.end_date) > new Date();
+    if (stillActive) {
+      try {
+        await supabaseUpdate(supabaseUrl, supabaseKey, 'profiles', user.id, {
+          has_active_subscription: true,
+          current_plan: existingSub.plan_type || planType,
+          subscription_end_date: existingSub.end_date,
+          updated_at: new Date().toISOString(),
+        });
+        operations.push({ op: 'profile_reassert', success: true });
+      } catch (e) {
+        operations.push({ op: 'profile_reassert', success: false, error: e.message });
+      }
+    } else {
+      operations.push({ op: 'profile_reassert', skipped: true, reason: 'subscription_not_active' });
+    }
 
     if (webhookLogId) {
       await updateWebhookLog(env, webhookLogId, {
@@ -614,16 +825,61 @@ async function activateSubscription(payment, env, webhookLogId) {
   const endDate = new Date();
   endDate.setDate(endDate.getDate() + planDays);
 
-  const subscription = await supabaseInsert(supabaseUrl, supabaseKey, 'subscriptions', {
-    user_id: user.id,
-    plan_type: planType,
-    status: 'active',
-    start_date: new Date().toISOString(),
-    end_date: endDate.toISOString(),
-    payment_provider: 'mercadopago',
-    payment_reference: String(payment.id),
-    amount_paid: amount,
-  });
+  // #15 Idempotency: the check-then-insert above still races with a concurrent
+  // webhook/reconcile for the same payment. The UNIQUE index on
+  // (payment_provider, payment_reference) is the real guard — if we lose the
+  // race, the insert returns 23505 (HTTP 409). Treat that as "already processed"
+  // and self-heal the profile rather than failing the webhook.
+  let subscription;
+  try {
+    subscription = await supabaseInsert(supabaseUrl, supabaseKey, 'subscriptions', {
+      user_id: user.id,
+      plan_type: planType,
+      status: 'active',
+      start_date: new Date().toISOString(),
+      end_date: endDate.toISOString(),
+      payment_provider: 'mercadopago',
+      payment_reference: String(payment.id),
+      amount_paid: amount,
+    });
+  } catch (e) {
+    if (e instanceof WorkerError && e.details?.conflict) {
+      operations.push({ op: 'subscription_insert_conflict', payment_reference: String(payment.id) });
+
+      const winner = await supabaseQuery(
+        supabaseUrl, supabaseKey, 'subscriptions', 'id,end_date,plan_type',
+        `payment_provider=eq.mercadopago&payment_reference=eq.${paymentRefEnc}`
+      );
+
+      // Re-assert entitlement idempotently (the winning insert may not have
+      // reached the profile update yet).
+      try {
+        await supabaseUpdate(supabaseUrl, supabaseKey, 'profiles', user.id, {
+          has_active_subscription: true,
+          current_plan: winner?.plan_type || planType,
+          subscription_end_date: winner?.end_date || endDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      } catch (_) { /* best-effort */ }
+
+      if (webhookLogId) {
+        await updateWebhookLog(env, webhookLogId, {
+          subscription_id: winner?.id,
+          user_id: user.id,
+          plan_type: planType,
+          supabase_operations: operations,
+        });
+      }
+
+      return {
+        status: 'already_exists',
+        subscription_id: winner?.id,
+        user_id: user.id,
+        plan_type: planType,
+      };
+    }
+    throw e;
+  }
 
   operations.push({ op: 'subscription_insert', success: !!subscription, id: subscription?.id });
 
@@ -732,10 +988,20 @@ async function reconcilePayments(env) {
   for (const payment of payments) {
     checked++;
     try {
+      // #7 Reconciliation filter: only ever touch payments that are OURS and
+      // whose amount is an exact plan price. This prevents the sweep from
+      // activating unrelated MP payments on the same account, or payments with a
+      // tampered/unexpected amount.
+      const ref = payment.external_reference || '';
+      if (!ref.startsWith('JCV-') || !PLAN_CONFIG[payment.transaction_amount]) {
+        continue;
+      }
+
       // Idempotency guard: skip payments that already have a subscription
       const existingSub = await supabaseQuery(
         env.SUPABASE_URL, env.SUPABASE_SERVICE_KEY,
-        'subscriptions', 'id', `payment_reference=eq.${payment.id}`
+        'subscriptions', 'id',
+        `payment_provider=eq.mercadopago&payment_reference=eq.${encodeURIComponent(String(payment.id))}`
       );
       if (existingSub) continue;
 
@@ -848,6 +1114,14 @@ async function supabaseInsert(url, key, table, data) {
 
   if (!response.ok) {
     const error = await response.text();
+    // 409 / 23505 = unique constraint violation. Surface as a recoverable
+    // "conflict" so callers can treat it as an idempotent duplicate (#15).
+    if (response.status === 409 || error.includes('23505') || error.includes('duplicate key')) {
+      throw new WorkerError(`Supabase insert conflict: ${error}`, ErrorType.VALIDATION_ERROR, {
+        conflict: true,
+        code: '23505',
+      });
+    }
     console.error('[Supabase] Insert error:', error);
     throw new WorkerError(`Supabase insert failed: ${error}`, ErrorType.SERVER_ERROR);
   }
@@ -858,7 +1132,7 @@ async function supabaseInsert(url, key, table, data) {
 
 async function supabaseUpdate(url, key, table, id, data) {
   const response = await fetch(
-    `${url}/rest/v1/${table}?id=eq.${id}`,
+    `${url}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`,
     {
       method: 'PATCH',
       headers: {
@@ -897,12 +1171,22 @@ async function handlePreferenceCreation(request, env, origin) {
     const body = await request.json();
     const { items, payer, backUrls, planType, userId } = body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return new Response(JSON.stringify({ error: 'Items are required' }), {
+    // #2/#8 Never trust client-sent price/quantity/currency. The plan the client
+    // asked for determines the amount, server-side, from PLAN_PRICES.
+    const unitPrice = PLAN_PRICES[planType];
+    if (!unitPrice) {
+      return new Response(JSON.stringify({
+        error: 'Invalid planType',
+        details: `planType must be one of: ${Object.keys(PLAN_PRICES).join(', ')}`,
+      }), {
         status: 400,
         headers: { ...corsHeaders(origin), 'Content-Type': 'application/json' },
       });
     }
+
+    // items is still accepted for display metadata (title/description) only —
+    // it CANNOT influence price, quantity, or currency.
+    const displayItem = Array.isArray(items) && items[0] ? items[0] : {};
 
     // Determine URLs
     const isProduction = origin.includes('jcv24fitness.com');
@@ -910,16 +1194,16 @@ async function handlePreferenceCreation(request, env, origin) {
     const requestUrl = new URL(request.url);
     const workerUrl = env.WORKER_URL || `https://${requestUrl.hostname}`;
 
-    // Build preference
+    // Build preference — price/quantity/currency are server-authoritative.
     const preferenceData = {
-      items: items.map(item => ({
-        id: item.id,
-        title: item.title,
-        description: item.description || '',
-        quantity: item.quantity || 1,
-        currency_id: item.currencyId || 'COP',
-        unit_price: item.unitPrice,
-      })),
+      items: [{
+        id: planType,
+        title: displayItem.title || planType,
+        description: displayItem.description || '',
+        quantity: 1,
+        currency_id: PLAN_CURRENCY,
+        unit_price: unitPrice,
+      }],
       back_urls: backUrls || {
         success: `${baseUrl}/payment/success`,
         failure: `${baseUrl}/payment/failure`,
@@ -931,7 +1215,7 @@ async function handlePreferenceCreation(request, env, origin) {
       notification_url: `${workerUrl}/webhook`,
       metadata: {
         user_id: userId || null,
-        plan_type: planType || 'PLAN_BASICO',
+        plan_type: planType,
         origin: origin,
       },
     };
@@ -1047,10 +1331,10 @@ async function handleBookingNotify(request, env) {
     const supabaseKey = env.SUPABASE_SERVICE_KEY;
 
     const [slotRes, clientRes] = await Promise.all([
-      fetch(`${supabaseUrl}/rest/v1/training_slots?id=eq.${record.slot_id}&select=title,slot_date,start_time,end_time`, {
+      fetch(`${supabaseUrl}/rest/v1/training_slots?id=eq.${encodeURIComponent(record.slot_id)}&select=title,slot_date,start_time,end_time`, {
         headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
       }),
-      fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${record.user_id}&select=full_name,email`, {
+      fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${encodeURIComponent(record.user_id)}&select=full_name,email`, {
         headers: { apikey: supabaseKey, Authorization: `Bearer ${supabaseKey}` },
       }),
     ]);

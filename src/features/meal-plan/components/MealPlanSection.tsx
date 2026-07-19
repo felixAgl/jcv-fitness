@@ -35,8 +35,8 @@ export function MealPlanSection({ config, isPreview = true }: MealPlanSectionPro
           </h2>
           <p className="text-foreground/60 max-w-2xl mx-auto">
             {t.subtitle
-              .replace("{phase}", config.phaseName)
-              .replace("{duration}", config.duration)
+              .replace("{phase}", config.phaseName[lang])
+              .replace("{duration}", config.duration[lang])
               .replace("{meals}", String(config.dailyMeals))}
           </p>
         </div>
@@ -60,7 +60,7 @@ export function MealPlanSection({ config, isPreview = true }: MealPlanSectionPro
                     : "bg-card hover:bg-card-hover text-foreground/60"
                 )}
               >
-                {day.dayName.charAt(0)}
+                {day.dayName[lang].charAt(0)}
               </button>
             ))}
             {/* Dias bloqueados */}
