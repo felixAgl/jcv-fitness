@@ -12,13 +12,11 @@ vi.mock("@/features/auth", () => ({
 
 // Mock subscription service
 const mockGetActiveSubscription = vi.fn();
-const mockCreateSubscription = vi.fn();
 const mockCancelSubscription = vi.fn();
 
 vi.mock("../../services/subscription-service", () => ({
   subscriptionService: {
     getActiveSubscription: (...args: unknown[]) => mockGetActiveSubscription(...args),
-    createSubscription: (...args: unknown[]) => mockCreateSubscription(...args),
     cancelSubscription: (...args: unknown[]) => mockCancelSubscription(...args),
   },
 }));
@@ -196,15 +194,15 @@ describe("useSubscription", () => {
     });
   });
 
-  describe("createSubscription", () => {
-    it("should create subscription and update state", async () => {
-      const newSub = createMockSubscription();
+  // SECURITY: the hook no longer exposes createSubscription. Activation happens
+  // server-side via the verified-payment webhook; the client can only read.
+  describe("no client-side activation", () => {
+    it("does not expose a createSubscription method", async () => {
       mockUseAuth.mockReturnValue({
         user: { id: "test-user-id" },
         profile: createMockProfile(),
       });
       mockGetActiveSubscription.mockResolvedValue(null);
-      mockCreateSubscription.mockResolvedValue(newSub);
 
       const { result } = renderHook(() => useSubscription());
 
@@ -212,45 +210,9 @@ describe("useSubscription", () => {
         expect(result.current.isLoading).toBe(false);
       });
 
-      await act(async () => {
-        await result.current.createSubscription({
-          planType: "PLAN_PRO",
-          paymentProvider: "mercadopago",
-          paymentReference: "test-ref",
-          amountPaid: 39900,
-        });
-      });
-
-      expect(result.current.subscription).toEqual(newSub);
-      expect(mockCreateSubscription).toHaveBeenCalledWith({
-        userId: "test-user-id",
-        planType: "PLAN_PRO",
-        paymentProvider: "mercadopago",
-        paymentReference: "test-ref",
-        amountPaid: 39900,
-      });
-    });
-
-    it("should throw error when user not authenticated", async () => {
-      mockUseAuth.mockReturnValue({
-        user: null,
-        profile: null,
-      });
-
-      const { result } = renderHook(() => useSubscription());
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      await expect(
-        result.current.createSubscription({
-          planType: "PLAN_PRO",
-          paymentProvider: "mercadopago",
-          paymentReference: "test-ref",
-          amountPaid: 39900,
-        })
-      ).rejects.toThrow("User not authenticated");
+      expect(
+        (result.current as unknown as Record<string, unknown>).createSubscription
+      ).toBeUndefined();
     });
   });
 
