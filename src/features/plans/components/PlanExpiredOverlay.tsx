@@ -21,10 +21,20 @@ export function PlanExpiredOverlay() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:py-8">
       <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" />
 
-      <div className="relative bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full p-8 shadow-2xl text-center">
+      <div className="relative bg-gray-900 rounded-2xl border border-gray-800 max-w-md w-full my-auto p-8 shadow-2xl text-center">
+        <Link
+          href="/"
+          aria-label="Volver al inicio"
+          className="absolute top-4 left-4 flex h-9 w-9 items-center justify-center rounded-full text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+        </Link>
+
         <div className="w-20 h-20 mx-auto rounded-full bg-red-500/20 flex items-center justify-center mb-6">
           <svg className="w-10 h-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
