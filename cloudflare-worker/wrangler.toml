@@ -6,6 +6,12 @@ compatibility_date = "2024-01-01"
 # Every 30 min: payment reconciliation sweep + Supabase keep-alive ping
 crons = ["*/30 * * * *"]
 
+# ENVIRONMENT drives the live_mode guard (#17): 'production' expects
+# payment.live_mode === true; anything else expects TEST payments. If unset, the
+# worker infers it from the MP_ACCESS_TOKEN prefix (TEST- => non-production).
+[vars]
+ENVIRONMENT = "production"
+
 # Environment variables (secrets should be set via wrangler secret put)
 # MP_ACCESS_TOKEN - MercadoPago Access Token (TEST or PROD)
 # SUPABASE_URL - Supabase project URL
@@ -20,6 +26,9 @@ crons = ["*/30 * * * *"]
 # =============================================================================
 [env.staging]
 name = "mercadopago-jcv-staging"
+
+[env.staging.vars]
+ENVIRONMENT = "staging"
 
 # =============================================================================
 # PRODUCTION ENVIRONMENT (default)
