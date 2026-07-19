@@ -8,6 +8,10 @@
 # LICENSE GATE: exercise media is (c) Gymvisual. Do NOT add the IG secrets
 # until the owner's Gymvisual license is finalized; until then the trainer
 # downloads the artifact and posts manually.
+#
+# STATE: the "already used" tracker persists via actions/cache (NOT a git push
+# to main — main is a protected branch and rejects direct pushes). The reel is
+# uploaded BEFORE any state handling so a cache miss/failure never loses it.
 name: Daily Reel
 
 on:
@@ -21,7 +25,7 @@ on:
         default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: daily-reel
@@ -40,6 +44,17 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      # Restore the used-ids tracker from cache so daily picks don't repeat over
+      # the full cycle. A miss just starts fresh — date-seeding still varies the
+      # daily pick regardless.
+      - name: Restore used-ids cache
+        uses: actions/cache/restore@v4
+        with:
+          path: scripts/reels/used-ids.json
+          key: reels-used-ids-${{ github.run_id }}
+          restore-keys: |
+            reels-used-ids-
+
       - name: Compose reel
         id: compose
         run: |
@@ -50,19 +65,7 @@ jobs:
           echo "video=$(ls reels-out/*.mp4 | head -1)" >> "$GITHUB_OUTPUT"
           echo "caption=$(ls reels-out/*.txt | head -1)" >> "$GITHUB_OUTPUT"
 
-      - name: Commit used-ids tracker
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add scripts/reels/used-ids.json
-          if git diff --cached --quiet; then
-            echo "No used-ids change to commit"
-          else
-            git commit -m "chore(reels): track used exercise for ${{ steps.compose.outputs.seed }} [skip ci]"
-            git pull --rebase origin "${{ github.ref_name }}"
-            git push origin HEAD:"${{ github.ref_name }}"
-          fi
-
+      # Upload FIRST so the reel is always available, even if later steps fail.
       - name: Upload reel artifact
         uses: actions/upload-artifact@v4
         with:
@@ -72,6 +75,15 @@ jobs:
             reels-out/*.txt
           retention-days: 30
           if-no-files-found: error
+
+      # Persist the updated tracker for the next run. Non-fatal.
+      - name: Save used-ids cache
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: scripts/reels/used-ids.json
+          key: reels-used-ids-${{ github.run_id }}
 
       # No-op without secrets: prints IG setup instructions and exits 0.
       - name: Publish to Instagram (gated)
