@@ -83,7 +83,7 @@ export function WorkoutPlanSection({ gymPlan, homePlan, isPreview = true }: Work
                     : "bg-card hover:bg-card-hover text-foreground/60"
                 )}
               >
-                {day.dayName.charAt(0)}
+                {day.dayName[lang].charAt(0)}
               </button>
             ))}
             {/* Dias bloqueados */}

@@ -5,6 +5,8 @@ import { cn } from "@/shared/lib/cn";
 import { Flame, Clock } from "lucide-react";
 import type { WorkoutDay } from "../types";
 import { ExerciseCard } from "./ExerciseCard";
+import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { LANDING_STRINGS } from "@/features/landing/i18n";
 
 interface WorkoutDayViewProps {
   workoutDay: WorkoutDay;
@@ -14,6 +16,9 @@ interface WorkoutDayViewProps {
 const PREVIEW_EXERCISES = 3; // En preview, mostrar solo 3 ejercicios claros
 
 export function WorkoutDayView({ workoutDay, isPreview = false }: WorkoutDayViewProps) {
+  const { lang } = useLanguage();
+  const t = LANDING_STRINGS[lang].workoutPlan;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -21,8 +26,8 @@ export function WorkoutDayView({ workoutDay, isPreview = false }: WorkoutDayView
           {workoutDay.day}
         </div>
         <div>
-          <h3 className="text-2xl font-bold">{workoutDay.dayName}</h3>
-          <p className="text-foreground/60">{workoutDay.muscleGroup}</p>
+          <h3 className="text-2xl font-bold">{workoutDay.dayName[lang]}</h3>
+          <p className="text-foreground/60">{workoutDay.muscleGroup[lang]}</p>
         </div>
       </div>
 
@@ -50,19 +55,23 @@ export function WorkoutDayView({ workoutDay, isPreview = false }: WorkoutDayView
           <div className="flex items-center gap-3">
             <Flame className="h-5 w-5 text-accent" />
             <div className="flex-1">
-              <h4 className="font-semibold text-accent">Cardio</h4>
+              <h4 className="font-semibold text-accent">{t.cardioTitle}</h4>
               <p className="text-sm text-foreground/70">
-                {workoutDay.cardio.type} - {workoutDay.cardio.duration}
+                {workoutDay.cardio.type[lang]} - {workoutDay.cardio.duration}
               </p>
               <div className="flex items-center gap-4 mt-1 text-xs text-foreground/50">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3" />
                   {workoutDay.cardio.duration}
                 </span>
-                <span>Intensidad: {workoutDay.cardio.intensity}</span>
+                <span>
+                  {t.intensityLabel}: {workoutDay.cardio.intensity[lang]}
+                </span>
               </div>
               {workoutDay.cardio.notes && (
-                <p className="text-xs text-foreground/50 italic mt-1">{workoutDay.cardio.notes}</p>
+                <p className="text-xs text-foreground/50 italic mt-1">
+                  {workoutDay.cardio.notes[lang]}
+                </p>
               )}
             </div>
           </div>

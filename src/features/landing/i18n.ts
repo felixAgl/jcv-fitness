@@ -206,6 +206,35 @@ const es = {
     selectPlan: "Seleccionar plan",
     securePayment: "Pago seguro con Mercado Pago o Wompi",
     whatsappAsk: "Tienes dudas? Escribeme por WhatsApp",
+    // Display copy for SUBSCRIPTION_PLANS (checkout keeps its own Spanish
+    // plan names; these are landing-only labels keyed by PlanType).
+    planNames: {
+      PLAN_BASICO: "Basico",
+      PLAN_PRO: "Pro",
+      PLAN_PREMIUM: "Premium",
+    },
+    planFeatures: {
+      PLAN_BASICO: [
+        "Plan de alimentacion 7 dias",
+        "Rutina de entrenamiento casa",
+        "Acceso a la app",
+        "Soporte por email",
+      ],
+      PLAN_PRO: [
+        "Plan de alimentacion personalizado",
+        "Rutina gimnasio + casa",
+        "Videos de ejercicios",
+        "Soporte prioritario",
+        "Seguimiento semanal",
+      ],
+      PLAN_PREMIUM: [
+        "Todo lo del plan Pro",
+        "Coaching 1 a 1",
+        "Ajustes mensuales",
+        "Acceso a comunidad VIP",
+        "Garantia de resultados",
+      ],
+    },
   },
   mealPlan: {
     titlePre: "Plan de ",
@@ -236,6 +265,11 @@ const es = {
     lockedText:
       "Accede al plan completo con todos los ejercicios, series, repeticiones y videos demostrativos.",
     unlockCta: "Desbloquear Plan Completo",
+    // Labels rendered next to data-driven values (sets/reps come from data).
+    setsLabel: "series",
+    repsLabel: "reps",
+    cardioTitle: "Cardio",
+    intensityLabel: "Intensidad",
   },
   faq: {
     titlePre: "Preguntas ",
@@ -492,6 +526,33 @@ const en: LandingStrings = {
     selectPlan: "Select plan",
     securePayment: "Secure payment with Mercado Pago or Wompi",
     whatsappAsk: "Questions? Message me on WhatsApp",
+    planNames: {
+      PLAN_BASICO: "Basic",
+      PLAN_PRO: "Pro",
+      PLAN_PREMIUM: "Premium",
+    },
+    planFeatures: {
+      PLAN_BASICO: [
+        "7-day nutrition plan",
+        "Home workout routine",
+        "App access",
+        "Email support",
+      ],
+      PLAN_PRO: [
+        "Personalized nutrition plan",
+        "Gym + home routine",
+        "Exercise videos",
+        "Priority support",
+        "Weekly check-ins",
+      ],
+      PLAN_PREMIUM: [
+        "Everything in Pro",
+        "1-on-1 coaching",
+        "Monthly adjustments",
+        "VIP community access",
+        "Results guarantee",
+      ],
+    },
   },
   mealPlan: {
     titlePre: "Nutrition ",
@@ -517,6 +578,10 @@ const en: LandingStrings = {
     lockedText:
       "Get the full plan with every exercise, sets, reps and demo videos.",
     unlockCta: "Unlock Full Plan",
+    setsLabel: "sets",
+    repsLabel: "reps",
+    cardioTitle: "Cardio",
+    intensityLabel: "Intensity",
   },
   faq: {
     titlePre: "Frequently asked ",
