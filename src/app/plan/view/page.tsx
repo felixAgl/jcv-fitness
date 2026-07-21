@@ -4,6 +4,7 @@ import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { JCVLogo } from "@/shared/components/JCVLogo";
+import { EmptyPlan } from "@/shared/components/illustrations";
 import { useAuth } from "@/features/auth";
 import { usePlan } from "@/features/plans/hooks/usePlan";
 import { PlanViewer } from "@/features/plans/components/PlanViewer";
@@ -106,11 +107,10 @@ function PlanViewContent() {
     return (
       <div className="min-h-screen bg-black py-12 px-4">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="w-20 h-20 mx-auto rounded-full bg-gray-800 flex items-center justify-center mb-6">
-            <svg className="w-10 h-10 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
+          <EmptyPlan
+            title="Todavia no tienes un plan"
+            className="w-36 h-36 sm:w-44 sm:h-44 mx-auto mb-6"
+          />
           <h1 className="text-2xl md:text-3xl font-bold text-white mb-4">
             No tienes un plan activo
           </h1>
