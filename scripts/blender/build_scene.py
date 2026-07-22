@@ -175,7 +175,15 @@ def parse_args(argv):
                    help="Laplacian iterations used to melt the face")
     p.add_argument("--no-floor", dest="floor", action="store_false",
                    help="drop the ground plane / contact shadow")
-    p.set_defaults(shorts=True, abstract_head=True, floor=True)
+    p.add_argument("--no-stylise-extremities", dest="extremities",
+                   action="store_false",
+                   help="keep MakeHuman's literal fingers and toes")
+    p.add_argument("--toe-stub", type=float, default=0.52,
+                   help="toe length past the ball of the foot")
+    p.add_argument("--extremity-smooth", type=int, default=14,
+                   help="relax iterations over the hands and feet")
+    p.set_defaults(shorts=True, abstract_head=True, floor=True,
+                   extremities=True)
     return p.parse_args(argv)
 
 
@@ -362,6 +370,554 @@ def abstract_head(body, iterations=14):
     log(f"head abstracted: {painted} verts, {iterations} smoothing iterations")
 
 
+# ----------------------------------------------------- stylised extremities
+#
+# MakeHuman ships anatomically literal hands and feet -- five separated toes
+# with toenails, five separated fingers. Next to a stylised body with a
+# featureless head that is the single loudest "generic 3D render" tell, so the
+# extremities are melted into simplified masses.
+#
+# Hands and feet need DIFFERENT treatments, which is the main thing to know
+# before touching any of this.
+#
+# Feet get a SWEPT HULL. Pick an axis through the limb (heel -> toe tip), cut
+# the region into slices along it, describe each slice as a superellipse fitted
+# to that slice's own outline, blur those along the sweep, and push every vertex
+# onto the result. The gaps between the toes are interior to the profile so they
+# fill in, while the profile is measured from the real anatomy and keeps the
+# limb's true proportions -- `_ovoid_head()`'s trick generalised from one
+# ellipsoid to a swept one. Toes are short, so this is enough.
+#
+# Hands cannot be done that way. Fingers are half the length of the hand: a hull
+# that spans them has to bridge gaps as long as the geometry itself, and whether
+# you push the webbing outwards (shells cross, cracks) or collapse it inwards
+# (open notches) the result is a mess. So fingers 2..5 are AMPUTATED at the
+# knuckles and the opening is domed shut; the swept hull then only has to tidy
+# up the palm. The thumb is left untouched -- it is what keeps the silhouette
+# reading as a hand rather than a paddle.
+# --------------------------------------------------------------------------
+HAND_VG = "JCV_HandMask"
+STUMP_VG = "JCV_Stump"
+
+
+def _finger_bones(side, thumb=True):
+    lo = 1 if thumb else 2
+    names = [f"wrist.{side}"]
+    names += [f"metacarpal{i}.{side}" for i in range(lo, 5)]
+    names += [f"finger{f}-{s}.{side}" for f in range(lo, 6) for s in range(1, 4)]
+    return names
+
+
+def _bone_segments(rig, names):
+    out = []
+    for n in names:
+        b = rig.data.bones.get(n)
+        if b is not None:
+            out.append((rig.matrix_world @ b.head_local,
+                        rig.matrix_world @ b.tail_local))
+    return out
+
+
+def _blur(seq, passes=3):
+    """Box-blur a per-slice series (open ends). Without it, every quad row of
+    the source topology leaves a visible ring in the hull."""
+    n = len(seq)
+    for _ in range(passes):
+        seq = [(seq[max(0, s - 1)] + seq[s] + seq[min(n - 1, s + 1)]) / 3.0
+               for s in range(n)]
+    return seq
+
+
+def _sweep_hull(mesh, weights, origin, u_dir, v_dir, w_dir,
+                stub_from=None, stub=1.0, exponent=2.6, swell=1.0,
+                bury=1.0, n_slices=20):
+    """Project the weighted vertices onto a swept superellipse fitted to their
+    own outline.
+
+    Each slice along `u_dir` is described by just a centre and two half-widths
+    (V across `v_dir`, W across `w_dir`), blurred along the sweep. A vertex is
+    then pushed radially onto the superellipse
+
+        |dv / V| ** n + |dw / W| ** n = 1
+
+    An earlier version sampled a max-radius-per-angular-bin polar profile
+    instead. It has more expressive power and it is wrong: near the fingertips
+    the slice centroid can fall outside the cross-section, the profile becomes
+    double-valued in theta, and the projection tears the mesh open. Two numbers
+    per slice cannot do that. `exponent` controls how boxy the cross-section is
+    -- 2.0 is a plain ellipse, ~2.6 keeps the sole of the foot flat enough to
+    stand on.
+    """
+    idxs = list(weights)
+    if len(idxs) < 64:
+        log("WARNING: extremity region too small, skipping")
+        return 0
+
+    local = {}
+    for i in idxs:
+        d = mesh.vertices[i].co - origin
+        u = d.dot(u_dir)
+        if stub_from is not None and u > stub_from:
+            u = stub_from + (u - stub_from) * stub
+        local[i] = (u, d.dot(v_dir), d.dot(w_dir))
+
+    us = [c[0] for c in local.values()]
+    u0, u1 = min(us), max(us)
+    span = max(u1 - u0, 1e-6)
+
+    def slice_of(u):
+        return max(0, min(n_slices - 1, int((u - u0) / span * (n_slices - 1))))
+
+    # Clamp the sweep where the limb stops being solid. The last few slices of a
+    # hand contain only the middle fingertip, so the hull there is a needle;
+    # interior vertices collapsed towards the axis then hang out past the end of
+    # the mitten as thin blades. Squashing everything past the last well
+    # populated slice keeps the tips inside the form.
+    pop = [0] * n_slices
+    for u, _v, _w in local.values():
+        pop[slice_of(u)] += 1
+    busy = max(pop) or 1
+    s_end = max((s for s, p in enumerate(pop) if p >= busy * 0.22),
+                default=n_slices - 1)
+    if s_end < n_slices - 1:
+        u_end = u0 + span * (s_end / (n_slices - 1))
+        for i, (u, v, w) in local.items():
+            if u > u_end:
+                u = u_end + (u - u_end) * 0.18
+            local[i] = (u, v, w)
+        us = [c[0] for c in local.values()]
+        u0, u1 = min(us), max(us)
+        span = max(u1 - u0, 1e-6)
+
+    acc = [[0.0, 0.0, 0] for _ in range(n_slices)]
+    for u, v, w in local.values():
+        s = slice_of(u)
+        acc[s][0] += v
+        acc[s][1] += w
+        acc[s][2] += 1
+    cv, cw = [], []
+    lv, lw = 0.0, 0.0
+    for a in acc:
+        if a[2]:
+            lv, lw = a[0] / a[2], a[1] / a[2]
+        cv.append(lv)
+        cw.append(lw)
+    cv, cw = _blur(cv, 2), _blur(cw, 2)
+
+    hv = [1e-9] * n_slices
+    hw = [1e-9] * n_slices
+    for u, v, w in local.values():
+        s = slice_of(u)
+        hv[s] = max(hv[s], abs(v - cv[s]))
+        hw[s] = max(hw[s], abs(w - cw[s]))
+    # a slice with no samples would collapse the hull to a point there
+    for arr in (hv, hw):
+        for s in range(1, n_slices):
+            if arr[s] <= 1e-8:
+                arr[s] = arr[s - 1]
+    hv, hw = _blur(hv), _blur(hw)
+
+    def profile(u):
+        f = (u - u0) / span * (n_slices - 1)
+        s0 = max(0, min(n_slices - 1, int(f)))
+        s1 = min(n_slices - 1, s0 + 1)
+        t = f - s0
+        mix = lambda a: a[s0] * (1 - t) + a[s1] * t   # noqa: E731
+        return mix(cv), mix(cw), max(mix(hv), 1e-6), max(mix(hw), 1e-6)
+
+    n = max(1.2, exponent)
+    moved = 0
+    for i, wgt in weights.items():
+        u, v, w = local[i]
+        c_v, c_w, half_v, half_w = profile(u)
+        dv, dw = v - c_v, w - c_w
+        norm = (abs(dv / half_v) ** n + abs(dw / half_w) ** n) ** (1.0 / n)
+        if norm < 1e-9:
+            tv, tw = c_v, c_w
+        else:
+            # `bury` decides what happens to geometry that sits *inside* the
+            # hull -- the webbing, and the facing sides of two adjacent digits.
+            #
+            #   bury = 1.0  push it out onto the hull like everything else. The
+            #               two walls of a gap land on the same surface and the
+            #               weld pass fuses them into one skin. Right for hands,
+            #               where the gaps are long and burying them would leave
+            #               open notches between the fingers.
+            #   bury < 1.0  collapse it towards the sweep axis instead, so it
+            #               ends up sealed inside the closed surface. Right for
+            #               toes, which are short enough that the ball of the
+            #               foot already spans the gap.
+            if bury >= 0.999:
+                k = swell / norm
+            else:
+                b = _smoothstep(0.55, 0.85, norm)
+                k = bury * (1.0 - b) + (swell / norm) * b
+            tv, tw = c_v + dv * k, c_w + dw * k
+        target = origin + u_dir * u + v_dir * tv + w_dir * tw
+        mesh.vertices[i].co = mesh.vertices[i].co.lerp(target, wgt)
+        moved += 1
+    return moved
+
+
+def _amputate_fingers(body, rig, cut_bone="finger{f}-1.{side}"):
+    """Cut fingers 2..5 off at the knuckles and cap the stumps.
+
+    Squashing the fingers down into the palm instead was tried first and it
+    cannot work: five telescoped shells end up interpenetrating in a few
+    millimetres, and the hull projection turns that tangle into a faceted mess
+    at the end of the hand. There is no way to smooth your way out of it, so the
+    geometry is simply removed and the openings are filled. The thumb is left
+    alone -- it is what keeps the shape reading as a hand rather than a paddle.
+    """
+    mesh = body.data
+    # JointCubes are deliberately NOT skipped here. MakeHuman parks a little
+    # cube inside every joint for the rig fitter; the "Hide helpers" mask only
+    # covers HelperGeometry, so the cubes render -- they are simply buried inside
+    # the limb. Remove the fingers and the knuckle cubes are suddenly exposed as
+    # flat plates floating off the hand. The rig has already been generated by
+    # this point, so they are safe to delete.
+    skip = _verts_in_groups(body, ("HelperGeometry",))
+    mw = body.matrix_world
+    kill = set()
+    zone = []
+    for side in ("L", "R"):
+        names = [f"finger{f}-{s}.{side}"
+                 for f in range(2, 6) for s in range(1, 4)]
+        segs = _bone_segments(rig, names)
+        if not segs:
+            continue
+        cuts = _bone_segments(rig, [cut_bone.format(f=f, side=side)
+                                    for f in range(2, 6)])
+        if not cuts:
+            continue
+        # the knuckle line, and how far a finger vertex may sit from its bone
+        reach = max((a - b).length for a, b in segs) * 1.4
+        # The thumb has to be protected explicitly. It sits well inside `reach`
+        # of the index metacarpal, and cutting into it leaves torn shards
+        # hanging off the hand rather than a clean stump.
+        # ...but only the thumb *proper*. Protecting the whole thumb ray,
+        # metacarpal included, keeps the web between thumb and index: once the
+        # index finger is gone that membrane has nothing to span and hangs off
+        # the hand as a flat sheet.
+        thumb = _bone_segments(rig, [f"finger1-{s}.{side}" for s in range(1, 4)])
+        thumb_reach = max((a - b).length for a, b in thumb) * 0.85 if thumb else 0
+        palm = sum((a for a, _ in cuts), Vector()) / len(cuts)
+        tip = sum((b for _, b in segs), Vector()) / len(segs)
+        out = (tip - palm).normalized()
+        zone.append((palm, reach * 2.4))
+        for v in mesh.vertices:
+            if v.index in skip:
+                continue
+            p = mw @ v.co
+            if (p - palm).dot(out) <= 0.0:
+                continue
+            d = min(_seg_project(p, a, b)[1] for a, b in segs)
+            if d > reach:
+                continue
+            if thumb and min(_seg_project(p, a, b)[1]
+                             for a, b in thumb) <= thumb_reach:
+                continue
+            kill.add(v.index)
+    if not kill:
+        log("WARNING: no finger geometry found to amputate")
+        return
+
+    # Tag the stump so the relax pass downstream can find it. The cap vertices
+    # are created here, after which every index in the mesh shifts, so a vertex
+    # group carried through the bmesh deform layer is the only stable handle.
+    stump_gi = body.vertex_groups.new(name=STUMP_VG).index
+
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    doomed = [v for v in bm.verts if v.index in kill]
+    bmesh.ops.delete(bm, geom=doomed, context="VERTS")
+    # Fill only the boundaries we just opened. The body mesh has other legitimate
+    # open borders (mouth bag, eye sockets) and holes_fill over all of them would
+    # weld the face shut.
+    inv = body.matrix_world.inverted()
+    local_zone = [(inv @ p, r) for p, r in zone]
+    # Skin only. MakeHuman's helper meshes (tights, skirt, hair, eye bags) live
+    # in the same mesh datablock and, because the rest pose is an A-pose, the
+    # hip helper geometry hangs right where the hands do. Collapsing one of its
+    # boundary loops staples a flat sheet across the knuckles.
+    dl0 = bm.verts.layers.deform.active
+    skin_gi = body.vertex_groups["body"].index if "body" in body.vertex_groups \
+        else None
+
+    def is_skin(v):
+        if dl0 is None or skin_gi is None:
+            return True
+        return v[dl0].get(skin_gi, 0.0) > 0.5
+
+    edges = [e for e in bm.edges if e.is_boundary
+             and all(is_skin(v) for v in e.verts)
+             and any((v.co - c).length <= r
+                     for v in e.verts for c, r in local_zone)]
+
+    # Close every stump by collapsing its boundary loop onto one point, nudged
+    # outwards so it domes rather than dimples. `holes_fill` was the obvious
+    # choice and it is worse: it caps each knuckle with an n-gon, and an n-gon
+    # pushed onto the swept hull shatters into visible facets.
+    loops, seen = [], set()
+    adj = {}
+    for e in edges:
+        for v in e.verts:
+            adj.setdefault(v, []).append(e)
+    for e in edges:
+        if e in seen:
+            continue
+        loop, stack = [], [e]
+        while stack:
+            cur = stack.pop()
+            if cur in seen:
+                continue
+            seen.add(cur)
+            loop.append(cur)
+            for v in cur.verts:
+                stack.extend(x for x in adj.get(v, []) if x not in seen)
+        loops.append(loop)
+
+    dl = bm.verts.layers.deform.active or bm.verts.layers.deform.verify()
+    capped = 0
+    for loop in loops:
+        verts = {v for e in loop for v in e.verts}
+        if len(verts) < 3:
+            continue
+        centre = sum((v.co for v in verts), Vector()) / len(verts)
+        radius = sum((v.co - centre).length for v in verts) / len(verts)
+        normal = Vector()
+        for v in verts:
+            normal += v.normal
+        dome = normal.normalized() if normal.length > 1e-6 else Vector((0, 0, 1))
+        # paint the loop and its first ring before the merge: every vertex the
+        # cap is grown from carries the tag onwards
+        for v in list(verts):
+            for e in v.link_edges:
+                for nb in e.verts:
+                    nb[dl][stump_gi] = 1.0
+
+        # Grow the cap inwards in rings rather than collapsing the loop straight
+        # onto a point. Deleting four fingers and their webbing leaves ONE
+        # opening as wide as the hand, and a single pointmerge turns that into a
+        # broad flat cone that reads on camera as a sheet of card stapled across
+        # the knuckles. Three shrinking extrusions give a dome instead.
+        ring = list(loop)
+        for shrink, lift in ((0.72, 0.42), (0.40, 0.30), (0.0, 0.0)):
+            if shrink <= 0.0:
+                break
+            ret = bmesh.ops.extrude_edge_only(bm, edges=ring)
+            new_v = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMVert)]
+            ring = [g for g in ret["geom"] if isinstance(g, bmesh.types.BMEdge)
+                    and all(x in new_v for x in g.verts)]
+            for v in new_v:
+                v.co = centre + (v.co - centre) * shrink + dome * (lift * radius)
+                v[dl][stump_gi] = 1.0
+            if not ring:
+                break
+        tip_verts = {v for e in ring for v in e.verts} or verts
+        bmesh.ops.pointmerge(bm, verts=list(tip_verts),
+                             merge_co=centre + dome * (radius * 0.55))
+        capped += 1
+
+    bmesh.ops.dissolve_degenerate(bm, dist=1e-5, edges=bm.edges)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    log(f"fingers amputated: {len(kill)} verts removed, {capped} stumps capped")
+
+
+def _region_weights(body, rig, bone_names, origin, u_dir,
+                    reach, feather_lo, feather_hi, exclude_bones=()):
+    """Feathered weights over the skin around a set of bones.
+
+    `feather_lo/hi` are positions along `u_dir` from `origin`: 0 below lo (the
+    limb keeps its anatomy), 1 above hi (fully stylised)."""
+    mesh = body.data
+    skip = _verts_in_groups(body, ("JointCubes", "HelperGeometry"))
+    segs = _bone_segments(rig, bone_names)
+    if not segs:
+        return {}
+    mw = body.matrix_world
+    keep_out = _bone_segments(rig, exclude_bones)
+    out = {}
+    for v in mesh.vertices:
+        if v.index in skip:
+            continue
+        p = mw @ v.co
+        d = min((_seg_project(p, a, b)[1] for a, b in segs), default=1e9)
+        if d > reach:
+            continue
+        # a vertex that belongs to an excluded bone (the thumb) must be left
+        # entirely alone: projecting only part of it tears it into shards
+        if keep_out and min(_seg_project(p, a, b)[1]
+                            for a, b in keep_out) < d:
+            continue
+        u = (v.co - origin).dot(u_dir)
+        w = _smoothstep(feather_lo, feather_hi, u)
+        if w > 0.004:
+            out[v.index] = w
+    return out
+
+
+def stylise_extremities(body, rig, toe_stub=0.52,
+                        smooth_iters=14):
+    """Melt the hands into mittens and the toes into a single foot form."""
+    _amputate_fingers(body, rig)
+    mesh = body.data
+    h = body.dimensions.z
+    total = 0
+    touched = {}
+
+    for side in ("L", "R"):
+        # ---------------- hand: sweep from the wrist out along the fingers
+        wrist = rig.data.bones.get(f"wrist.{side}")
+        tips = [rig.data.bones.get(f"finger{f}-3.{side}") for f in range(2, 6)]
+        tips = [t for t in tips if t is not None]
+        if wrist is None or not tips:
+            log(f"WARNING: hand bones missing for {side}, skipping")
+            continue
+        o = rig.matrix_world @ wrist.head_local
+        tip = sum((rig.matrix_world @ t.tail_local for t in tips),
+                  Vector()) / len(tips)
+        u_dir = (tip - o).normalized()
+        hand_len = (tip - o).length
+        # `v` must run across the finger fan and `w` through the palm, and the
+        # only reliable source for that is the knuckle line: the hand hangs
+        # almost straight down in the A-pose, so u_dir x world-up is degenerate
+        # and leaves the ellipse rotated at random about the arm.
+        index = rig.data.bones.get(f"finger2-1.{side}")
+        pinky = rig.data.bones.get(f"finger5-1.{side}")
+        if index is not None and pinky is not None:
+            fan = (rig.matrix_world @ pinky.head_local) - \
+                  (rig.matrix_world @ index.head_local)
+            fan -= u_dir * fan.dot(u_dir)          # orthogonalise against u
+        else:
+            fan = Vector()
+        if fan.length < 1e-5:
+            fan = u_dir.cross(Vector((0, 0, 1)))
+        v_dir = fan.normalized()
+        w_dir = u_dir.cross(v_dir).normalized()
+
+        # the thumb is deliberately left out of the hull: rolling it into the
+        # swept ellipse turns the whole hand into an anonymous paddle
+        weights = _region_weights(body, rig, _finger_bones(side, thumb=False),
+                                  o, u_dir,
+                                  reach=hand_len * 0.42,
+                                  feather_lo=-hand_len * 0.10,
+                                  feather_hi=hand_len * 0.30,
+                                  exclude_bones=[f"finger1-{s}.{side}"
+                                                 for s in range(1, 4)]
+                                  + [f"metacarpal1.{side}"])
+        n = _sweep_hull(mesh, weights, o, u_dir, v_dir, w_dir,
+                        exponent=2.4, bury=1.0, n_slices=22) or 0
+        for i, wt in weights.items():
+            touched[i] = max(touched.get(i, 0.0), wt)
+        # The thumb base is excluded from the hull on purpose, which also left
+        # it out of the relax pass -- and it is exactly where the index finger
+        # used to attach, so it keeps a hard webbing rim that catches the light
+        # as a sliver. Relax it without projecting it.
+        for i, wt in _region_weights(
+                body, rig,
+                [f"metacarpal1.{side}"] + [f"finger1-{s}.{side}"
+                                           for s in range(1, 3)],
+                o, u_dir, reach=hand_len * 0.30,
+                feather_lo=-hand_len * 2.0,
+                feather_hi=-hand_len * 1.9).items():
+            touched[i] = max(touched.get(i, 0.0), min(wt, 0.42))
+        total += n
+        log(f"hand {side}: {n} verts hulled")
+
+        # ---------------- foot: sweep from the heel forward to the toe tip
+        foot = rig.data.bones.get(f"foot.{side}")
+        toe = rig.data.bones.get(f"toe1-1.{side}")
+        if foot is None or toe is None:
+            log(f"WARNING: foot bones missing for {side}, skipping")
+            continue
+        ankle = rig.matrix_world @ foot.head_local
+        toe_tip = rig.matrix_world @ toe.tail_local
+        fwd = (toe_tip - ankle)
+        fwd.z = 0.0
+        fwd = fwd.normalized() if fwd.length > 1e-6 else Vector((0, -1, 0))
+        # anchor the sweep behind the ankle so the heel is inside the region
+        o = ankle - fwd * (toe_tip - ankle).length * 0.55
+        v_dir = Vector((0, 0, 1)).cross(fwd).normalized()
+        w_dir = Vector((0, 0, 1))
+
+        # only the foot proper: including the shin would drag the calf into the
+        # hull and balloon the ankle
+        z_cut = ankle.z + 0.012 * h
+        segs = _bone_segments(rig, [f"foot.{side}", f"toe1-1.{side}"])
+        skip = _verts_in_groups(body, ("JointCubes", "HelperGeometry"))
+        reach = (toe_tip - ankle).length * 0.75
+        mw = body.matrix_world
+        weights = {}
+        for v in mesh.vertices:
+            if v.index in skip:
+                continue
+            p = mw @ v.co
+            if p.z > z_cut:
+                continue
+            if not any(_seg_project(p, a, b)[1] <= reach for a, b in segs):
+                continue
+            # feather downwards from the ankle line, and forwards into the toes
+            wz = _smoothstep(0.0, 0.55, (z_cut - p.z) / max(1e-6, z_cut - min(
+                p.z, ankle.z - 0.09 * h)))
+            wu = _smoothstep(-0.35, 0.10, (v.co - o).dot(fwd)
+                             / max(1e-6, (toe_tip - o).length))
+            wt = max(wz, wu)
+            if wt > 0.004:
+                weights[v.index] = min(1.0, wt)
+        toe_u = ((rig.matrix_world @ toe.head_local) - o).dot(fwd)
+        n = _sweep_hull(mesh, weights, o, fwd, v_dir, w_dir,
+                        stub_from=toe_u, stub=toe_stub, exponent=3.0,
+                        bury=0.32, n_slices=20) or 0
+        for i, wt in weights.items():
+            touched[i] = max(touched.get(i, 0.0), wt)
+        total += n
+        log(f"foot {side}: {n} verts hulled (toe stub {toe_stub})")
+
+    mesh.update()
+
+    # A short smooth relaxes the stretched quads the projection leaves where a
+    # finger gap used to be. It is scoped to exactly the vertices the hulls
+    # actually moved and reuses their feather, so the wrist and ankle are not
+    # dragged in -- smoothing a wider region visibly shrinks the whole hand.
+    vg = body.vertex_groups.new(name=HAND_VG)
+    for i, wt in touched.items():
+        vg.add([i], wt, "REPLACE")
+    # the amputation caps are new geometry, so they are not in `touched`; the
+    # relax pass is what turns each flat stump lid into a dome and it has to
+    # reach them
+    stump = body.vertex_groups.get(STUMP_VG)
+    if stump is not None:
+        si = stump.index
+        for v in mesh.vertices:
+            if any(g.group == si and g.weight > 0.5 for g in v.groups):
+                vg.add([v.index], 1.0, "REPLACE")
+        body.vertex_groups.remove(stump)
+
+    _select_only(body)
+    # Weld first: the collapsed webbing is now a cluster of near-coincident
+    # vertices, and merging it removes the zero-area faces that would otherwise
+    # flicker on the surface. Only then smooth -- smoothing before the weld just
+    # averages the junk back out into the shell.
+    weld = body.modifiers.new("JCV_ExtWeld", "WELD")
+    weld.vertex_group = HAND_VG
+    weld.merge_threshold = 0.0030 * h
+    mod = body.modifiers.new("JCV_ExtSmooth", "SMOOTH")
+    mod.vertex_group = HAND_VG
+    mod.factor = 0.5
+    mod.iterations = max(1, smooth_iters)
+    for i, m in enumerate((weld, mod)):
+        bpy.ops.object.modifier_move_to_index(modifier=m.name, index=i)
+    for m in (weld, mod):
+        bpy.ops.object.modifier_apply(modifier=m.name)
+    body.vertex_groups.remove(body.vertex_groups[HAND_VG])
+    log(f"extremities stylised: {total} verts projected onto swept hulls")
+
+
 # ----------------------------------------------------------------- shorts
 def build_shorts(body, rig, hem=0.58, rise=0.105):
     """Model fitted shorts out of the body's own surface.
@@ -446,10 +1002,10 @@ def build_shorts(body, rig, hem=0.58, rise=0.105):
     relax.factor = 0.75
     relax.iterations = 8
     off = shorts.modifiers.new("Offset", "DISPLACE")
-    off.strength = 0.010 * h
+    off.strength = 0.013 * h
     off.mid_level = 0.0
     thick = shorts.modifiers.new("Fabric", "SOLIDIFY")
-    thick.thickness = 0.011 * h
+    thick.thickness = 0.012 * h
     thick.offset = 1.0
     thick.use_rim = True
     thick.material_offset_rim = 0
@@ -823,6 +1379,9 @@ def main():
     if args.abstract_head:
         abstract_head(body, iterations=args.head_smooth)
     rig = add_rig(body)
+    if args.extremities:
+        stylise_extremities(body, rig, toe_stub=args.toe_stub,
+                            smooth_iters=args.extremity_smooth)
     if args.shorts:
         build_shorts(body, rig)
     bake_muscle_groups(body, rig)

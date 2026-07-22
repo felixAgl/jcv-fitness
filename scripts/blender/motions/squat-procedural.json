@@ -1,0 +1,17 @@
+{
+  "name": "squat-procedural",
+  "description": "Analytic squat. No external data, so it always works even when the mocap clips are not on disk (assets/3d is gitignored).",
+  "type": "procedural",
+  "poser": "squat",
+  "loop": true,
+  "params": {
+    "hip_deg": 66.0,
+    "knee_deg": 118.0,
+    "ankle_deg": 26.0,
+    "spine_deg": -34.0,
+    "arm_deg": 62.0
+  },
+  "root": {
+    "ground_clamp": "feet"
+  }
+}

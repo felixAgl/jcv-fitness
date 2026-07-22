@@ -86,6 +86,29 @@ PREFIX=3d-v2 BLEND_PREV=assets/3d/jcv_mannequin_v1.blend \
 | `--no-shorts` | off | skip the procedural garment |
 | `--no-abstract-head` | off | keep the MakeHuman face |
 | `--no-floor` | off | pure void, no ground plane or contact shadow |
+| `--no-stylise-extremities` | off | keep MakeHuman's literal fingers and toes |
+| `--toe-stub` | `0.52` | toe length past the ball of the foot |
+| `--extremity-smooth` | `14` | relax iterations over the hands and feet |
+
+### render_extremities.py flags
+
+A review tool, not part of the pipeline: it frames the hands and the feet from
+cameras derived from the **rig**, so the identical shot can be rendered against
+two different `.blend` files and stacked into a before/after panel.
+
+| Flag | Default | Meaning |
+| --- | --- | --- |
+| `--parts` | `hands,feet` | which close-ups to render |
+| `--pose` | `rest` | `rest`, or `flex` to curl the fingers and rock the ankles |
+| `--samples` | `64` | EEVEE TAA samples |
+| `--res` | `900x900` | output resolution |
+| `--out` | `out-3d/ext` | output directory |
+
+```bash
+BLEND=assets/3d/jcv_mannequin_v3.blend \
+BLEND_PREV=assets/3d/jcv_mannequin_v2.blend \
+PREFIX=3d-v3 scripts/blender/make_extremity_demo.sh
+```
 
 ### render_exercise.py flags
 
@@ -95,11 +118,13 @@ PREFIX=3d-v2 BLEND_PREV=assets/3d/jcv_mannequin_v1.blend \
 | `--views` | `front` | `front,three_quarter,side,back,top,closeup,orbit` |
 | `--frames` | `24` | `24` or `1-48` |
 | `--rep-frames` | `48` | frames in one full rep (named this way because Blender itself swallows anything starting with `--cycle`) |
-| `--motion` | `squat` | `squat`, `curl`, `none` |
+| `--motion` | `squat` | name of a JSON motion in `motions/`; free-form, not a fixed list |
 | `--samples` | `48` | EEVEE TAA samples |
 | `--res` | `1080x1920` | output resolution |
 | `--orbit-degrees` | `110` | azimuth swept by the `orbit` view |
 | `--out` | `out-3d` | output directory |
+| `--list-muscles` | off | print the muscle groups baked into the .blend and exit |
+| `--list-motions` | off | print the motions in `motions/` and exit |
 
 ## How it works
 
@@ -122,6 +147,34 @@ not smoothing, is what actually removes the eyes and lips — then a `SMOOTH` an
 a volume-preserving `LAPLACIANSMOOTH` modifier polish it into a clean ovoid.
 Ears and nose are pre-shrunk with the `l/r-ear-scale-decr` and
 `nose-scale-*-decr` targets so they do not survive in the silhouette.
+
+**Hands and feet.** MakeHuman ships anatomically literal extremities — five
+separated toes with toenails, five separated fingers. Against a stylised body
+with a featureless head that is the loudest remaining "generic 3D render" tell,
+so both are reduced to simple masses. They need *different* treatments:
+
+*Feet* get a **swept hull**. The region is sliced along the heel→toe axis, each
+slice is described by a superellipse fitted to that slice's own outline, the
+profiles are blurred along the sweep, and every vertex is pushed onto the
+result. The gaps between the toes are interior to the profile so they fill in,
+while the profile is measured from the real anatomy and keeps the foot's true
+proportions — `_ovoid_head()`'s trick generalised from one ellipsoid to a swept
+one. The superellipse exponent (3.0) keeps the sole flat enough to stand on.
+
+*Hands* cannot be done that way, and it is worth knowing why before trying
+again. Fingers are half the length of the hand, so a hull spanning them has to
+bridge gaps as long as the geometry itself; push the webbing outwards and the
+shells cross into visible cracks, collapse it inwards and you get open notches.
+Telescoping the fingers into the palm instead just interpenetrates five shells
+in a few millimetres and shatters into facets. So fingers 2..5 are **amputated**
+at the knuckles and the opening is domed shut with shrinking ring extrusions
+(a single `pointmerge` of that whole loop makes a broad flat cone that reads as
+a sheet of card stapled across the knuckles; `holes_fill` caps it with an n-gon
+that shatters under projection). The thumb is left untouched — it is the only
+thing keeping the silhouette reading as a hand rather than a paddle.
+
+Verify with `render_extremities.py --pose flex`, which curls the fingers and
+rocks the ankles: a stylisation that only survives the rest pose is worthless.
 
 **Shorts.** Modelled from the body's own surface, so they are CC0 like the rest
 and can never intersect the anatomy: the hip/thigh band of the skin is
@@ -148,10 +201,60 @@ facing axis, then cached from the mid-point of the movement so the camera stays
 static while the body moves through frame. `closeup` aims at the centroid of the
 currently glowing muscle along its own average surface normal.
 
-**Motion.** A procedural 2-link squat keyframed onto the rig: hip flexion `θ`,
-knee `-2θ`, ankle `+θ`, and the root dropped by `(l1+l2)(1-cos θ)` so the feet
-stay planted. Crude but anatomically coherent — it is a pipeline proof, not
-mocap.
+**Motion.** `--motion <name>` resolves `motions/<name>.json` — a motion
+*library*, not a fixed enum, so exercise #2..N is config rather than code. Full
+schema in [`motions/README.md`](motions/README.md); `motion.py` is the module
+that reads it.
+
+The hero motion (`squat`) is **real mocap**: one below-parallel bodyweight squat
+from the CMU Graphics Lab Motion Capture Database (subject 86, trial 2),
+imported as BVH and retargeted onto `JCV_Rig` at run time. CMU data is *"free
+for all uses"* including commercial products — the reason it was chosen over
+AMASS / Mixamo / marketplace motion, all of which are forbidden here. Exact
+wording, URL and the required acknowledgement are in `motions/README.md`; the
+licence line is also printed on every render.
+
+Retargeting is **world-space rotation deltas**: each target bone is driven by
+how far its source bone moved from its *own* rest, so the two skeletons share
+no rest pose, bone count, bone length or roll convention. On top of that, three
+things are needed to make it actually look like a person:
+
+* *Rest alignment.* CMU rests in a T-pose, MakeHuman in an A-pose. Raw deltas
+  leave a permanent 52-118° bias on the arms. Each target bone's rest is
+  pre-rotated onto its source's rest direction, which zeroes it — except for
+  `root`, a 1 cm stub whose axis is a rigging convention, where doing so tips
+  the figure over by 81°.
+* *Heading cancellation.* Actors do not face the BVH rest direction (subject 86
+  stands 89° off). Derived from a hip-to-hip vector, because a quaternion
+  swing-twist about Z flips sign on a tilted pelvis and turns the figure 180°.
+* *Ground clamp.* The rig is offset in Z each frame so the **feet** sit on
+  z=0 — specifically the evaluated mesh near the foot bones, since at the
+  bottom of a squat the lowest point of the whole body is the glutes.
+
+Raw mocap is not shippable as-is, so `squat.json` damps individual bones through
+`influence`. Damping only bites where the source delta is large, so the standing
+frames stay untouched. Three lessons paid for in renders:
+
+* **Never damp `root`.** The heading correction is baked into the root delta, so
+  damping it turns the whole figure away from camera — the one knob in the file
+  that silently breaks the shot rather than the pose.
+* *Legs at ~0.75.* Subject 86 squats well below parallel. The procedural shorts
+  are a solidified band cut from the body and they invert at that much hip
+  flexion, tearing open across the glutes. Damping the legs brings the rep to
+  parallel, where the garment survives. Thickening the garment does not fix it;
+  the failure is linear-blend skinning, not penetration.
+* *Spine at ~0.5.* Subject 86 hip-hinges hard enough to fold the chest onto the
+  thighs, which reads as a good-morning, not a squat.
+
+One camera note belongs here too: `fit_distance()` needs the view direction.
+Without it the horizontal fit falls back to `max(size.x, size.y)`, and once the
+mocap arms reach forward, a *depth* that is never on screen drives the framing
+and shrinks the figure to half the height of a 9:16 frame.
+
+`squat-procedural` and `curl` keep an analytic path with no external data:
+hip/knee/ankle angles, spine hinge, arm counterbalance and a cosine ease that
+holds at the top and bottom of the rep. Useful as a fallback, since the BVH
+clips live under the gitignored `assets/3d/`.
 
 ## Gotchas found on Blender 5.2
 
@@ -172,6 +275,15 @@ mocap.
   hip height. Anything that selects geometry by a z band (the shorts) has to
   also test proximity to the pelvis/thigh bones, or the hands get welded into
   the garment and solidify into spikes.
+* `pose_bone.matrix` is a **world-space setter resolved against the current
+  parent state**. Write retargeted bones parents-first with a
+  `view_layer.update()` on either side, or children land on stale parents.
+* `bpy.ops.import_anim.bvh(frame_start=1)` puts BVH file frame **index 0 on
+  Blender frame 1**, so a range picked by scanning the text file is off by one
+  unless you add 1.
+* `JCV_Body` has a MASK modifier (19158 original verts → 13380 evaluated), so
+  original and evaluated vertex **indices do not correspond**. Anything that
+  selects mesh regions on the evaluated mesh has to do it geometrically.
 * The ground plane must be **matte**. A glossy floor mirrors the studio area
   lights into a blown-out white blob across the bottom of a 9:16 frame. It also
   needs a spherical-gradient fade to transparent, otherwise the plane reads as a

@@ -13,7 +13,9 @@ Key ideas
   single CLI flag.
 * Cameras are computed from the *evaluated* body bounding box at the render
   frame, so they never break if the mesh, pose or proportions change.
-* A procedural 2-link squat is keyframed onto the rig at run time.
+* `--motion <name>` resolves `scripts/blender/motions/<name>.json` and hands it
+  to `motion.apply_motion()`, which keyframes it onto the rig at run time.
+  Motions are either retargeted mocap (BVH) or analytic. See motions/README.md.
 * EEVEE + a compositor Glare (Bloom) node makes the emission read as a glow;
   Blender 4.2+ removed the old EEVEE bloom toggle.
 """
@@ -25,6 +27,10 @@ import math
 
 import bpy
 from mathutils import Vector, Matrix
+
+# `blender -P` does not put the script's own directory on sys.path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import motion as motion_lib  # noqa: E402
 
 BODY = "JCV_Body"
 RIG = "JCV_Rig"
@@ -52,7 +58,9 @@ def parse_args(argv):
     p.add_argument("--frames", default="24",
                    help="single frame '24' or range '1-48'")
     p.add_argument("--out", default="out-3d")
-    p.add_argument("--motion", default="squat", choices=["squat", "curl", "none"])
+    p.add_argument("--motion", default="squat",
+                   help="name of a JSON motion in scripts/blender/motions/ "
+                        "(without the extension)")
     p.add_argument("--samples", type=int, default=48)
     p.add_argument("--res", default="1080x1920")
     p.add_argument("--orbit-degrees", type=float, default=110.0)
@@ -63,6 +71,7 @@ def parse_args(argv):
                         "keyframed over 1..cycle so a single-frame render still "
                         "lands somewhere meaningful in the movement")
     p.add_argument("--list-muscles", action="store_true")
+    p.add_argument("--list-motions", action="store_true")
     return p.parse_args(argv)
 
 
@@ -120,110 +129,6 @@ def write_mask(body, muscle):
         attr.data[i].color = (w, w, w, 1.0)
     log(f"mask '{muscle}': {sum(1 for w in weights if w > 0.05)} lit verts")
     return weights
-
-
-# -------------------------------------------------------------- animation
-def _reset_pose(rig):
-    for pb in rig.pose.bones:
-        pb.matrix_basis = Matrix()
-
-
-def _rotate_world(rig, bone_name, axis, angle):
-    """Rotate a pose bone by `angle` around a WORLD axis passing through its
-    own head. Deterministic regardless of the bone's local roll."""
-    pb = rig.pose.bones.get(bone_name)
-    if pb is None:
-        return
-    bpy.context.view_layer.update()
-    m = pb.matrix.copy()
-    head = m.translation.copy()
-    R = Matrix.Rotation(angle, 4, axis)
-    pb.matrix = Matrix.Translation(head) @ R @ Matrix.Translation(-head) @ m
-    bpy.context.view_layer.update()
-
-
-def _leg_length(rig):
-    b = rig.data.bones
-    try:
-        hip = (rig.matrix_world @ b["upperleg01.L"].head_local)
-        knee = (rig.matrix_world @ b["lowerleg01.L"].head_local)
-        ankle = (rig.matrix_world @ b["foot.L"].head_local)
-    except KeyError:
-        return 0.9, 0.45, 0.45
-    return (hip - ankle).length, (hip - knee).length, (knee - ankle).length
-
-
-def _arms_down(rig, front, up, amount=1.0):
-    """Take the MakeHuman T-pose down to a natural standing posture."""
-    side_axis = -front  # rotating about the back axis lowers the arms
-    for side, sign in (("L", 1.0), ("R", -1.0)):
-        _rotate_world(rig, f"upperarm01.{side}", side_axis, sign * math.radians(26) * amount)
-        _rotate_world(rig, f"lowerarm01.{side}", side_axis, sign * math.radians(8) * amount)
-        _rotate_world(rig, f"clavicle.{side}", side_axis, sign * math.radians(4) * amount)
-
-
-def pose_squat(rig, body, t):
-    """t in [0,1]: 0 = standing, 1 = bottom of the squat."""
-    front = front_axis(body)
-    up = Vector((0, 0, 1))
-    flex = front.cross(up).normalized()   # +angle swings a limb forward
-
-    _reset_pose(rig)
-    _arms_down(rig, front, up, amount=1.0)
-
-    theta = math.radians(62.0) * t         # hip/knee flexion
-    for side in ("L", "R"):
-        _rotate_world(rig, f"upperleg01.{side}", flex, theta)
-        _rotate_world(rig, f"lowerleg01.{side}", flex, -2.0 * theta)
-        _rotate_world(rig, f"foot.{side}", flex, theta)
-
-    # arms reach forward for balance
-    for side, sign in (("L", 1.0), ("R", -1.0)):
-        _rotate_world(rig, f"upperarm01.{side}", flex, math.radians(30) * t)
-
-    # torso leans forward a little
-    for bone in ("spine03", "spine02"):
-        _rotate_world(rig, bone, flex, math.radians(-9) * t)
-
-    # drop the whole rig so the feet stay on the floor (2-link kinematics)
-    _, l1, l2 = _leg_length(rig)
-    rig.location.z = -(l1 + l2) * (1.0 - math.cos(theta))
-
-
-def pose_curl(rig, body, t):
-    front = front_axis(body)
-    up = Vector((0, 0, 1))
-    flex = front.cross(up).normalized()
-    _reset_pose(rig)
-    _arms_down(rig, front, up, amount=1.0)
-    for side in ("L", "R"):
-        _rotate_world(rig, f"lowerarm01.{side}", flex, math.radians(125) * t)
-    rig.location.z = 0.0
-
-
-def build_animation(rig, body, motion, cycle):
-    if motion == "none":
-        _reset_pose(rig)
-        _arms_down(rig, front_axis(body), Vector((0, 0, 1)))
-        return
-    poser = pose_squat if motion == "squat" else pose_curl
-    f_start, f_end = 1, max(2, cycle)
-    span = max(1, f_end - f_start)
-    bones = [b.name for b in rig.pose.bones]
-    # the MakeHuman rig ships with euler bones; normalise BEFORE posing so the
-    # keyframes we insert are the channels the bones actually evaluate
-    for name in bones:
-        rig.pose.bones[name].rotation_mode = "QUATERNION"
-    for f in range(f_start, f_end + 1):
-        u = (f - f_start) / span
-        # ease in/out, down then back up
-        t = 0.5 - 0.5 * math.cos(2.0 * math.pi * u)
-        bpy.context.scene.frame_set(f)
-        poser(rig, body, t)
-        for name in bones:
-            rig.pose.bones[name].keyframe_insert("rotation_quaternion", frame=f)
-        rig.keyframe_insert("location", frame=f)
-    log(f"keyframed {motion} over frames {f_start}-{f_end}")
 
 
 # ----------------------------------------------------------------- camera
@@ -288,16 +193,57 @@ def aim(cam, location, target):
     cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
 
 
-def fit_distance(cam, size, margin=1.30, aspect=1080 / 1920):
+def fit_distance(cam, size, margin=1.12, aspect=1080 / 1920, view_dir=None):
+    """Distance at which an axis-aligned box of `size` fits the frame.
+
+    `view_dir` matters more than it looks. Without it the horizontal term has to
+    assume the worst case, `max(size.x, size.y)` -- and once the mocap arms
+    reach forward, the box gets deep along the camera axis, a depth that is not
+    on screen at all drives the fit, and the figure is pushed far away and ends
+    up tiny in a 9:16 frame. Given the direction, the on-screen width is the
+    box's exact extent along the camera's right vector.
+    """
     tan_v = math.tan(0.5 * 2 * math.atan(cam.data.sensor_height * 0.5 / cam.data.lens))
     tan_h = tan_v * aspect
     dv = (size.z * 0.5) * margin / tan_v
-    horiz = max(size.x, size.y)
+    if view_dir is not None:
+        right = view_dir.cross(Vector((0, 0, 1)))
+        if right.length > 1e-6:
+            right.normalize()
+            horiz = (abs(right.x) * size.x + abs(right.y) * size.y
+                     + abs(right.z) * size.z)
+        else:
+            horiz = max(size.x, size.y)
+    else:
+        horiz = max(size.x, size.y)
     dh = (horiz * 0.5) * margin / tan_h
     return max(dv, dh)
 
 
 _FRAMING = {}
+
+
+def prime_framing(body, views, m_start, m_end, f_start, f_end, samples=5):
+    """Fill the framing cache from the union of the body bounds over `samples`
+    frames spread across the motion, clamped to the frames actually rendered.
+    A squat is tall at the top and low+wide at the bottom; framing on a single
+    frame crops one of the two."""
+    sc = bpy.context.scene
+    lo_all = Vector((1e9,) * 3)
+    hi_all = Vector((-1e9,) * 3)
+    span = max(1, m_end - m_start)
+    for i in range(samples):
+        f = m_start + round(span * i / max(1, samples - 1))
+        sc.frame_set(int(min(max(f, min(f_start, m_start)), max(f_end, m_end))))
+        lo, hi, _, _ = body_bounds(body)
+        for k in range(3):
+            lo_all[k] = min(lo_all[k], lo[k])
+            hi_all[k] = max(hi_all[k], hi[k])
+    center, size = (lo_all + hi_all) * 0.5, (hi_all - lo_all)
+    for view in views:
+        _FRAMING["three_quarter" if view == "orbit" else view] = (center.copy(),
+                                                                  size.copy())
+    log(f"framing primed from {samples} frames: size={tuple(round(v,3) for v in size)}")
 
 
 def place_camera(cam, body, view, weights, azimuth_extra=0.0):
@@ -335,7 +281,7 @@ def place_camera(cam, body, view, weights, azimuth_extra=0.0):
     az = math.radians(angles.get(view, 0.0) + azimuth_extra)
     dir_v = Matrix.Rotation(az, 4, "Z") @ front
     dir_v = (dir_v + up * 0.075).normalized()
-    d = fit_distance(cam, size)
+    d = fit_distance(cam, size, view_dir=dir_v)
     aim(cam, center + dir_v * d, center + up * size.z * 0.02)
 
 
@@ -375,6 +321,9 @@ def main():
     if args.list_muscles:
         print("MUSCLES:", " ".join(muscle_names(body)))
         return
+    if args.list_motions:
+        print("MOTIONS:", " ".join(motion_lib.available_motions()))
+        return
 
     f_start, f_end = parse_frames(args.frames)
     w, h = (int(x) for x in args.res.lower().split("x"))
@@ -388,7 +337,9 @@ def main():
     setup_glow()
 
     weights = write_mask(body, args.muscle)
-    build_animation(rig, body, args.motion, args.cycle)
+    spec = motion_lib.load_motion(args.motion)
+    m_start, m_end = motion_lib.apply_motion(rig, body, spec, args.cycle)
+    log(f"motion '{args.motion}' keyframed over frames {m_start}-{m_end}")
 
     out_root = os.path.abspath(args.out)
     os.makedirs(out_root, exist_ok=True)
@@ -398,10 +349,11 @@ def main():
     views = [v.strip() for v in args.views.split(",") if v.strip()]
     n_frames = f_end - f_start + 1
 
-    # Prime the framing cache from the MID point of the movement (t ~ 0.5) and
-    # keep it for every frame: the camera then stays rock-steady while the body
-    # moves through it, instead of breathing in and out with the pose.
-    sc.frame_set(min(f_end, max(f_start, 1 + args.cycle // 4)))
+    # Prime the framing cache once, from the UNION of the body bounds over a few
+    # sample frames of the movement, and keep it for every frame: the camera then
+    # stays rock-steady while the body moves through it, instead of breathing in
+    # and out with the pose - and nothing gets cropped at either extreme.
+    prime_framing(body, views, m_start, m_end, f_start, f_end)
     for view in views:
         place_camera(cam, body, "three_quarter" if view == "orbit" else view,
                      weights)

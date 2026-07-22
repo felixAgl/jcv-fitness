@@ -1,0 +1,61 @@
+{
+  "name": "squat",
+  "description": "One full bodyweight squat rep to just below parallel, retargeted from CMU mocap.",
+  "type": "bvh",
+  "skeleton": "cmu",
+  "source": {
+    "file": "assets/3d/mocap/cmu/86_02.bvh",
+    "dataset": "CMU Graphics Lab Motion Capture Database",
+    "clip": "subject 86, trial 2 - 'walk, squats, run, stretch', 10618 frames @ 120 fps",
+    "licence": "Free for all uses, including commercial products. Resale of the data itself (even converted) is not permitted.",
+    "url": "http://mocap.cs.cmu.edu/",
+    "acknowledgement": "The data used in this project was obtained from mocap.cs.cmu.edu. The database was created with funding from NSF EIA-0196217.",
+    "conversion": "BVH conversion mirrored from github.com/una-dinosauria/cmu-mocap"
+  },
+  "range": {
+    "start": 1373,
+    "end": 1583,
+    "fit_cycle": true,
+    "comment": "second of three squats in the clip. Standing at 1373, bottom at ~1478 (hip drops to 54% of standing height - just below parallel), standing again by 1583. Subject 22's squats are ass-to-grass (36%) and read as a collapse on a stylised mannequin."
+  },
+  "root": {
+    "lock_xy": true,
+    "root_height": "follow",
+    "ground_clamp": "feet"
+  },
+  "loop": true,
+  "align_rest": true,
+  "align_facing": true,
+  "influence": {
+    "toe1-1.L": 0.35,
+    "toe1-1.R": 0.35,
+    "spine05": 0.45,
+    "spine04": 0.5,
+    "spine03": 0.55,
+    "spine02": 0.55,
+    "spine01": 0.55,
+    "upperleg01.L": 0.74,
+    "upperleg02.L": 0.74,
+    "upperleg01.R": 0.74,
+    "upperleg02.R": 0.74,
+    "lowerleg01.L": 0.78,
+    "lowerleg02.L": 0.78,
+    "lowerleg01.R": 0.78,
+    "lowerleg02.R": 0.78,
+    "clavicle.L": 0.35,
+    "shoulder01.L": 0.35,
+    "upperarm01.L": 0.45,
+    "upperarm02.L": 0.45,
+    "lowerarm01.L": 0.5,
+    "lowerarm02.L": 0.5,
+    "wrist.L": 0.4,
+    "clavicle.R": 0.35,
+    "shoulder01.R": 0.35,
+    "upperarm01.R": 0.45,
+    "upperarm02.R": 0.45,
+    "lowerarm01.R": 0.5,
+    "lowerarm02.R": 0.5,
+    "wrist.R": 0.4
+  },
+  "influence_comment": "toes: kill mocap noise in a bone the mannequin barely has. legs at ~0.75: subject 86 squats well below parallel and the procedural shorts, a solidified band cut from the body, invert at that much hip flexion; damping the legs brings the rep to parallel where the garment survives. spine: subject 86 hip-hinges hard and folds the chest onto the thighs at the bottom. NEVER damp `root`: the heading correction that cancels the actor's yaw is baked into the root delta, so damping it turns the whole figure away from camera."
+}

@@ -1,0 +1,14 @@
+{
+  "name": "curl",
+  "description": "Two-arm biceps curl. Analytic - no mocap clip in the CMU set is a clean curl.",
+  "type": "procedural",
+  "poser": "curl",
+  "loop": true,
+  "params": {
+    "elbow_deg": 125.0,
+    "spine_deg": -5.0
+  },
+  "root": {
+    "ground_clamp": false
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "none",
+  "description": "No movement: relaxed standing pose. Used for stills and camera work.",
+  "type": "rest",
+  "arms_down": true
+}
