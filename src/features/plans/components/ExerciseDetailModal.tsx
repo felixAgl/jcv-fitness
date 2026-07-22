@@ -13,6 +13,7 @@ import {
   type LibraryExercise,
 } from "@/features/exercises";
 import { useLanguage } from "@/features/shared/hooks/useLanguage";
+import { MuscleAtlas, hasAtlasRegion, pickAtlasView } from "@/shared/components/MuscleAtlas";
 import { buildSparklinePoints, getSessionMaxes } from "../services/workout-log";
 import type { LoggedSet } from "../types";
 
@@ -221,6 +222,13 @@ export function ExerciseDetailModal({
   const muscles = libraryExercise
     ? [libraryExercise.target, ...libraryExercise.secondary_muscles]
     : [];
+  // Muscle atlas: primary = dataset target, secondary = secondary_muscles.
+  // The view (front/back) is auto-picked by pickAtlasView's documented
+  // anterior/posterior weighted vote; hidden when nothing maps to a region.
+  const atlasPrimary = libraryExercise ? [libraryExercise.target] : [];
+  const atlasSecondary = libraryExercise?.secondary_muscles ?? [];
+  const showAtlas = muscles.length > 0 && hasAtlasRegion(muscles);
+  const atlasView = showAtlas ? pickAtlasView(atlasPrimary, atlasSecondary) : "front";
   const steps = libraryExercise ? getInstructionSteps(libraryExercise, lang) : [];
 
   // "Fuerza" mini-chart: last 8 sessions max weight (pure SVG, no chart lib).
@@ -395,15 +403,26 @@ export function ExerciseDetailModal({
           {libraryState !== "loading" && muscles.length > 0 && (
             <section>
               <h3 className="text-white font-semibold text-sm mb-2">{t.muscles}</h3>
-              <div className="flex flex-wrap gap-1.5">
-                {muscles.map((muscle) => (
-                  <span
-                    key={muscle}
-                    className="px-2.5 py-1 rounded-full bg-accent-cyan/15 text-accent-cyan text-xs font-medium"
-                  >
-                    {muscleLabel(muscle, lang)}
-                  </span>
-                ))}
+              <div className="flex items-start gap-3">
+                <div className="flex flex-wrap gap-1.5 flex-1 min-w-0">
+                  {muscles.map((muscle) => (
+                    <span
+                      key={muscle}
+                      className="px-2.5 py-1 rounded-full bg-accent-cyan/15 text-accent-cyan text-xs font-medium"
+                    >
+                      {muscleLabel(muscle, lang)}
+                    </span>
+                  ))}
+                </div>
+                {showAtlas && (
+                  <MuscleAtlas
+                    view={atlasView}
+                    primary={atlasPrimary}
+                    secondary={atlasSecondary}
+                    className="w-14 h-28 shrink-0"
+                    title={lang === "es" ? "Mapa muscular" : "Muscle map"}
+                  />
+                )}
               </div>
             </section>
           )}

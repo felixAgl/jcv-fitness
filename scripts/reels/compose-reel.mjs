@@ -16,6 +16,8 @@
  *   --voice <l>      es | en | none  (default: es). "none" = the original silent reel.
  *   --subs / --no-subs   Burn synced subtitles (default: on whenever voice is on)
  *   --name <str>     Override the output basename (default: {date}-{id})
+ *   --muscle-map     Overlay the muscle atlas (auto front/back, exercise's
+ *                    muscles highlighted) in the top third for ~2.8s at start
  *
  * Output: reels-out/{name}.mp4 + reels-out/{name}.txt (bilingual caption)
  *
@@ -38,6 +40,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { buildAss, buildNarration } from "./narration.mjs";
+import { renderMuscleOverlay } from "./muscle-overlay.mjs";
 import { synthesizeSegments } from "./tts.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -56,7 +59,7 @@ const CYAN = "0x22d3ee";
 function parseArgs(argv) {
   const args = {
     id: null, seed: null, markUsed: false, out: null, duration: null,
-    voice: "es", subs: null, name: null,
+    voice: "es", subs: null, name: null, muscleMap: false,
   };
   const rest = [...argv];
   while (rest.length) {
@@ -69,6 +72,7 @@ function parseArgs(argv) {
     else if (a === "--subs") args.subs = true;
     else if (a === "--no-subs") args.subs = false;
     else if (a === "--name") args.name = rest.shift();
+    else if (a === "--muscle-map") args.muscleMap = true;
     else if (!a.startsWith("--") && !args.id) args.id = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
@@ -570,6 +574,22 @@ async function main() {
 
   filters.push(`[0:v][ex]${chain.join(",")}[out]`);
 
+  // -- muscle atlas overlay: front/back body map with this exercise's muscles
+  //    highlighted, faded in over the top third for the reel's opening beat.
+  //    The PNG input is appended AFTER the narration wavs so the audio input
+  //    indices (first = 2) stay untouched; its real index is computed below.
+  const MM_START = 0.4;
+  const MM_END = 3.2;
+  let muscleOverlay = null;
+  if (args.muscleMap) {
+    muscleOverlay = await renderMuscleOverlay({
+      exercise: ex,
+      outPath: join(tmpDir, `muscles-${ex.id}-${primaryLang}.png`),
+      lang: primaryLang,
+    });
+    console.log(`Muscle map: view=${muscleOverlay.view}, primary=${muscleOverlay.primary.join(",")}`);
+  }
+
   // -- narration audio: one input per segment, delayed to its measured start
   //    and mixed down. amix with normalize=0 keeps per-segment loudness.
   const audioInputs = [];
@@ -589,6 +609,16 @@ async function main() {
     );
   }
 
+  let outLabel = "out";
+  if (muscleOverlay) {
+    const mmIdx = 2 + audioInputs.length; // 0 = bg, 1 = video, then narration wavs
+    filters.push(
+      `[${mmIdx}:v]format=rgba,fade=in:st=${MM_START}:d=0.35:alpha=1,fade=out:st=${MM_END - 0.4}:d=0.4:alpha=1[mmap]`,
+      `[out][mmap]overlay=0:20:enable='between(t,${MM_START},${MM_END})'[outm]`
+    );
+    outLabel = "outm";
+  }
+
   const outName = args.name || `${date}-${ex.id}`;
   const outVideo = join(outDir, `${outName}.mp4`);
   const ffArgs = [
@@ -596,8 +626,9 @@ async function main() {
     "-f", "lavfi", "-i", `color=c=${GRAPHITE}:s=1080x1920:r=30:d=${duration + 1}`,
     "-stream_loop", "-1", "-i", srcPath,
     ...audioInputs.flatMap((f) => ["-i", f]),
+    ...(muscleOverlay ? ["-loop", "1", "-framerate", "30", "-t", String(duration), "-i", muscleOverlay.path] : []),
     "-filter_complex", filters.join(";"),
-    "-map", "[out]",
+    "-map", `[${outLabel}]`,
     ...(narration ? ["-map", "[aout]", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2"] : []),
     "-t", String(duration),
     "-r", "30",
@@ -659,6 +690,7 @@ async function main() {
       voice: args.voice, subs: args.subs,
       tts: narration ? { provider: narration.segments[0].provider, voice: narration.segments[0].voice, segments: narration.segments.length } : null,
       subtitles: assPath,
+      muscleMap: muscleOverlay ? { view: muscleOverlay.view, png: muscleOverlay.path } : null,
     })
   );
 }
