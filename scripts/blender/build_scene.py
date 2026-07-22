@@ -175,15 +175,20 @@ def parse_args(argv):
                    help="Laplacian iterations used to melt the face")
     p.add_argument("--no-floor", dest="floor", action="store_false",
                    help="drop the ground plane / contact shadow")
-    p.add_argument("--no-stylise-extremities", dest="extremities",
-                   action="store_false",
-                   help="keep MakeHuman's literal fingers and toes")
+    # OFF by default: the reference mannequins (fitonomy / holix / gym.advice)
+    # keep real hands — they grip bars and handles, so fingers read as correct.
+    # Melting them produced amputated-looking stumps, a clear regression. Only
+    # the FACE is abstracted. Kept behind a flag in case a future look needs it.
+    p.add_argument("--stylise-extremities", dest="extremities",
+                   action="store_true",
+                   help="melt fingers/toes into simplified masses (regression: "
+                        "reads as amputation — see README)")
     p.add_argument("--toe-stub", type=float, default=0.52,
                    help="toe length past the ball of the foot")
     p.add_argument("--extremity-smooth", type=int, default=14,
                    help="relax iterations over the hands and feet")
     p.set_defaults(shorts=True, abstract_head=True, floor=True,
-                   extremities=True)
+                   extremities=False)
     return p.parse_args(argv)
 
 
