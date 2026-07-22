@@ -1,0 +1,35 @@
+{
+  "_doc": [
+    "free-exercise-db muscle vocabulary -> JCV_<group> vertex groups baked by build_scene.py.",
+    "Source vocabulary: https://github.com/yuhonas/free-exercise-db (Unlicense / public domain, JSON metadata only).",
+    "null = the mannequin has no honest vertex group for that muscle yet; render_exercise.py skips it with a log line.",
+    "Reasons for the nulls:",
+    "  abductors  - glute medius / TFL on the OUTER hip; the glutes group is carved facing backwards only",
+    "  adductors  - inner thigh; the quads group is front-facing only",
+    "  forearms   - no forearm vertex group baked",
+    "  lower back - erector spinae at spine04/05; the lats group is restricted to the sides of the upper back (side_dot)",
+    "  neck       - no neck vertex group baked",
+    "  traps      - no traps group; deltoids covers only the shoulder caps",
+    "Approximations:",
+    "  middle back -> lats: rhomboid/mid-trap region overlaps the lats group's spine02/03 band; closest visual region"
+  ],
+  "map": {
+    "abdominals": "abs",
+    "abductors": null,
+    "adductors": null,
+    "biceps": "biceps",
+    "calves": "calves",
+    "chest": "pectorals",
+    "forearms": null,
+    "glutes": "glutes",
+    "hamstrings": "hamstrings",
+    "lats": "lats",
+    "lower back": null,
+    "middle back": "lats",
+    "neck": null,
+    "quadriceps": "quads",
+    "shoulders": "deltoids",
+    "traps": null,
+    "triceps": "triceps"
+  }
+}

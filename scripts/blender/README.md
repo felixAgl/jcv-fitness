@@ -34,12 +34,51 @@ unzip -q /tmp/mpfb.zip -d "$ROOT/assets/3d/blender-extensions/user_default/mpfb"
 the addon resolves as `bl_ext.user_default.mpfb` without touching the user's own
 Blender configuration.
 
+### Studio HDRI (one-off, ~6 MB each, not committed)
+
+The scene is lit by a Poly Haven studio HDRI on top of the area-light rig.
+`build_scene.py --hdri auto` picks the first `.hdr` in `assets/3d/hdri/`:
+
+```bash
+ROOT="$(git rev-parse --show-toplevel)"
+mkdir -p "$ROOT/assets/3d/hdri"
+for h in studio_small_08 studio_small_09; do
+  curl -sL -o "$ROOT/assets/3d/hdri/${h}_2k.hdr" \
+    "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/${h}_2k.hdr"
+done
+```
+
+`studio_small_08` (low contrast, the default by sort order) and
+`studio_small_09` (medium contrast) are both **CC0** (public domain,
+https://polyhaven.com/license), chosen because their dark rooms with a few
+softboxes match the near-black studio look. The image is packed into the
+generated `.blend`, so renders keep working even if `assets/3d/hdri/` is wiped.
+
+### free-exercise-db (one-off, ~1.5 MB, not committed)
+
+`render_exercise.py --exercise-name` resolves exercises against a local copy of
+free-exercise-db (https://github.com/yuhonas/free-exercise-db, **Unlicense /
+public domain**). Only the JSON metadata is used — never its exercise images:
+
+```bash
+ROOT="$(git rev-parse --show-toplevel)"
+mkdir -p "$ROOT/assets/3d/free-exercise-db"
+curl -sL -o "$ROOT/assets/3d/free-exercise-db/exercises.json" \
+  "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json"
+```
+
+NB: our own exercise library (`public/data/exercise-library.json`) has
+**different ids**. No bridge is attempted here — `--exercise-name` is a
+Blender-pipeline-only feature until an id mapping exists.
+
 ### Licensing
 
 * **MPFB2 / MakeHuman code**: GPLv3 — we only run it, we do not redistribute it.
 * **Generated assets** (the mesh, the rig, anything exported): **CC0**, public
   domain, explicitly usable commercially. This is the reason MPFB2 was chosen
   over Mixamo / free-but-restricted marketplace models.
+* **Poly Haven HDRIs**: CC0.
+* **free-exercise-db JSON**: Unlicense (public domain).
 
 Everything under `assets/3d/` and `out-3d/` is gitignored — regenerate with the
 commands below.
@@ -60,6 +99,12 @@ scripts/blender/render.sh render \
     --views front,three_quarter,side,top,closeup \
     --frames 1-48 \
     --out out-3d/run1
+
+# 2b. or let free-exercise-db pick the muscles: primaries glow at 1.0,
+#     secondaries at 0.35 (bench press = pectorals + dim deltoids/triceps)
+scripts/blender/render.sh render \
+    --exercise-name "Barbell Bench Press - Medium Grip" \
+    --views three_quarter --frames 26 --out out-3d/run2
 
 # raw form (what render.sh wraps)
 BLENDER_USER_EXTENSIONS=assets/3d/blender-extensions \
@@ -89,6 +134,9 @@ PREFIX=3d-v2 BLEND_PREV=assets/3d/jcv_mannequin_v1.blend \
 | `--no-stylise-extremities` | off | keep MakeHuman's literal fingers and toes |
 | `--toe-stub` | `0.52` | toe length past the ball of the foot |
 | `--extremity-smooth` | `14` | relax iterations over the hands and feet |
+| `--hdri` | `auto` | studio HDRI: `auto` = first `.hdr` in `assets/3d/hdri/`, `none`, or a path |
+| `--hdri-strength` | `0.30` | world strength; 0.55 halos the figure through the bloom pass |
+| `--hdri-rotation` | `205` | Z rotation in degrees, aims the softbox at the camera-left front |
 
 ### render_extremities.py flags
 
@@ -114,7 +162,8 @@ PREFIX=3d-v3 scripts/blender/make_extremity_demo.sh
 
 | Flag | Default | Meaning |
 | --- | --- | --- |
-| `--muscle` | `none` | muscle to light up (`quads`, `pectorals`, …) |
+| `--muscle` | `none` | muscle to light up (`quads`, `pectorals`, …); manual override that wins over `--exercise-name` |
+| `--exercise-name` | – | free-exercise-db exercise (name or id); primaries glow at 1.0, secondaries at 0.35, resolved through `muscle_map.json` |
 | `--views` | `front` | `front,three_quarter,side,back,top,closeup,orbit` |
 | `--frames` | `24` | `24` or `1-48` |
 | `--rep-frames` | `48` | frames in one full rep (named this way because Blender itself swallows anything starting with `--cycle`) |
@@ -194,7 +243,35 @@ blurred across mesh edges so the glow has a soft edge.
 
 At render time `--muscle X` copies that vertex group into a `muscle_mask`
 colour attribute; the body material is a Mix Shader between matte grey and a
-cyan emissive Principled BSDF, driven by that attribute.
+cyan emissive Principled BSDF, driven by that attribute. The material's ramp is
+an **identity** ramp on purpose: the feather sharpening (smoothstep over
+0.10..0.55 of the group weight) happens python-side in `write_mask()`, *before*
+the per-muscle intensity is multiplied in. With the sharpening in the material
+instead, a 0.35 secondary glow gets expanded right back to near-full cyan and
+the primary/secondary distinction dies.
+
+`--exercise-name "<name or id>"` looks the exercise up in the local
+free-exercise-db JSON and glows several muscles at once: `primaryMuscles` at
+full intensity, `secondaryMuscles` at 35 %, translated through
+[`muscle_map.json`](muscle_map.json). That file also documents which
+free-exercise-db muscles have **no** vertex group on the mannequin (abductors,
+adductors, forearms, lower back, neck, traps map to `null` and are skipped with
+a log line) and the one deliberate approximation (`middle back` → `lats`).
+Overlapping groups keep the max intensity per vertex. `--muscle` still works as
+a manual override.
+
+**Body material.** Matte grey with a *subtle* subsurface term (weight 0.10,
+warm-neutral radius 0.070/0.055/0.045, scale 0.03): it softens the terminator
+and lifts the core shadows so the figure reads as vinyl/silicone instead of
+painted plastic. Anything above ~0.15 reads waxy. The sheen tint stays for the
+fabric-like grazing highlight.
+
+**Lighting.** The three-point area rig plus a Poly Haven studio HDRI
+(`studio_small_08`, CC0, strength 0.30, rotated 205° so its softbox agrees with
+KEY). The world mixes on `Light Path > Is Camera Ray`: camera rays see the flat
+`#0a0a0a` void, shading rays see the HDRI — image-based speculars and ambient
+bounce without giving up the near-black background. Strength matters: at 0.55
+the whole figure crosses the compositor bloom threshold and grows a milky halo.
 
 **Cameras.** Computed from the *evaluated* mesh bounds and the mannequin's
 facing axis, then cached from the mid-point of the movement so the camera stays

@@ -175,6 +175,15 @@ def parse_args(argv):
                    help="Laplacian iterations used to melt the face")
     p.add_argument("--no-floor", dest="floor", action="store_false",
                    help="drop the ground plane / contact shadow")
+    p.add_argument("--hdri", default="auto",
+                   help="studio HDRI lighting the scene (packed into the "
+                        ".blend). 'auto' picks the first .hdr in "
+                        "assets/3d/hdri/, 'none' keeps pure area lighting")
+    p.add_argument("--hdri-strength", type=float, default=0.30,
+                   help="world strength of the HDRI; low keeps the void dark "
+                        "(0.55 halos the whole figure through the bloom pass)")
+    p.add_argument("--hdri-rotation", type=float, default=205.0,
+                   help="Z rotation of the HDRI in degrees; aims the softbox")
     # OFF by default: the reference mannequins (fitonomy / holix / gym.advice)
     # keep real hands — they grip bars and handles, so fingers read as correct.
     # Melting them produced amputated-looking stumps, a clear regression. Only
@@ -1204,14 +1213,16 @@ def build_body_material(body):
     bsdf.inputs["Roughness"].default_value = 0.46
     if "Specular IOR Level" in bsdf.inputs:
         bsdf.inputs["Specular IOR Level"].default_value = 0.38
-    # a little skin translucency + a fabric-like sheen keeps the silhouette from
-    # reading as flat grey plastic
+    # Subtle subsurface scattering: softens the terminator and warms the core
+    # shadows so the figure reads as vinyl/silicone rather than painted
+    # plastic. Deliberately LOW -- weight above ~0.15 makes the mannequin look
+    # waxy/translucent, which is wrong for the matte-grey look. The radius is
+    # warm-neutral (red scatters a touch further than blue) rather than the
+    # fleshy skin preset: this is a mannequin, not a person.
     if "Subsurface Weight" in bsdf.inputs:
-        bsdf.inputs["Subsurface Weight"].default_value = 0.16
-        bsdf.inputs["Subsurface Radius"].default_value = (0.09, 0.045, 0.032)
-        bsdf.inputs["Subsurface Scale"].default_value = 0.035
-    if "Subsurface Color" in bsdf.inputs:
-        bsdf.inputs["Subsurface Color"].default_value = (0.22, 0.10, 0.09, 1)
+        bsdf.inputs["Subsurface Weight"].default_value = 0.10
+        bsdf.inputs["Subsurface Radius"].default_value = (0.070, 0.055, 0.045)
+        bsdf.inputs["Subsurface Scale"].default_value = 0.030
     if "Sheen Weight" in bsdf.inputs:
         bsdf.inputs["Sheen Weight"].default_value = 0.22
         bsdf.inputs["Sheen Roughness"].default_value = 0.35
@@ -1232,11 +1243,15 @@ def build_body_material(body):
     attr.attribute_name = "muscle_mask"
     attr.attribute_type = "GEOMETRY"
 
+    # IDENTITY ramp: the feather sharpening lives in render_exercise.write_mask
+    # (python-side smoothstep) so that per-muscle INTENSITIES survive -- a ramp
+    # that expands 0.10..0.55 to 0..1 here would push a 0.35 secondary glow to
+    # near-full cyan and erase the primary/secondary distinction.
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     ramp.location = (20, -20)
-    ramp.color_ramp.interpolation = "B_SPLINE"
-    ramp.color_ramp.elements[0].position = 0.10
-    ramp.color_ramp.elements[1].position = 0.55
+    ramp.color_ramp.interpolation = "LINEAR"
+    ramp.color_ramp.elements[0].position = 0.0
+    ramp.color_ramp.elements[1].position = 1.0
 
     mix = nt.nodes.new("ShaderNodeMixShader")
     mix.location = (620, 0)
@@ -1255,13 +1270,79 @@ def build_body_material(body):
     return mat
 
 
-def build_world():
+def _resolve_hdri(arg):
+    """'auto' -> first .hdr under assets/3d/hdri/ (repo-relative), 'none' ->
+    None, anything else is a path. The HDRI is never committed: re-fetch with
+    the curl command in scripts/blender/README.md (Poly Haven, CC0)."""
+    if arg == "none":
+        return None
+    if arg != "auto":
+        return arg if os.path.isfile(arg) else None
+    here = os.path.dirname(os.path.abspath(__file__))
+    hdri_dir = os.path.normpath(os.path.join(here, "..", "..",
+                                             "assets", "3d", "hdri"))
+    if not os.path.isdir(hdri_dir):
+        return None
+    hdrs = sorted(f for f in os.listdir(hdri_dir)
+                  if f.lower().endswith((".hdr", ".exr")))
+    return os.path.join(hdri_dir, hdrs[0]) if hdrs else None
+
+
+def build_world(hdri_path=None, strength=0.30, rotation_deg=205.0):
+    """Near-black void to camera, studio HDRI to the surfaces.
+
+    The HDRI is what gives the body image-based speculars and soft ambient
+    bounce -- the single biggest free realism jump over pure area lights. But
+    the look direction demands a #0a0a0a background, so the world mixes on
+    Light Path > Is Camera Ray: camera rays see the flat dark colour, shading
+    rays see the HDRI. Strength stays low so the studio never overpowers the
+    key/rim area lights; rotation aims the HDRI's softbox at the camera-left
+    front, agreeing with KEY. The image is packed into the .blend so renders
+    stay headless-reproducible even if assets/3d/hdri/ is wiped.
+    """
     world = bpy.data.worlds.new("JCV_World")
     bpy.context.scene.world = world
     world.use_nodes = True
-    bg = world.node_tree.nodes["Background"]
+    nt = world.node_tree
+    bg = nt.nodes["Background"]
     bg.inputs[0].default_value = (*BG_COLOR, 1)
     bg.inputs[1].default_value = 1.0
+    if not hdri_path:
+        log("world: flat colour only (no HDRI found)")
+        return
+
+    out = nt.nodes["World Output"]
+    env_bg = nt.nodes.new("ShaderNodeBackground")
+    env_bg.location = (-200, -200)
+    env_bg.inputs[1].default_value = strength
+
+    env = nt.nodes.new("ShaderNodeTexEnvironment")
+    env.location = (-560, -200)
+    env.image = bpy.data.images.load(hdri_path)
+    env.image.pack()
+
+    mapping = nt.nodes.new("ShaderNodeMapping")
+    mapping.location = (-760, -200)
+    mapping.inputs["Rotation"].default_value = (0, 0,
+                                               math.radians(rotation_deg))
+    coord = nt.nodes.new("ShaderNodeTexCoord")
+    coord.location = (-960, -200)
+
+    lp = nt.nodes.new("ShaderNodeLightPath")
+    lp.location = (0, 300)
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    mix.location = (260, 0)
+
+    nt.links.new(coord.outputs["Generated"], mapping.inputs["Vector"])
+    nt.links.new(mapping.outputs["Vector"], env.inputs["Vector"])
+    nt.links.new(env.outputs["Color"], env_bg.inputs["Color"])
+    # factor 1 -> input 2: camera rays get the flat dark colour
+    nt.links.new(lp.outputs["Is Camera Ray"], mix.inputs["Fac"])
+    nt.links.new(env_bg.outputs["Background"], mix.inputs[1])
+    nt.links.new(bg.outputs["Background"], mix.inputs[2])
+    nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
+    log(f"world: HDRI {os.path.basename(hdri_path)} "
+        f"strength={strength} rot={rotation_deg}")
 
 
 def _area_light(name, loc, rot, energy, size, color=(1, 1, 1)):
@@ -1391,7 +1472,8 @@ def main():
         build_shorts(body, rig)
     bake_muscle_groups(body, rig)
     build_body_material(body)
-    build_world()
+    build_world(_resolve_hdri(args.hdri), strength=args.hdri_strength,
+                rotation_deg=args.hdri_rotation)
     build_lighting(body)
     if args.floor:
         build_floor(body)
