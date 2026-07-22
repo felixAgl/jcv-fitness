@@ -12,9 +12,18 @@
  *   --seed <str>     Seed for the deterministic "random" pick (default: today UTC yyyy-mm-dd)
  *   --mark-used      Append the picked id to scripts/reels/used-ids.json
  *   --out <dir>      Output directory (default: reels-out/ at repo root)
- *   --duration <s>   Override total duration in seconds (10-15)
+ *   --duration <s>   Override total duration in seconds
+ *   --voice <l>      es | en | none  (default: es). "none" = the original silent reel.
+ *   --subs / --no-subs   Burn synced subtitles (default: on whenever voice is on)
+ *   --name <str>     Override the output basename (default: {date}-{id})
  *
- * Output: reels-out/{date}-{id}.mp4 + reels-out/{date}-{id}.txt (bilingual caption)
+ * Output: reels-out/{name}.mp4 + reels-out/{name}.txt (bilingual caption)
+ *
+ * VOICE-OVER: narration is synthesized locally at $0 (Piper by default, see
+ * tts.mjs). Each narration segment is a separate wav, so its real duration is
+ * measured with ffprobe — that is what times the burned-in subtitles, with no
+ * paid word-timestamp API anywhere. Swap in a cloned voice later by setting
+ * REELS_TTS_PROVIDER; nothing else in this file changes.
  *
  * NOTE ON MEDIA LICENSE: exercise videos are (c) Gymvisual. The owner's
  * Gymvisual license is still in progress — do NOT publish publicly until that
@@ -27,6 +36,9 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { buildAss, buildNarration } from "./narration.mjs";
+import { synthesizeSegments } from "./tts.mjs";
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(SCRIPT_DIR, "..", "..");
@@ -42,7 +54,10 @@ const CYAN = "0x22d3ee";
 // ---------------------------------------------------------------- CLI args
 
 function parseArgs(argv) {
-  const args = { id: null, seed: null, markUsed: false, out: null, duration: null };
+  const args = {
+    id: null, seed: null, markUsed: false, out: null, duration: null,
+    voice: "es", subs: null, name: null,
+  };
   const rest = [...argv];
   while (rest.length) {
     const a = rest.shift();
@@ -50,11 +65,23 @@ function parseArgs(argv) {
     else if (a === "--mark-used") args.markUsed = true;
     else if (a === "--out") args.out = rest.shift();
     else if (a === "--duration") args.duration = Number(rest.shift());
+    else if (a === "--voice") args.voice = String(rest.shift() ?? "").toLowerCase();
+    else if (a === "--subs") args.subs = true;
+    else if (a === "--no-subs") args.subs = false;
+    else if (a === "--name") args.name = rest.shift();
     else if (!a.startsWith("--") && !args.id) args.id = a;
     else throw new Error(`Unknown argument: ${a}`);
   }
   if (!args.id) args.id = "random";
   if (!args.seed) args.seed = new Date().toISOString().slice(0, 10);
+  if (!["es", "en", "none"].includes(args.voice)) {
+    throw new Error(`--voice must be es | en | none (got "${args.voice}")`);
+  }
+  // subtitles default: on with a voice, off without (there is nothing to sync to)
+  if (args.subs === null) args.subs = args.voice !== "none";
+  if (args.subs && args.voice === "none") {
+    throw new Error("--subs requires a voice; subtitle timing comes from the narration audio");
+  }
   return args;
 }
 
@@ -399,28 +426,60 @@ async function main() {
   const stepsEs = (ex.instruction_steps?.es ?? []).slice(0, 3);
   if (stepsEs.length === 0) throw new Error(`Exercise ${ex.id} has no Spanish instruction steps`);
   const nSteps = stepsEs.length;
+  const targetEs = TARGET_ES[ex.target] ?? ex.target;
 
-  // -- timing: ~4s per step inside a 10-15s reel
+  // The reel's primary (big, white) title follows the narration language; the
+  // other language stays as the small cyan subtitle. --voice none keeps the
+  // original ES-primary layout.
+  const primaryLang = args.voice === "en" ? "en" : "es";
+  const titlePrimary = primaryLang === "en" ? nameEn : nameEs;
+  const titleSecondary = primaryLang === "en" ? nameEs : nameEn;
+
+  // -- voice-over: synthesize each narration segment separately so ffprobe can
+  //    give us a real per-segment duration to time the subtitles with.
+  let narration = null;
+  if (args.voice !== "none") {
+    const lang = args.voice;
+    const script = buildNarration({
+      lang,
+      name: lang === "en" ? titleCase(ex.name) : titleCase(translateName(ex.name)),
+      muscle: lang === "en" ? ex.target : targetEs,
+      steps: ex.instruction_steps?.[lang] ?? [],
+    });
+    if (!script.length) throw new Error(`Exercise ${ex.id} has no ${lang} instruction steps for narration`);
+    narration = synthesizeSegments({ segments: script, lang, dir: join(tmpDir, "voice") });
+    const s0 = narration.segments[0];
+    console.log(
+      `Narration: ${narration.segments.length} segments, ${narration.total.toFixed(1)}s ` +
+        `(${s0.provider}/${s0.voice}${narration.segments.every((s) => s.cached) ? ", cached" : ""})`
+    );
+  }
+
+  // -- timing. Silent reel: the original ~4s-per-step 10-15s window.
+  //    Voiced reel: the audio decides, so we never clip the narration.
+  const VOICE_TAIL = 1.0;
   const duration = args.duration
-    ? Math.min(15, Math.max(10, args.duration))
-    : Math.min(15, Math.max(10, 1.2 + nSteps * 3.9 + 0.6));
+    ? Math.max(5, args.duration)
+    : narration
+      ? Math.min(60, narration.total + VOICE_TAIL)
+      : Math.min(15, Math.max(10, 1.2 + nSteps * 3.9 + 0.6));
   const captionStart = 1.2;
   const seg = (duration - captionStart - 0.6) / nSteps;
 
   // -- layout (1080x1920)
-  // fit the ES title in max 2 lines: widen the wrap (and shrink the font)
+  // fit the primary title in max 2 lines: widen the wrap (and shrink the font)
   // until it fits instead of truncating words
-  let titleLines = wrapText(nameEs, 24);
+  let titleLines = wrapText(titlePrimary, 24);
   for (const width of [32, 40, 52]) {
     if (titleLines.length <= 2) break;
-    titleLines = wrapText(nameEs, width);
+    titleLines = wrapText(titlePrimary, width);
   }
   titleLines = titleLines.slice(0, 2);
   const titleMaxLen = Math.max(...titleLines.map((l) => l.length));
   const titleSize = Math.max(56, Math.min(100, Math.floor(2040 / Math.max(titleMaxLen, 12))));
   const titleY = 150;
   const titleBlockH = titleLines.length * titleSize + (titleLines.length - 1) * 10;
-  const enSize = Math.max(30, Math.min(44, Math.floor(1900 / Math.max(nameEn.length, 14))));
+  const enSize = Math.max(30, Math.min(44, Math.floor(1900 / Math.max(titleSecondary.length, 14))));
   const enY = titleY + titleBlockH + 26;
   const videoY = 460;
   const videoX = 90;
@@ -436,7 +495,7 @@ async function main() {
     writeFileSync(p, content, "utf8");
     return escFilterPath(p);
   };
-  const titleEnFile = tf("title-en.txt", nameEn);
+  const titleEnFile = tf("title-secondary.txt", titleSecondary);
   const watermarkFile = tf("watermark.txt", "@jcv_24 — jcv24fitness.com");
   const creditFile = tf("credit.txt", "Video: Gymvisual (c)");
 
@@ -454,54 +513,92 @@ async function main() {
     `drawbox=x=${videoX - 6}:y=${videoY - 6}:w=${videoSize + 12}:h=${videoSize + 12}:color=${CYAN}:t=6`,
     // top accent bar
     `drawbox=x=490:y=112:w=100:h=10:color=${CYAN}:t=fill`,
-    // ES title (big) — one drawtext per line so every line is centered
+    // primary title (big, white) — one drawtext per line so every line is centered
     ...titleLines.map(
       (line, i) =>
-        `drawtext=fontfile=${font}:textfile=${tf(`title-es-${i}.txt`, line)}:fontcolor=white:fontsize=${titleSize}:x=(w-text_w)/2:y=${titleY + i * (titleSize + 10)}`
+        `drawtext=fontfile=${font}:textfile=${tf(`title-primary-${i}.txt`, line)}:fontcolor=white:fontsize=${titleSize}:x=(w-text_w)/2:y=${titleY + i * (titleSize + 10)}`
     ),
-    // EN title (small, cyan)
+    // secondary title (small, cyan)
     `drawtext=fontfile=${font}:textfile=${titleEnFile}:fontcolor=${CYAN}:fontsize=${enSize}:x=(w-text_w)/2:y=${enY}`,
   ];
 
-  // sequential ES instruction captions
-  stepsEs.forEach((step, i) => {
-    const start = (captionStart + i * seg).toFixed(2);
-    const end = (captionStart + (i + 1) * seg).toFixed(2);
-    let size = 44;
-    let lines = wrapText(step, 46);
-    if (lines.length > 4) {
-      size = 38;
-      lines = wrapText(step, 54);
-      if (lines.length > 5) {
-        lines = lines.slice(0, 5);
-        lines[4] = lines[4].replace(/\s*\S*$/, " ...");
+  // Sequential ES instruction captions — ONLY on the silent/subtitle-less reel.
+  // With subtitles on they are switched off entirely: the burned .ass occupies
+  // the same lower third, so keeping both would overlap.
+  if (!args.subs) {
+    stepsEs.forEach((step, i) => {
+      const start = (captionStart + i * seg).toFixed(2);
+      const end = (captionStart + (i + 1) * seg).toFixed(2);
+      let size = 44;
+      let lines = wrapText(step, 46);
+      if (lines.length > 4) {
+        size = 38;
+        lines = wrapText(step, 54);
+        if (lines.length > 5) {
+          lines = lines.slice(0, 5);
+          lines[4] = lines[4].replace(/\s*\S*$/, " ...");
+        }
       }
-    }
-    const blockH = lines.length * Math.round(size * 1.25);
-    const labelFile = tf(`step-label-${i}.txt`, `PASO ${i + 1}/${nSteps}`);
-    const stepFile = tf(`step-${i}.txt`, lines.join("\n"));
-    const enable = `enable='between(t,${start},${end})'`;
-    chain.push(
-      `drawbox=x=70:y=${capLabelY - 8}:w=10:h=${capTextY - capLabelY + blockH + 8}:color=${CYAN}:t=fill:${enable}`,
-      `drawtext=fontfile=${font}:textfile=${labelFile}:fontcolor=${CYAN}:fontsize=40:x=110:y=${capLabelY}:${enable}`,
-      `drawtext=fontfile=${font}:textfile=${stepFile}:fontcolor=white:fontsize=${size}:line_spacing=${Math.round(size * 0.25)}:x=110:y=${capTextY}:${enable}`
-    );
-  });
+      const blockH = lines.length * Math.round(size * 1.25);
+      const labelFile = tf(`step-label-${i}.txt`, `PASO ${i + 1}/${nSteps}`);
+      const stepFile = tf(`step-${i}.txt`, lines.join("\n"));
+      const enable = `enable='between(t,${start},${end})'`;
+      chain.push(
+        `drawbox=x=70:y=${capLabelY - 8}:w=10:h=${capTextY - capLabelY + blockH + 8}:color=${CYAN}:t=fill:${enable}`,
+        `drawtext=fontfile=${font}:textfile=${labelFile}:fontcolor=${CYAN}:fontsize=40:x=110:y=${capLabelY}:${enable}`,
+        `drawtext=fontfile=${font}:textfile=${stepFile}:fontcolor=white:fontsize=${size}:line_spacing=${Math.round(size * 0.25)}:x=110:y=${capTextY}:${enable}`
+      );
+    });
+  }
 
   chain.push(
     `drawtext=fontfile=${font}:textfile=${watermarkFile}:fontcolor=white@0.9:fontsize=42:x=(w-text_w)/2:y=${watermarkY}`,
     `drawtext=fontfile=${font}:textfile=${creditFile}:fontcolor=white@0.45:fontsize=26:x=(w-text_w)/2:y=${creditY}`
   );
 
+  // Burned-in subtitles, timed from the measured narration durations. Applied
+  // last so it sits on top of everything, and anchored to the band between the
+  // video card (ends y=1360) and the watermark (y=1790).
+  let assPath = null;
+  if (args.subs && narration) {
+    assPath = join(tmpDir, `subs-${args.voice}.ass`);
+    writeFileSync(assPath, buildAss({ segments: narration.segments, gap: narration.gap }), "utf8");
+    chain.push(
+      `subtitles=filename=${escFilterPath(assPath)}:fontsdir=${escFilterPath(join(SCRIPT_DIR, "assets"))}`
+    );
+  }
+
   filters.push(`[0:v][ex]${chain.join(",")}[out]`);
 
-  const outVideo = join(outDir, `${date}-${ex.id}.mp4`);
+  // -- narration audio: one input per segment, delayed to its measured start
+  //    and mixed down. amix with normalize=0 keeps per-segment loudness.
+  const audioInputs = [];
+  if (narration) {
+    const first = 2; // inputs 0 = bg color, 1 = exercise video
+    narration.segments.forEach((s) => audioInputs.push(s.file));
+    const delayed = narration.segments.map((s, i) => {
+      const ms = Math.round(s.start * 1000);
+      return `[${first + i}:a]adelay=${ms}|${ms}[v${i}]`;
+    });
+    const mixIn = narration.segments.map((_, i) => `[v${i}]`).join("");
+    filters.push(
+      ...delayed,
+      `${mixIn}amix=inputs=${narration.segments.length}:normalize=0:dropout_transition=0,` +
+        // apad guarantees the audio is never shorter than the video; -t trims both
+        `aresample=48000,apad[aout]`
+    );
+  }
+
+  const outName = args.name || `${date}-${ex.id}`;
+  const outVideo = join(outDir, `${outName}.mp4`);
   const ffArgs = [
     "-y",
     "-f", "lavfi", "-i", `color=c=${GRAPHITE}:s=1080x1920:r=30:d=${duration + 1}`,
     "-stream_loop", "-1", "-i", srcPath,
+    ...audioInputs.flatMap((f) => ["-i", f]),
     "-filter_complex", filters.join(";"),
     "-map", "[out]",
+    ...(narration ? ["-map", "[aout]", "-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2"] : []),
     "-t", String(duration),
     "-r", "30",
     "-pix_fmt", "yuv420p",
@@ -511,11 +608,12 @@ async function main() {
     "-movflags", "+faststart",
     outVideo,
   ];
-  console.log(`Composing ${outVideo} (${duration.toFixed(1)}s, ${nSteps} steps)`);
+  console.log(
+    `Composing ${outVideo} (${duration.toFixed(1)}s, voice=${args.voice}, subs=${args.subs ? "on" : "off"})`
+  );
   execFileSync(FFMPEG, ffArgs, { stdio: ["ignore", "inherit", "inherit"] });
 
   // -- bilingual caption file
-  const targetEs = TARGET_ES[ex.target] ?? ex.target;
   const equipEs = EQUIPMENT_ES[ex.equipment] ?? ex.equipment;
   const nums = ["1️⃣", "2️⃣", "3️⃣"];
   const hashtags = [
@@ -544,7 +642,7 @@ async function main() {
     ``,
     hashtags.join(" "),
   ].join("\n");
-  const outCaption = join(outDir, `${date}-${ex.id}.txt`);
+  const outCaption = join(outDir, `${outName}.txt`);
   writeFileSync(outCaption, caption, "utf8");
 
   // -- track used ids
@@ -554,7 +652,15 @@ async function main() {
     writeFileSync(USED_IDS_PATH, JSON.stringify({ used }, null, 2) + "\n", "utf8");
   }
 
-  console.log(JSON.stringify({ id: ex.id, name: ex.name, nameEs, video: outVideo, caption: outCaption, duration }));
+  console.log(
+    JSON.stringify({
+      id: ex.id, name: ex.name, nameEs, video: outVideo, caption: outCaption,
+      duration: Number(duration.toFixed(2)),
+      voice: args.voice, subs: args.subs,
+      tts: narration ? { provider: narration.segments[0].provider, voice: narration.segments[0].voice, segments: narration.segments.length } : null,
+      subtitles: assPath,
+    })
+  );
 }
 
 function titleCase(s) {

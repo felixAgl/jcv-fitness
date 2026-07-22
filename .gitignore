@@ -42,3 +42,15 @@ next-env.d.ts
 
 # generated reels (scripts/reels)
 /reels-out/
+# Piper TTS voice models (~60 MB each) — downloaded, never committed.
+# Fetch with: npm run reels:voices
+/scripts/reels/voices/
+# synthesized-narration cache
+/scripts/reels/.tmp/
+
+# 3D prototype (Blender) - large binaries, regenerate with scripts/blender/render.sh
+/assets/3d/
+/out-3d/
+
+# python bytecode
+__pycache__/

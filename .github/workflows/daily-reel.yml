@@ -1,5 +1,11 @@
-# Daily bilingual exercise Reel — generates a 1080x1920 MP4 + caption from the
-# exercise library and uploads them as a workflow artifact (30-day retention).
+# Daily bilingual exercise Reel — generates TWO 1080x1920 MP4s (Spanish and
+# English voice-over, each with burned-in synced subtitles) + captions from the
+# exercise library, and uploads them as a workflow artifact (30-day retention).
+#
+# VOICE-OVER COST: $0. Narration is synthesized in-runner with Piper (MIT,
+# offline). No API key, no account, no secret. The voice models are downloaded
+# from huggingface.co/rhasspy/piper-voices and cached; they are ~60 MB each and
+# are NOT committed to the repo.
 #
 # Publishing to Instagram is OPTIONAL and gated behind the repo secrets
 # IG_USER_ID / IG_ACCESS_TOKEN. Without them the publish step prints setup
@@ -44,6 +50,34 @@ jobs:
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Piper is the default TTS provider: MIT, offline, ~0.3 s of CPU per
+      # sentence. No torch, so this stays a light install (Kokoro would pull
+      # ~2 GB and is local-only — see scripts/reels/tts.mjs).
+      - name: Install Piper TTS
+        run: pip install --disable-pip-version-check piper-tts
+
+      # ~180 MB of .onnx voices. The key is derived from the voice list in
+      # scripts/reels/download-voices.mjs, so adding a voice busts the cache.
+      - name: Voice cache key
+        id: voices
+        run: |
+          KEY=$(node --input-type=module -e \
+            'import { voicesHash } from "./scripts/reels/download-voices.mjs"; console.log(voicesHash());')
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Piper voices
+        uses: actions/cache@v4
+        with:
+          path: scripts/reels/voices
+          key: piper-voices-${{ steps.voices.outputs.key }}
+
+      - name: Download Piper voices (no-op on cache hit)
+        run: npm run reels:voices
+
       # Restore the used-ids tracker from cache so daily picks don't repeat over
       # the full cycle. A miss just starts fresh — date-seeding still varies the
       # daily pick regardless.
@@ -55,17 +89,25 @@ jobs:
           restore-keys: |
             reels-used-ids-
 
-      - name: Compose reel
+      # Both language cuts come from the SAME exercise: the ES run resolves the
+      # daily pick and marks it used, then the EN run is pinned to that id so
+      # the two reels always match (and only one id is consumed per day).
+      - name: Compose reels (ES + EN)
         id: compose
         run: |
+          set -euo pipefail
           SEED=$(date -u +%F)
           EXERCISE="${{ github.event.inputs.exercise_id }}"
-          node scripts/reels/compose-reel.mjs "${EXERCISE:-random}" --seed "$SEED" --mark-used
+          node scripts/reels/compose-reel.mjs "${EXERCISE:-random}" \
+            --seed "$SEED" --mark-used --voice es --name "$SEED-es" | tee /tmp/es.json
+          ID=$(tail -1 /tmp/es.json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).id))')
+          node scripts/reels/compose-reel.mjs "$ID" \
+            --seed "$SEED" --voice en --name "$SEED-en"
           echo "seed=$SEED" >> "$GITHUB_OUTPUT"
-          echo "video=$(ls reels-out/*.mp4 | head -1)" >> "$GITHUB_OUTPUT"
-          echo "caption=$(ls reels-out/*.txt | head -1)" >> "$GITHUB_OUTPUT"
+          echo "video=reels-out/$SEED-es.mp4" >> "$GITHUB_OUTPUT"
+          echo "caption=reels-out/$SEED-es.txt" >> "$GITHUB_OUTPUT"
 
-      # Upload FIRST so the reel is always available, even if later steps fail.
+      # Upload FIRST so the reels are always available, even if later steps fail.
       - name: Upload reel artifact
         uses: actions/upload-artifact@v4
         with:

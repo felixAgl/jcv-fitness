@@ -13,7 +13,9 @@
     "video:dev": "remotion studio src/remotion/index.ts",
     "video:build": "remotion render src/remotion/index.ts PromoVideo out/promo.mp4",
     "video:build:vertical": "remotion render src/remotion/index.ts PromoVideoVertical out/promo-vertical.mp4",
-    "video:still": "remotion still src/remotion/index.ts PromoVideo out/frame.png --frame=100"
+    "video:still": "remotion still src/remotion/index.ts PromoVideo out/frame.png --frame=100",
+    "reels:voices": "node scripts/reels/download-voices.mjs",
+    "reels": "node scripts/reels/compose-reel.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.422",

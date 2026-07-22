@@ -12,21 +12,87 @@ library (`public/data/exercise-library.json`) and the exercise MP4s hosted at
 ## Generate a reel
 
 ```bash
-# explicit exercise
+# one-time: fetch the Piper voice models (~180 MB, gitignored)
+npm run reels:voices
+
+# explicit exercise, Spanish voice-over + burned subtitles (default)
 node scripts/reels/compose-reel.mjs 0043
+
+# English cut of the same exercise
+node scripts/reels/compose-reel.mjs 0043 --voice en --name my-reel-en
+
+# the original silent reel (step captions instead of subtitles)
+node scripts/reels/compose-reel.mjs 0043 --voice none
 
 # deterministic daily pick (seeded by date, skips ids in used-ids.json)
 node scripts/reels/compose-reel.mjs random --seed 2026-07-15 --mark-used
 ```
 
-Output: `reels-out/{date}-{id}.mp4` (1080x1920, h264, 10-15 s) and
+Output: `reels-out/{date}-{id}.mp4` (1080x1920, h264 + aac) and
 `reels-out/{date}-{id}.txt` (bilingual caption with hashtags and the
-"Ejercicio: Gymvisual" credit).
+"Ejercicio: Gymvisual" credit). `--name` overrides the basename.
+
+Flags: `--voice es|en|none` (default `es`), `--subs` / `--no-subs` (default: on
+whenever a voice is on), `--duration <s>`, `--out <dir>`, `--seed`,
+`--mark-used`, `--name`.
 
 Layout: graphite `#0a0a0a` background, upscaled looping exercise video in a
-cyan-framed card, ES title (big) + EN title (small, cyan `#22d3ee`), and the
-first 3 Spanish instruction steps shown sequentially as bottom captions.
+cyan-framed card, primary title (big, white — follows the narration language)
++ the other language (small, cyan `#22d3ee`), and the narration burned in as
+subtitles in the band between the video card and the watermark.
 Typeface: Bebas Neue (`assets/BebasNeue-Regular.ttf`, OFL, committed).
+
+Duration: a voiced reel is as long as its narration (~20-30 s); a silent reel
+keeps the original 10-15 s window.
+
+## Voice-over + subtitles
+
+Narration is **$0**: it is synthesized locally, offline, with no API key and no
+account. Two files own this:
+
+- `tts.mjs` — provider dispatch on `REELS_TTS_PROVIDER`, plus an ffprobe-backed
+  duration for every segment and a content-hash cache in `.tmp/tts/`.
+- `narration.mjs` — turns an exercise into a short coach-style script (name →
+  2-3 cues → reps/CTA) and emits the `.ass` subtitle file.
+
+| `REELS_TTS_PROVIDER` | License | Cost | Notes |
+| --- | --- | --- | --- |
+| `piper` *(default)* | MIT | $0 | ~60 MB onnx per voice, CPU-only, ~0.3 s/sentence. This is what CI runs. |
+| `kokoro` | Apache-2.0 | $0 | Warmer prosody, but pulls torch (~2 GB) + espeak-ng — **too heavy for CI**, local hero reels only. |
+| `elevenlabs` | paid | $$ | **Deliberate stub.** Throws "not configured"; no paid API is ever called. |
+
+**Segment-level synthesis is the whole trick.** Each narration segment is
+synthesized to its own wav and measured with `ffprobe`, so subtitle timings are
+real spoken durations — no paid word-timestamp API is involved anywhere.
+
+Voice models live in `voices/` and are **gitignored** (~60 MB each). Get them
+with `npm run reels:voices`; the list lives in `download-voices.mjs`. Override
+per language with `REELS_TTS_VOICE_ES` / `REELS_TTS_VOICE_EN`, or point
+somewhere else with `REELS_VOICES_DIR`.
+
+### Accents: audio vs. screen
+
+`narration.mjs` produces two strings per segment on purpose:
+
+- `speak` **keeps** accents (`glúteos`) — Piper/Kokoro phonemize from the
+  written form, so stripping them degrades Spanish pronunciation.
+- `show` is Spanish **without** accents, matching the existing on-screen
+  convention used by the drawtext titles.
+
+Both derive from the same source string, so they cannot drift.
+
+### Swapping in a cloned voice later
+
+Nothing in the pipeline changes shape. Implement `synthElevenLabs()` in
+`tts.mjs` (one `fetch` POST), then:
+
+```bash
+REELS_TTS_PROVIDER=elevenlabs ELEVEN_API_KEY=... ELEVEN_VOICE_ID=... \
+  node scripts/reels/compose-reel.mjs 0043
+```
+
+Subtitle timing keeps working untouched, because it is measured from the
+returned audio rather than requested from the provider.
 
 Requires Node 18+ and ffmpeg **with drawtext** (libfreetype). On macOS the
 core Homebrew `ffmpeg` bottle no longer ships drawtext — use:
@@ -43,13 +109,16 @@ Ubuntu's `apt` ffmpeg (used in CI) includes drawtext.
 `.github/workflows/daily-reel.yml` runs every day at 16:00 UTC (11:00
 Colombia):
 
-1. Picks an exercise deterministically from the date seed, excluding ids
+1. Installs ffmpeg + Piper and restores the cached voice models.
+2. Picks an exercise deterministically from the date seed, excluding ids
    already in `used-ids.json` (FNV-1a hash of the seed modulo the remaining
    candidates; the cycle restarts once all 1,324 are used).
-2. Composes the reel + caption, commits the updated `used-ids.json`.
-3. Uploads both files as a workflow artifact (30-day retention) so the
+3. Composes **two** reels from that same exercise — `{date}-es.mp4` and
+   `{date}-en.mp4`, each with its own voice-over and burned subtitles — plus
+   the caption, and persists the updated `used-ids.json` via `actions/cache`.
+4. Uploads all of them as a single workflow artifact (30-day retention) so the
    trainer can download and post manually.
-4. Runs `publish-reel.mjs`, which **no-ops with exit 0** unless the repo
+5. Runs `publish-reel.mjs`, which **no-ops with exit 0** unless the repo
    secrets `IG_USER_ID` and `IG_ACCESS_TOKEN` exist.
 
 Manual run: Actions > Daily Reel > Run workflow (optionally pass an
