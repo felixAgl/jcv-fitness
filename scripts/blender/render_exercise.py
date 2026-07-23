@@ -78,12 +78,21 @@ def parse_args(argv):
                         "exercises.json (see README.md)")
     p.add_argument("--views", default="front",
                    help="comma separated: " + ",".join(VIEWS))
-    p.add_argument("--frames", default="24",
-                   help="single frame '24' or range '1-48'")
+    p.add_argument("--turnaround", action="store_true",
+                   help="3D-atlas showcase: mannequin standing at rest, "
+                        "camera orbiting a full 360 degrees. Overrides "
+                        "--views; defaults --motion to 'none' and --frames "
+                        "to 1-144 (6 s at 24 fps). Combine with "
+                        "--exercise-name to show an exercise's primary "
+                        "muscles at full glow and secondaries dimmed")
+    p.add_argument("--frames", default=None,
+                   help="single frame '24' or range '1-48' "
+                        "(default 24, or 1-144 with --turnaround)")
     p.add_argument("--out", default="out-3d")
-    p.add_argument("--motion", default="squat",
+    p.add_argument("--motion", default=None,
                    help="name of a JSON motion in scripts/blender/motions/ "
-                        "(without the extension)")
+                        "(without the extension; default squat, or none "
+                        "with --turnaround)")
     p.add_argument("--samples", type=int, default=48)
     p.add_argument("--res", default="1080x1920")
     p.add_argument("--orbit-degrees", type=float, default=110.0)
@@ -173,15 +182,10 @@ def resolve_exercise(query):
     return ex, intensities
 
 
-def write_mask(body, intensities):
-    """Bake {muscle: intensity} into the `muscle_mask` colour attribute.
-
-    Multiple simultaneous glows are supported: each vertex takes the max of
-    (vertex-group weight x muscle intensity) over every requested muscle, so a
-    bench press can hold pectorals at 1.0 with triceps/deltoids dimmed to 0.35
-    in the same render.
-    """
-    mesh = body.data
+def _mask_object(obj, intensities, strict=True):
+    """Write the `muscle_mask` colour attribute on one object from its own
+    JCV_<muscle> vertex groups. Returns the per-vertex weights."""
+    mesh = obj.data
     for a in list(mesh.color_attributes):
         if a.name == MASK_ATTR:
             mesh.color_attributes.remove(a)
@@ -197,10 +201,12 @@ def write_mask(body, intensities):
 
     weights = [0.0] * len(mesh.vertices)
     for muscle, level in intensities.items():
-        vg = body.vertex_groups.get(VG_PREFIX + muscle)
+        vg = obj.vertex_groups.get(VG_PREFIX + muscle)
         if vg is None:
-            raise SystemExit(f"unknown muscle '{muscle}'. "
-                             f"available: {', '.join(muscle_names(body))}")
+            if strict:
+                raise SystemExit(f"unknown muscle '{muscle}'. "
+                                 f"available: {', '.join(muscle_names(obj))}")
+            continue  # pre-glow-through shorts have no JCV groups
         idx = vg.index
         for v in mesh.vertices:
             for g in v.groups:
@@ -211,6 +217,25 @@ def write_mask(body, intensities):
 
     for i, w in enumerate(weights):
         attr.data[i].color = (w, w, w, 1.0)
+    return weights
+
+
+def write_mask(body, intensities):
+    """Bake {muscle: intensity} into the `muscle_mask` colour attribute.
+
+    Multiple simultaneous glows are supported: each vertex takes the max of
+    (vertex-group weight x muscle intensity) over every requested muscle, so a
+    bench press can hold pectorals at 1.0 with triceps/deltoids dimmed to 0.35
+    in the same render.
+
+    The shorts are masked too: the garment keeps the body's vertex groups
+    (build_scene.build_shorts), so covered regions — glutes, adductors, the
+    upper quads/hamstrings — glow through the fabric instead of disappearing.
+    """
+    weights = _mask_object(body, intensities, strict=True)
+    shorts = bpy.data.objects.get("JCV_Shorts")
+    if shorts is not None:
+        _mask_object(shorts, intensities, strict=False)
     label = ", ".join(f"{m}@{lv:.2f}" for m, lv in sorted(intensities.items())) \
         or "none"
     log(f"mask [{label}]: {sum(1 for w in weights if w > 0.05)} lit verts")
@@ -332,10 +357,15 @@ def prime_framing(body, views, m_start, m_end, f_start, f_end, samples=5):
     log(f"framing primed from {samples} frames: size={tuple(round(v,3) for v in size)}")
 
 
-def place_camera(cam, body, view, weights, azimuth_extra=0.0):
+def place_camera(cam, body, view, weights, azimuth_extra=0.0, lock_fit=False):
     """Frame the body. The framing (centre + fit distance) is computed once per
     view from the live mesh bounds and then cached, so an animated shot does not
-    breathe in and out as the pose changes."""
+    breathe in and out as the pose changes.
+
+    `lock_fit=True` fits the worst-case horizontal extent instead of the
+    view-direction extent: a full-circle orbit then keeps ONE distance for
+    every azimuth instead of breathing between the wide front and the narrow
+    side of the A-pose."""
     front = front_axis(body)
     up = Vector((0, 0, 1))
     if view not in _FRAMING:
@@ -367,7 +397,7 @@ def place_camera(cam, body, view, weights, azimuth_extra=0.0):
     az = math.radians(angles.get(view, 0.0) + azimuth_extra)
     dir_v = Matrix.Rotation(az, 4, "Z") @ front
     dir_v = (dir_v + up * 0.075).normalized()
-    d = fit_distance(cam, size, view_dir=dir_v)
+    d = fit_distance(cam, size, view_dir=None if lock_fit else dir_v)
     aim(cam, center + dir_v * d, center + up * size.z * 0.02)
 
 
@@ -411,6 +441,14 @@ def main():
         print("MOTIONS:", " ".join(motion_lib.available_motions()))
         return
 
+    # --turnaround: standing mannequin, full-circle orbit — the 3D equivalent
+    # of the SVG atlas showcase. The flag only fills in defaults, so an
+    # explicit --motion (subtle idle) or --frames still wins.
+    if args.motion is None:
+        args.motion = "none" if args.turnaround else "squat"
+    if args.frames is None:
+        args.frames = "1-144" if args.turnaround else "24"
+
     f_start, f_end = parse_frames(args.frames)
     w, h = (int(x) for x in args.res.lower().split("x"))
 
@@ -442,17 +480,22 @@ def main():
     cam = make_camera("JCV_Cam")
     sc.camera = cam
 
-    views = [v.strip() for v in args.views.split(",") if v.strip()]
+    views = ["turnaround"] if args.turnaround else \
+        [v.strip() for v in args.views.split(",") if v.strip()]
     n_frames = f_end - f_start + 1
+
+    def base_view(view):
+        return {"orbit": "three_quarter", "turnaround": "front"}.get(view, view)
 
     # Prime the framing cache once, from the UNION of the body bounds over a few
     # sample frames of the movement, and keep it for every frame: the camera then
     # stays rock-steady while the body moves through it, instead of breathing in
     # and out with the pose - and nothing gets cropped at either extreme.
-    prime_framing(body, views, m_start, m_end, f_start, f_end)
+    prime_framing(body, [base_view(v) for v in views],
+                  m_start, m_end, f_start, f_end)
     for view in views:
-        place_camera(cam, body, "three_quarter" if view == "orbit" else view,
-                     weights)
+        place_camera(cam, body, base_view(view), weights,
+                     lock_fit=(view == "turnaround"))
 
     for view in views:
         for f in range(f_start, f_end + 1):
@@ -461,8 +504,12 @@ def main():
             if view == "orbit" and n_frames > 1:
                 u = (f - f_start) / (n_frames - 1)
                 extra = -args.orbit_degrees * 0.5 + args.orbit_degrees * u
-            place_camera(cam, body, "three_quarter" if view == "orbit" else view,
-                         weights, azimuth_extra=extra)
+            elif view == "turnaround" and n_frames > 1:
+                # frame N+1 would equal frame 1 -> the clip loops seamlessly
+                extra = 360.0 * (f - f_start) / n_frames
+            place_camera(cam, body, base_view(view), weights,
+                         azimuth_extra=extra,
+                         lock_fit=(view == "turnaround"))
             name = f"{stem}_{view}"
             if n_frames > 1:
                 name += f"_{f:04d}"

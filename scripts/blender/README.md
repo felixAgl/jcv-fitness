@@ -89,9 +89,10 @@ commands below.
 # 1. build the mannequin asset (~2 s)
 scripts/blender/render.sh build
 
-# which muscle groups exist
+# which muscle groups exist (the 15 canonical atlas regions)
 scripts/blender/render.sh muscles
-#   abs biceps calves deltoids glutes hamstrings lats pectorals quads triceps
+#   abs adductors biceps calves delts forearms glutes hamstrings lats
+#   lower-back obliques pectorals quads traps triceps
 
 # 2. render
 scripts/blender/render.sh render \
@@ -101,10 +102,16 @@ scripts/blender/render.sh render \
     --out out-3d/run1
 
 # 2b. or let free-exercise-db pick the muscles: primaries glow at 1.0,
-#     secondaries at 0.35 (bench press = pectorals + dim deltoids/triceps)
+#     secondaries at 0.35 (bench press = pectorals + dim delts/triceps)
 scripts/blender/render.sh render \
     --exercise-name "Barbell Bench Press - Medium Grip" \
     --views three_quarter --frames 26 --out out-3d/run2
+
+# 2c. the "3D atlas" showcase: standing mannequin, full 360-degree orbit,
+#     an exercise's muscle pattern glowing — 144 frames = 6 s at 24 fps,
+#     frame N+1 wraps to frame 1 so the clip loops seamlessly
+scripts/blender/render.sh render \
+    --turnaround --exercise-name "Barbell Squat" --out out-3d/turn
 
 # raw form (what render.sh wraps)
 BLENDER_USER_EXTENSIONS=assets/3d/blender-extensions \
@@ -164,10 +171,11 @@ PREFIX=3d-v3 scripts/blender/make_extremity_demo.sh
 | --- | --- | --- |
 | `--muscle` | `none` | muscle to light up (`quads`, `pectorals`, …); manual override that wins over `--exercise-name` |
 | `--exercise-name` | – | free-exercise-db exercise (name or id); primaries glow at 1.0, secondaries at 0.35, resolved through `muscle_map.json` |
+| `--turnaround` | off | 3D-atlas showcase: rest pose, camera orbits a full 360°; defaults `--motion` to `none` and `--frames` to `1-144`, locks the fit distance so the orbit does not breathe |
 | `--views` | `front` | `front,three_quarter,side,back,top,closeup,orbit` |
-| `--frames` | `24` | `24` or `1-48` |
+| `--frames` | `24` | `24` or `1-48` (`1-144` under `--turnaround`) |
 | `--rep-frames` | `48` | frames in one full rep (named this way because Blender itself swallows anything starting with `--cycle`) |
-| `--motion` | `squat` | name of a JSON motion in `motions/`; free-form, not a fixed list |
+| `--motion` | `squat` | name of a JSON motion in `motions/`; free-form, not a fixed list (`none` under `--turnaround`) |
 | `--samples` | `48` | EEVEE TAA samples |
 | `--res` | `1080x1920` | output resolution |
 | `--orbit-degrees` | `110` | azimuth swept by the `orbit` view |
@@ -234,12 +242,41 @@ cyan-emissive waistband. Note the band selection must run *after* the material
 slots exist — with a single slot Blender clamps every `material_index` back to 0
 and the waistband silently vanishes.
 
+The copy also keeps the `JCV_<muscle>` groups, and the fabric material mixes
+in the same mask-driven cyan emission (slightly dimmer): the garment covers
+the glutes, the adductors and the upper half of the quads/hamstrings, and the
+only way those regions stay *atlas-addressable* is for the fabric itself to
+glow — the compression-shorts look of the reference mannequins. This is why
+`bake_muscle_groups()` runs **before** `build_shorts()`. The waistband sits
+*below the navel* (`rise=0.05`): high-waisted shorts put the lower half of
+the abs column on fabric and the glow pooled on the garment instead of the
+six-pack. Three hem gotchas: the z cut follows the coarse hip quads, so the
+boundary verts are snapped onto the exact waist/hem planes; the relax
+modifier is scoped to interior verts (`JCV_HemInterior`) or it drags the
+straight hems back into topology-shaped dips; and the waistband material
+boundary is a `bisect_plane` edge loop, because any per-face z test zigzags
+square notches into the band.
+
 **Muscle glow.** `build_scene.py` bakes one vertex group per muscle
-(`JCV_quads`, `JCV_pectorals`, …). Regions are defined *relative to the rig* —
-a list of bones, a normalised range along each bone, and a required surface
-normal direction (front / back, optionally "sides only") — never as absolute
-world coordinates, so they survive a change of body proportions. The raw mask is
-blurred across mesh edges so the glow has a soft edge.
+(`JCV_quads`, `JCV_pectorals`, …) — **15 regions, the same canonical ids the
+2D SVG atlas uses** (`src/shared/components/MuscleAtlas/atlas-data.ts`,
+`AtlasRegionId`), so one exercise definition drives the app's 2D atlas and the
+3D glow identically. Each region is a list of *parts* combined by max, and
+each part is defined *relative to the rig* — a list of bones, a normalised
+range along each bone, and a required surface normal direction — never as
+absolute world coordinates, so they survive a change of body proportions.
+Beyond `front`/`back`, parts can require `out`/`in` (lateral, per-vertex
+midline sign — obliques and adductors need it), cap `|normal·lateral|`
+(`max_side` keeps the abs and lower-back on their column), or reject a
+direction (`avoid` keeps the pectorals off the shoulder tops and armpits, and
+the quads off the adductors). The raw mask is blurred across mesh edges so
+the glow has a soft edge.
+
+Boundary lessons that cost renders: biceps/triceps must live on `upperarm02`
+only — spanning `upperarm01` as well bleeds the biceps up into the deltoid
+cap. `upperleg01`'s head sits at the *iliac crest*, so a glutes band starting
+at t=0 floats above the actual glute mass; the region has to run down the
+whole bone and into the top of `upperleg02`.
 
 At render time `--muscle X` copies that vertex group into a `muscle_mask`
 colour attribute; the body material is a Mix Shader between matte grey and a
@@ -253,12 +290,11 @@ the primary/secondary distinction dies.
 `--exercise-name "<name or id>"` looks the exercise up in the local
 free-exercise-db JSON and glows several muscles at once: `primaryMuscles` at
 full intensity, `secondaryMuscles` at 35 %, translated through
-[`muscle_map.json`](muscle_map.json). That file also documents which
-free-exercise-db muscles have **no** vertex group on the mannequin (abductors,
-adductors, forearms, lower back, neck, traps map to `null` and are skipped with
-a log line) and the one deliberate approximation (`middle back` → `lats`).
-Overlapping groups keep the max intensity per vertex. `--muscle` still works as
-a manual override.
+[`muscle_map.json`](muscle_map.json). That file mirrors the 2D atlas's
+`muscle-map.ts` approximations on purpose (`abductors` → `glutes`,
+`middle back` → `lats`); the only remaining `null` is `neck`, which the atlas
+also treats as structural-only. Overlapping groups keep the max intensity per
+vertex. `--muscle` still works as a manual override.
 
 **Body material.** Matte grey with a *subtle* subsurface term (weight 0.10,
 warm-neutral radius 0.070/0.055/0.045, scale 0.03): it softens the terminator

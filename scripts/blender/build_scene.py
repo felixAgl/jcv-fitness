@@ -30,50 +30,145 @@ from mathutils import Vector
 MPFB_MODULE = os.environ.get("MPFB_MODULE", "bl_ext.user_default.mpfb")
 
 # --------------------------------------------------------------------------
-# Muscle definitions.
+# Muscle definitions — CANONICAL REGION VOCABULARY.
 #
-# Every region is defined RELATIVE TO THE RIG (bone segments + surface normal
-# direction), never in absolute world coordinates, so it survives a change of
-# body proportions.
+# Region names are the SAME ids the 2D SVG atlas uses
+# (src/shared/components/MuscleAtlas/atlas-data.ts, AtlasRegionId), so one
+# exercise definition drives the 2D atlas and the 3D glow identically. The
+# dataset->region translation lives in scripts/blender/muscle_map.json and
+# must agree with the atlas's muscle-map.ts (same approximations:
+# abductors->glutes, middle back/rhomboids->lats, ...).
 #
-#   bones : rest bones whose segment "owns" the region
+# Every region is a LIST OF PARTS combined by max. Each part is defined
+# RELATIVE TO THE RIG (bone segments + surface normal direction), never in
+# absolute world coordinates, so it survives a change of body proportions.
+#
+#   bones : rest bones whose segment "owns" this part
 #   t     : (min, max) normalised position along the bone segment
-#   dir   : required surface direction, in body-space
-#             front / back / up / down / out (lateral, away from the midline)
+#   dir   : required surface direction, in body-space:
+#             front / back / up / down     fixed body axes
+#             out / in                     lateral, away from / towards the
+#                                          midline (per-vertex sign, so one
+#                                          spec covers both body halves)
+#             back_up                      blend for the trap slope
+#             any                          no direction test
 #   dot   : minimum dot product between vertex normal and that direction
-#   side_dot : optional, minimum |normal . lateral| so a region can be limited
+#   side_dot : optional, minimum |normal . lateral| so a part can be limited
 #              to the sides of the body (used to carve the lats off the spine)
+#   max_side : optional, MAXIMUM |normal . lateral| — keeps a part on the
+#              front/back column (abs, lower back) instead of wrapping the
+#              flanks
+#   avoid : optional (dir_name, max_dot) or list of them — reject a vertex
+#           whose normal agrees with that direction more than max_dot (quads
+#           use it to stay off the inner thigh, obliques off the back,
+#           pectorals off the shoulder tops and armpits)
 #   radius: max distance to the bone segment, as a multiple of body height
 # --------------------------------------------------------------------------
 MUSCLES = {
-    "pectorals":  dict(bones=["breast.L", "breast.R"],
-                       t=(0.0, 1.0), dir="front", dot=0.30, radius=0.095),
-    "lats":       dict(bones=["spine02", "spine03"],
-                       t=(0.0, 0.95), dir="back", dot=0.05, radius=0.155,
-                       side_dot=0.40),
-    "deltoids":   dict(bones=["shoulder01.L", "shoulder01.R",
-                              "upperarm01.L", "upperarm01.R"],
-                       t=(0.0, 0.32), dir="any", dot=0.0, radius=0.058),
-    "biceps":     dict(bones=["upperarm01.L", "upperarm02.L",
-                              "upperarm01.R", "upperarm02.R"],
-                       t=(0.22, 1.0), dir="front", dot=0.15, radius=0.048),
-    "triceps":    dict(bones=["upperarm01.L", "upperarm02.L",
-                              "upperarm01.R", "upperarm02.R"],
-                       t=(0.18, 1.0), dir="back", dot=0.15, radius=0.048),
+    # ---- torso, front
+    "pectorals": [
+        dict(bones=["breast.L", "breast.R"],
+             t=(0.0, 1.0), dir="front", dot=0.35, radius=0.070,
+             avoid=[("up", 0.72), ("out", 0.60)]),
+    ],
     # NB: the MakeHuman spine is numbered top-down, spine05 sits at the pelvis
-    "abs":        dict(bones=["spine04", "spine05"],
-                       t=(0.0, 1.0), dir="front", dot=0.35, radius=0.105),
-    "quads":      dict(bones=["upperleg01.L", "upperleg02.L",
-                              "upperleg01.R", "upperleg02.R"],
-                       t=(0.10, 1.0), dir="front", dot=0.05, radius=0.10),
-    "hamstrings": dict(bones=["upperleg01.L", "upperleg02.L",
-                              "upperleg01.R", "upperleg02.R"],
-                       t=(0.30, 1.0), dir="back", dot=0.10, radius=0.095),
-    "glutes":     dict(bones=["upperleg01.L", "upperleg01.R"],
-                       t=(0.0, 0.22), dir="back", dot=0.05, radius=0.115),
-    "calves":     dict(bones=["lowerleg01.L", "lowerleg02.L",
-                              "lowerleg01.R", "lowerleg02.R"],
-                       t=(0.0, 0.75), dir="back", dot=0.05, radius=0.075),
+    "abs": [
+        dict(bones=["spine03", "spine04"],
+             t=(0.0, 1.0), dir="front", dot=0.25, radius=0.105,
+             max_side=0.50),
+        # only the very top of spine05: keeps the column above the shorts so
+        # the glow does not pool on the garment below the navel
+        dict(bones=["spine05"],
+             t=(0.70, 1.0), dir="front", dot=0.25, radius=0.105,
+             max_side=0.50),
+    ],
+    "obliques": [
+        dict(bones=["spine03", "spine04", "spine05"],
+             t=(0.0, 1.0), dir="out", dot=0.45, radius=0.100,
+             avoid=("back", 0.35)),
+    ],
+    # ---- torso, back
+    "lats": [
+        # top of the wing reaches the armpit (outer upper back only: the
+        # inner column at that height belongs to the traps)
+        dict(bones=["spine01"],
+             t=(0.0, 0.35), dir="back", dot=0.05, radius=0.115,
+             side_dot=0.35),
+        dict(bones=["spine02"],
+             t=(0.0, 0.95), dir="back", dot=0.05, radius=0.120,
+             side_dot=0.18),
+        dict(bones=["spine03"],
+             t=(0.0, 1.0), dir="back", dot=0.05, radius=0.095,
+             side_dot=0.30),
+    ],
+    "traps": [
+        dict(bones=["spine01"],
+             t=(0.0, 1.0), dir="back", dot=0.25, radius=0.055,
+             max_side=0.50),
+        dict(bones=["spine02"],
+             t=(0.5, 1.0), dir="back", dot=0.25, radius=0.050,
+             max_side=0.40),
+        dict(bones=["neck01", "neck02"],
+             t=(0.0, 1.0), dir="back", dot=0.10, radius=0.035),
+        dict(bones=["shoulder01.L", "shoulder01.R"],
+             t=(0.0, 0.50), dir="back_up", dot=0.35, radius=0.045),
+    ],
+    "lower-back": [
+        dict(bones=["spine04", "spine05"],
+             t=(0.0, 1.0), dir="back", dot=0.25, radius=0.070,
+             max_side=0.40),
+    ],
+    # ---- arms
+    "delts": [
+        dict(bones=["shoulder01.L", "shoulder01.R"],
+             t=(0.70, 1.0), dir="any", dot=0.0, radius=0.040),
+        dict(bones=["upperarm01.L", "upperarm01.R"],
+             t=(0.0, 0.55), dir="any", dot=0.0, radius=0.048),
+    ],
+    # biceps/triceps live on upperarm02 ONLY: spanning upperarm01 as well let
+    # the biceps bleed up into the deltoid cap
+    "biceps": [
+        dict(bones=["upperarm02.L", "upperarm02.R"],
+             t=(0.05, 0.92), dir="front", dot=0.25, radius=0.042),
+    ],
+    "triceps": [
+        dict(bones=["upperarm02.L", "upperarm02.R"],
+             t=(0.08, 0.95), dir="back", dot=0.25, radius=0.042),
+    ],
+    "forearms": [
+        dict(bones=["lowerarm01.L", "lowerarm01.R",
+                    "lowerarm02.L", "lowerarm02.R"],
+             t=(0.05, 0.85), dir="any", dot=0.0, radius=0.042),
+    ],
+    # ---- hips + legs
+    # glutes: upperleg01 head sits at the iliac crest, so the old
+    # t=(0.0, 0.22) band floated ABOVE the actual glute mass; the region now
+    # runs down the whole of upperleg01 and into the top of upperleg02
+    "glutes": [
+        dict(bones=["upperleg01.L", "upperleg01.R"],
+             t=(0.15, 1.0), dir="back", dot=0.10, radius=0.088),
+        dict(bones=["upperleg02.L", "upperleg02.R"],
+             t=(0.0, 0.10), dir="back", dot=0.10, radius=0.082),
+    ],
+    "adductors": [
+        dict(bones=["upperleg02.L", "upperleg02.R"],
+             t=(0.0, 0.65), dir="in", dot=0.30, radius=0.090),
+    ],
+    "quads": [
+        dict(bones=["upperleg01.L", "upperleg02.L",
+                    "upperleg01.R", "upperleg02.R"],
+             t=(0.10, 1.0), dir="front", dot=0.05, radius=0.10,
+             avoid=("in", 0.55)),
+    ],
+    "hamstrings": [
+        dict(bones=["upperleg02.L", "upperleg02.R"],
+             t=(0.06, 0.95), dir="back", dot=0.10, radius=0.095),
+    ],
+    "calves": [
+        dict(bones=["lowerleg01.L", "lowerleg02.L",
+                    "lowerleg01.R", "lowerleg02.R"],
+             t=(0.0, 0.75), dir="back", dot=0.05, radius=0.075),
+    ],
 }
 
 MUSCLE_NAMES = sorted(MUSCLES)
@@ -933,13 +1028,17 @@ def stylise_extremities(body, rig, toe_stub=0.52,
 
 
 # ----------------------------------------------------------------- shorts
-def build_shorts(body, rig, hem=0.58, rise=0.105):
+def build_shorts(body, rig, hem=0.58, rise=0.050):
     """Model fitted shorts out of the body's own surface.
 
     The hip/thigh band of the skin is duplicated into its own object, pushed a
     hair outwards and thickened, so the garment follows the anatomy exactly and
     can never intersect it. Because the copy keeps the body's vertex groups, the
     same armature deforms both.
+
+    rise=0.05 keeps the waistband BELOW the navel: with the old high-waisted
+    0.105 the lower half of the abs column sat on fabric and the glow pooled
+    on the garment instead of the six-pack.
     """
     h = body.dimensions.z
     b = rig.data.bones
@@ -951,7 +1050,6 @@ def build_shorts(body, rig, hem=0.58, rise=0.105):
         return None
     z_top = hip_z + rise * h
     z_bot = hip_z + hem * (knee_z - hip_z)
-    band_z = z_top - 0.028 * h            # waistband
 
     shorts = body.copy()
     shorts.data = body.data.copy()
@@ -996,6 +1094,30 @@ def build_shorts(body, rig, hem=0.58, rise=0.105):
         log("WARNING: shorts band empty, skipping")
         bpy.data.objects.remove(shorts, do_unlink=True)
         return None
+    # Snap the cut boundaries onto the exact waist/hem planes. The z cut
+    # follows the quad topology, and around the hip crest the quads are
+    # 2-4 cm, so the raw waistband edge is a visible zigzag of square
+    # notches; the relax modifier softens but never straightens it. The
+    # threshold has to be at least one quad tall or the deepest notch verts
+    # escape the snap.
+    for v in bm.verts:
+        if not v.is_boundary:
+            continue
+        if v.co.z > z_top - 0.040 * h:
+            v.co.z = z_top
+        elif v.co.z < z_bot + 0.040 * h:
+            v.co.z = z_bot
+    # The waistband needs a constant depth, and the raw quad topology cannot
+    # give one (face-centre tests and top-ring tests both zigzag across the
+    # coarse hip quads). Bisecting at the band line inserts a clean edge loop,
+    # so the material split is exact; bmesh interpolates the deform layer on
+    # the new verts, so the muscle glow weights survive the cut.
+    band_z = z_top - 0.022 * h
+    bmesh.ops.bisect_plane(bm,
+                           geom=list(bm.verts) + list(bm.edges)
+                           + list(bm.faces),
+                           plane_co=(0.0, 0.0, band_z),
+                           plane_no=(0.0, 0.0, 1.0))
     n_band = 0
     for f in bm.faces:
         centre_z = sum(v.co.z for v in f.verts) / len(f.verts)
@@ -1003,18 +1125,32 @@ def build_shorts(body, rig, hem=0.58, rise=0.105):
         n_band += f.material_index
         f.smooth = True
     n_faces = len(bm.faces)
+    bm.verts.index_update()
+    interior_idx = [v.index for v in bm.verts if not v.is_boundary]
     bm.to_mesh(shorts.data)
     bm.free()
 
-    for name in [g.name for g in shorts.vertex_groups
-                 if g.name.startswith(VG_PREFIX)]:
-        shorts.vertex_groups.remove(shorts.vertex_groups[name])
+    # The relax must NOT touch the snapped edges, or it drags the straight
+    # hems right back into topology-shaped dips.
+    hem_free = shorts.vertex_groups.new(name="JCV_HemInterior")
+    if interior_idx:
+        hem_free.add(interior_idx, 1.0, "REPLACE")
+
+    # The copy KEEPS the body's JCV_<muscle> vertex groups on purpose: the
+    # garment covers the glutes, adductors and the upper half of the
+    # quads/hamstrings, and the only way those regions stay addressable is for
+    # the fabric itself to glow (compression-shorts look, same as the
+    # fitonomy/holix reference mannequins). render_exercise.write_mask()
+    # writes the muscle_mask attribute on the shorts too; requires
+    # bake_muscle_groups() to run BEFORE build_shorts().
 
     # relax the staircase the quad topology leaves along the cut, so the hem
-    # reads as a fabric edge and not as a plate boundary
+    # reads as a fabric edge and not as a plate boundary — interior verts
+    # only, the snapped boundary edges stay put
     relax = shorts.modifiers.new("Hem", "SMOOTH")
     relax.factor = 0.75
     relax.iterations = 8
+    relax.vertex_group = "JCV_HemInterior"
     off = shorts.modifiers.new("Offset", "DISPLACE")
     off.strength = 0.013 * h
     off.mid_level = 0.0
@@ -1039,7 +1175,8 @@ def build_shorts(body, rig, hem=0.58, rise=0.105):
 def build_shorts_material(shorts):
     fabric = bpy.data.materials.new("JCV_Shorts_Fabric")
     fabric.use_nodes = True
-    b = fabric.node_tree.nodes["Principled BSDF"]
+    nt = fabric.node_tree
+    b = nt.nodes["Principled BSDF"]
     b.inputs["Base Color"].default_value = (*GRAPHITE, 1)
     b.inputs["Roughness"].default_value = 0.78
     if "Sheen Weight" in b.inputs:
@@ -1047,6 +1184,31 @@ def build_shorts_material(shorts):
         b.inputs["Sheen Roughness"].default_value = 0.45
     if "Specular IOR Level" in b.inputs:
         b.inputs["Specular IOR Level"].default_value = 0.22
+
+    # Muscle glow THROUGH the fabric: the shorts keep the body's JCV_<muscle>
+    # vertex groups and receive the same muscle_mask attribute, so covered
+    # regions (glutes, adductors, upper quads/hamstrings) light up on the
+    # garment — compression-shorts look. Slightly dimmer than skin so the
+    # fabric still reads as fabric.
+    out = nt.nodes["Material Output"]
+    emit = nt.nodes.new("ShaderNodeBsdfPrincipled")
+    emit.location = (0, -420)
+    emit.inputs["Base Color"].default_value = (0.02, 0.14, 0.17, 1)
+    emit.inputs["Roughness"].default_value = 0.55
+    emit.inputs["Emission Color"].default_value = (*BRAND_CYAN, 1)
+    emit.inputs["Emission Strength"].default_value = 1.15
+
+    attr = nt.nodes.new("ShaderNodeAttribute")
+    attr.location = (-200, -200)
+    attr.attribute_name = "muscle_mask"
+    attr.attribute_type = "GEOMETRY"
+
+    mix = nt.nodes.new("ShaderNodeMixShader")
+    mix.location = (280, 0)
+    nt.links.new(attr.outputs["Fac"], mix.inputs["Fac"])
+    nt.links.new(b.outputs["BSDF"], mix.inputs[1])
+    nt.links.new(emit.outputs["BSDF"], mix.inputs[2])
+    nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
 
     band = bpy.data.materials.new("JCV_Shorts_Band")
     band.use_nodes = True
@@ -1144,44 +1306,79 @@ def bake_muscle_groups(body, rig):
     bones = {b.name: (a_world @ b.head_local, a_world @ b.tail_local)
              for b in rig.data.bones}
 
-    dir_map = {"front": front, "back": back, "up": up, "down": -up}
+    dir_map = {"front": front, "back": back, "up": up, "down": -up,
+               "back_up": (back + up * 0.8).normalized()}
 
-    for name, spec in MUSCLES.items():
-        segs = [bones[b] for b in spec["bones"] if b in bones]
-        if not segs:
+    def vertex_dir(dir_name, p):
+        """Resolve a direction spec for the vertex at world position p.
+        'out'/'in' depend on which side of the midline the vertex sits, so one
+        spec covers both body halves."""
+        if dir_name in ("out", "in"):
+            outward = lateral if p.dot(lateral) > 0 else -lateral
+            return outward if dir_name == "out" else -outward
+        return dir_map.get(dir_name)
+
+    for name, parts in MUSCLES.items():
+        raw = [0.0] * len(mesh.vertices)
+        resolved_any = False
+        for spec in parts:
+            segs = [bones[b] for b in spec["bones"] if b in bones]
+            if not segs:
+                log(f"WARNING: no bones resolved for {name} part "
+                    f"{spec['bones']}")
+                continue
+            resolved_any = True
+            radius = spec["radius"] * height
+            tmin, tmax = spec["t"]
+            min_dot = spec["dot"]
+            min_side = spec.get("side_dot")
+            max_side = spec.get("max_side")
+            avoid = spec.get("avoid")
+
+            for i, p in enumerate(coords):
+                if not body_flags[i]:
+                    continue
+                best = None
+                for a, b in segs:
+                    t, d = _seg_project(p, a, b)
+                    if best is None or d < best[1]:
+                        best = (t, d)
+                t, d = best
+                if d > radius or not (tmin <= t <= tmax):
+                    continue
+                w = 1.0 - (d / radius) ** 2
+                want_dir = vertex_dir(spec["dir"], p)
+                if want_dir is not None:
+                    nd = normals[i].dot(want_dir)
+                    if nd < min_dot:
+                        continue
+                    w *= min(1.0, (nd - min_dot) / max(1e-3, 0.55 - min_dot))
+                if min_side is not None:
+                    sd = abs(normals[i].dot(lateral))
+                    if sd < min_side:
+                        continue
+                    w *= min(1.0, (sd - min_side) / max(1e-3, 0.75 - min_side))
+                if max_side is not None:
+                    sd = abs(normals[i].dot(lateral))
+                    if sd > max_side:
+                        continue
+                    # feather towards the cut so the column has a soft flank
+                    w *= min(1.0, (max_side - sd) / max(1e-3, 0.25))
+                if avoid is not None:
+                    rules = avoid if isinstance(avoid, list) else [avoid]
+                    rejected = False
+                    for a_name, a_max in rules:
+                        a_dir = vertex_dir(a_name, p)
+                        if a_dir is not None and normals[i].dot(a_dir) > a_max:
+                            rejected = True
+                            break
+                    if rejected:
+                        continue
+                # lateral falloff for symmetric limb muscles is implicit (per-bone)
+                raw[i] = max(raw[i], max(0.0, min(1.0, w)))
+        if not resolved_any:
             log(f"WARNING: no bones resolved for {name}")
             continue
-        radius = spec["radius"] * height
-        tmin, tmax = spec["t"]
-        want_dir = dir_map.get(spec["dir"])
-        min_dot = spec["dot"]
-        min_side = spec.get("side_dot")
-
-        raw = [0.0] * len(mesh.vertices)
-        for i, p in enumerate(coords):
-            if not body_flags[i]:
-                continue
-            best = None
-            for a, b in segs:
-                t, d = _seg_project(p, a, b)
-                if best is None or d < best[1]:
-                    best = (t, d)
-            t, d = best
-            if d > radius or not (tmin <= t <= tmax):
-                continue
-            w = 1.0 - (d / radius) ** 2
-            if want_dir is not None:
-                nd = normals[i].dot(want_dir)
-                if nd < min_dot:
-                    continue
-                w *= min(1.0, (nd - min_dot) / max(1e-3, 0.55 - min_dot))
-            if min_side is not None:
-                sd = abs(normals[i].dot(lateral))
-                if sd < min_side:
-                    continue
-                w *= min(1.0, (sd - min_side) / max(1e-3, 0.75 - min_side))
-            # lateral falloff for symmetric limb muscles is implicit (per-bone)
-            raw[i] = max(raw[i], max(0.0, min(1.0, w)))
 
         smooth = _smooth(raw, mesh.edges, iterations=4)
         # renormalise so the region still peaks at 1.0 after blurring
@@ -1468,9 +1665,11 @@ def main():
     if args.extremities:
         stylise_extremities(body, rig, toe_stub=args.toe_stub,
                             smooth_iters=args.extremity_smooth)
+    # bake BEFORE the shorts: the garment is copied from the body and must
+    # inherit the JCV_<muscle> groups so covered regions can glow through it
+    bake_muscle_groups(body, rig)
     if args.shorts:
         build_shorts(body, rig)
-    bake_muscle_groups(body, rig)
     build_body_material(body)
     build_world(_resolve_hdri(args.hdri), strength=args.hdri_strength,
                 rotation_deg=args.hdri_rotation)

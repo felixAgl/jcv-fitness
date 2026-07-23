@@ -40,6 +40,13 @@ re-run the script.
 | hamstring (back) | `hamstrings` |
 | head, hair, neck, hands, feet, knees, ankles, tibialis | structural only — never highlighted |
 
+The region ids are the **canonical muscle vocabulary shared with the 3D
+mannequin pipeline**: `scripts/blender/build_scene.py` bakes one
+`JCV_<region>` vertex group per id and `scripts/blender/muscle_map.json`
+translates free-exercise-db muscles onto the same names with the same
+approximations, so one exercise definition drives this 2D atlas and the 3D
+glow (videos) identically.
+
 Dataset vocabulary (exercise library `target` + `secondary_muscles`) is
 normalized onto those regions in `muscle-map.ts`. Documented approximations:
 `abductors -> glutes` (gluteus medius region), `serratus anterior -> obliques`,

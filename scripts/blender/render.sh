@@ -13,6 +13,10 @@
 #   scripts/blender/render.sh demo
 #       produce the three owner-facing deliverables in out-3d/demo/
 #
+#   scripts/blender/render.sh atlas
+#       produce the "3D atlas" deliverables (region contact sheet + 360
+#       turnarounds) in out-3d/atlas-demo/
+#
 # Env overrides:
 #   BLENDER      path to the Blender binary
 #   FFMPEG       path to ffmpeg
@@ -43,8 +47,11 @@ case "$cmd" in
   demo)
     "$ROOT/scripts/blender/make_demo.sh" "$@"
     ;;
+  atlas)
+    "$ROOT/scripts/blender/make_atlas_demo.sh" "$@"
+    ;;
   *)
-    echo "usage: render.sh {build|render|muscles|demo} [args...]" >&2
+    echo "usage: render.sh {build|render|muscles|demo|atlas} [args...]" >&2
     exit 2
     ;;
 esac
