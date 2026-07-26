@@ -1,0 +1,612 @@
+[
+  {
+    "file": "Treinos (1).mp4",
+    "wizardId": "sentadilla_sumo",
+    "reason": "3D CGI form-check animation (checkmark/X UI), ends on \"YOU CAN\" branded App Store splash screen."
+  },
+  {
+    "file": "Treinos (276).mp4",
+    "wizardId": "remo_polea",
+    "reason": "App screen-recording style: animated silhouette with checkmark/cross form-check UI overlay, not real continuous footage."
+  },
+  {
+    "file": "Treinos (278).mp4",
+    "wizardId": "press_banca",
+    "reason": "Confirmed bad (prior investigation): 3-panel mistakes montage with DEMIC brand; frames show seated cable-row/mistake-check UI, not bench press."
+  },
+  {
+    "file": "Treinos (279).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "3D CGI muscle-highlight animation with app UI chrome (colored boxes), not real footage."
+  },
+  {
+    "file": "Treinos (287).mp4",
+    "wizardId": "patada_gluteo",
+    "reason": "DEMIC brand visible baked-in on real-video frame; compilation switches to unrelated barbell-curl CGI animation mid-video; wrong identity."
+  },
+  {
+    "file": "Treinos (292).mp4",
+    "wizardId": "flexiones",
+    "reason": "Shows a cable/kickback exercise on a woman, not push-ups; wrong identity; app UI overlay boxes."
+  },
+  {
+    "file": "Treinos (295).mp4",
+    "wizardId": "press_banca",
+    "reason": "Multi-exercise montage with baked English text labels (\"SHOULDERS\",\"CHEST\",\"TRICEPS\"); push-ups + bench mixed."
+  },
+  {
+    "file": "Treinos (297).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Multi-exercise compilation (wrist-grip closeup -> pulldown -> standing press -> bench press), wrong identity, \"MATCH 3\" text baked in."
+  },
+  {
+    "file": "Treinos (310).mp4",
+    "wizardId": "fondos_pecho",
+    "reason": "Looked clean at 5- and 9-frame sampling (single CGI dip animation, no checkmark UI, no branded outro) but full-resolution 1s-granularity re-check found a small \"DEMIC\" wordmark baked into the model's shorts waistband, visible at 0s/1s. Missed at thumbnail scale."
+  },
+  {
+    "file": "Treinos (313).mp4",
+    "wizardId": "peso_muerto",
+    "reason": "Red-X/green-check correct-vs-incorrect double-figure UI compilation."
+  },
+  {
+    "file": "Treinos (314).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Checkmark UI + \"YOU CAN\" branded App Store splash outro."
+  },
+  {
+    "file": "Treinos (315).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Multi-exercise compilation (mistake pose/back exercise/shrug/curl), checkmark UI."
+  },
+  {
+    "file": "Treinos (317).mp4",
+    "wizardId": "patada_gluteo",
+    "reason": "Wrong identity (shows overhead press/rows, not glute kickback), checkmark UI."
+  },
+  {
+    "file": "Treinos (334).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Wrong identity (standing cable kickback, not lateral raise), app UI boxes."
+  },
+  {
+    "file": "Treinos (335).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (shoulder press/lateral raise poses, not lat pulldown), checkmark UI."
+  },
+  {
+    "file": "Treinos (337).mp4",
+    "wizardId": "face_pull",
+    "reason": "On close inspection (5 frames) is a checkmark/cross correct-vs-incorrect UI compilation throughout, despite earlier \"close\" label from sampling."
+  },
+  {
+    "file": "Treinos (344).mp4",
+    "wizardId": "press_banca",
+    "reason": "Red-X mistake badge + CGI/real-photo style-mix segments (compilation-like)."
+  },
+  {
+    "file": "Treinos (346).mp4",
+    "wizardId": "flexiones",
+    "reason": "Looked clean at 5- and 9-frame sampling (single CGI push-up animation, no checkmark UI, no branded outro) but full-resolution 1s-granularity re-check found a small \"DEMIC\" wordmark baked into the model's shorts waistband, clearly visible at 12s. Missed at thumbnail scale."
+  },
+  {
+    "file": "Treinos (348).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Wrong identity, shows push-ups/plank stretch throughout, not bicep curl."
+  },
+  {
+    "file": "Treinos (350).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (dumbbell curl pose), red-X/green-check double-figure UI."
+  },
+  {
+    "file": "Treinos (351).mp4",
+    "wizardId": "press_mancuernas",
+    "reason": "Red-X mistake badge + CGI/real-photo mixed segments."
+  },
+  {
+    "file": "Treinos (352).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (incline dumbbell press, not lat pulldown), baked stat/angle UI chrome (\"30°\")."
+  },
+  {
+    "file": "Treinos (353).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Wrong identity (cable pulldown/overhead extension, not lateral raise), checkmark UI."
+  },
+  {
+    "file": "Treinos (354).mp4",
+    "wizardId": "face_pull",
+    "reason": "Checkmark/mistake UI + confirmed \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (356).mp4",
+    "wizardId": "curl_concentrado",
+    "reason": "Checkmark/X UI + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (360).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Checkmark UI + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (362).mp4",
+    "wizardId": "step_up",
+    "reason": "Dual-figure labeled-box UI chrome + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (366).mp4",
+    "wizardId": "curl_concentrado",
+    "reason": "Checkmark/X UI badges present (app screen-recording tell)."
+  },
+  {
+    "file": "Treinos (370).mp4",
+    "wizardId": "hip_thrust",
+    "reason": "Wrong identity (shows seated dumbbell bicep curl, not hip thrust) + checkmark UI."
+  },
+  {
+    "file": "Treinos (371).mp4",
+    "wizardId": "extension_tricep",
+    "reason": "Wrong identity (incline press-like motion), red-X/green-check compare UI + \"YOU CAN\" branded splash."
+  },
+  {
+    "file": "Treinos (373).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Green checkmark UI badges present throughout (app screen-recording tell), despite correct identity."
+  },
+  {
+    "file": "Treinos (374).mp4",
+    "wizardId": "crunch",
+    "reason": "Wrong identity (seated cable row motion, not crunch), checkmark/X UI."
+  },
+  {
+    "file": "Treinos (379).mp4",
+    "wizardId": "ab_wheel",
+    "reason": "Checkmark/X UI badges present throughout."
+  },
+  {
+    "file": "Treinos (389).mp4",
+    "wizardId": "press_banca",
+    "reason": "Green box/badge UI chrome throughout."
+  },
+  {
+    "file": "Treinos (392).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Checkmark UI + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (393).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Checkmark UI + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (395).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Baked English text labels (\"CLOSE-GRIP/NEUTRAL-GRIP/REVERSE-GRIP\" variant compilation) + branded splash."
+  },
+  {
+    "file": "Treinos (397).mp4",
+    "wizardId": "sentadilla",
+    "reason": "Baked text labels (\"GLUTES/INNER THIGHS\") + dual-figure UI + branded splash."
+  },
+  {
+    "file": "Treinos (402).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Checkmark UI + branded splash outro."
+  },
+  {
+    "file": "Treinos (404).mp4",
+    "wizardId": "peso_muerto_rumano",
+    "reason": "Baked text labels (\"HAMSTRINGS/QUADS\") + dual-figure compilation UI."
+  },
+  {
+    "file": "Treinos (405).mp4",
+    "wizardId": "sentadilla",
+    "reason": "Dual-figure baked labels + branded App Store splash."
+  },
+  {
+    "file": "Treinos (411).mp4",
+    "wizardId": "press_banca",
+    "reason": "Box badge UI + branded splash."
+  },
+  {
+    "file": "Treinos (414).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Box badge UI + branded logo splash."
+  },
+  {
+    "file": "Treinos (415).mp4",
+    "wizardId": "peso_muerto",
+    "reason": "Wrong identity (dumbbell bicep curl, not deadlift), badge UI."
+  },
+  {
+    "file": "Treinos (418).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Wrong identity (looks like bent-over row), badge UI + \"YOU CAN\" branded splash."
+  },
+  {
+    "file": "Treinos (426).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (dumbbell curl, not bench press), badge UI."
+  },
+  {
+    "file": "Treinos (429).mp4",
+    "wizardId": "sentadilla_bulgara",
+    "reason": "Wrong identity (bench press motion, not split squat), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (430).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (lunge motion, not bench press), dual-figure labeled UI + branded splash."
+  },
+  {
+    "file": "Treinos (431).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Checkmark UI + branded splash outro."
+  },
+  {
+    "file": "Treinos (433).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (seated cable row, not pulldown), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (436).mp4",
+    "wizardId": "step_up",
+    "reason": "Wrong identity (squats), baked text labels (\"QUADS/GLUTES\") + branded splash."
+  },
+  {
+    "file": "Treinos (438).mp4",
+    "wizardId": "tricep_overhead",
+    "reason": "Wrong identity (seated pulldown motion, not overhead extension), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (443).mp4",
+    "wizardId": "dominadas",
+    "reason": "Checkmark UI badges (app screen-recording tell), ambiguous identity."
+  },
+  {
+    "file": "Treinos (444).mp4",
+    "wizardId": "flexiones",
+    "reason": "Wrong identity (standing barbell row/deadlift motion, not push-up), badges + branded splash."
+  },
+  {
+    "file": "Treinos (452).mp4",
+    "wizardId": "press_mancuernas",
+    "reason": "Baked English text overlays (\"CHEST/TRICEPS\", angle numbers, \"INJURY PRONE\"), mixed content."
+  },
+  {
+    "file": "Treinos (453).mp4",
+    "wizardId": "flexiones",
+    "reason": "Wrong identity (overhead press motion, not push-up), checkmark badges."
+  },
+  {
+    "file": "Treinos (454).mp4",
+    "wizardId": "sentadilla",
+    "reason": "Baked text labels (\"GLUTES/QUADS\") dual-figure UI (identity itself OK)."
+  },
+  {
+    "file": "Treinos (456).mp4",
+    "wizardId": "peso_muerto",
+    "reason": "Box badge UI + branded splash, ambiguous motion."
+  },
+  {
+    "file": "Treinos (465).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (seated cable row motion, not lat pulldown), red-X/green-check badges + \"YOU CAN\"/App Store branded splash outro."
+  },
+  {
+    "file": "Treinos (471).mp4",
+    "wizardId": "extension_pierna",
+    "reason": "Wrong identity (seated pulldown motion, not leg extension), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (477).mp4",
+    "wizardId": "extension_tricep",
+    "reason": "Wrong identity (leg press machine), baked text labels (\"TOES OUT/IN/UP\"), branded splash."
+  },
+  {
+    "file": "Treinos (478).mp4",
+    "wizardId": "sentadilla_sumo",
+    "reason": "Wrong identity (pull-up/lat rack exercise, not squat), checkmark double-figure UI."
+  },
+  {
+    "file": "Treinos (479).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (squat motion, not lat pulldown), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (480).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (assisted pull-up/lat pulldown machine, not bench press)."
+  },
+  {
+    "file": "Treinos (485).mp4",
+    "wizardId": "press_banca",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (488).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Checkmark UI badges."
+  },
+  {
+    "file": "Treinos (489).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Checkmark UI badges (red-X/green-check) present throughout (app screen-recording tell); identity otherwise plausible."
+  },
+  {
+    "file": "Treinos (490).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Wrong identity (seated cable row), checkmark UI."
+  },
+  {
+    "file": "Treinos (491).mp4",
+    "wizardId": "remo_mancuerna",
+    "reason": "Wrong identity (barbell overhead press, not dumbbell row), checkmark UI."
+  },
+  {
+    "file": "Treinos (495).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (good-morning/forward-bend motion), checkmark UI."
+  },
+  {
+    "file": "Treinos (497).mp4",
+    "wizardId": "fondos_pecho",
+    "reason": "Wrong identity (seated row/lat pulldown, not dips), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (498).mp4",
+    "wizardId": "extension_pierna",
+    "reason": "Wrong identity (dip/tricep chair motion, not leg extension), baked text (\"GYM/HOME\") + branded splash."
+  },
+  {
+    "file": "Treinos (499).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (500).mp4",
+    "wizardId": "press_banca",
+    "reason": "Correct identity (bench press) but red-X mistake badge + \"YOU CAN\" branded splash outro."
+  },
+  {
+    "file": "Treinos (502).mp4",
+    "wizardId": "tricep_fondos",
+    "reason": "Checkmark UI, ambiguous/mixed motion + branded splash."
+  },
+  {
+    "file": "Treinos (505).mp4",
+    "wizardId": "curl_femoral",
+    "reason": "Wrong identity (seated row motion, not leg curl), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (506).mp4",
+    "wizardId": "ab_wheel",
+    "reason": "Wrong identity (adductor/leg-press machine), baked text (\"INNER/OUTER/ENTIRE\") + branded splash."
+  },
+  {
+    "file": "Treinos (509).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Wrong identity (plank/mountain-climber motion, not seated cable row), checkmark UI."
+  },
+  {
+    "file": "Treinos (511).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (seated row/leg-press machine, not bench press), checkmark UI."
+  },
+  {
+    "file": "Treinos (524).mp4",
+    "wizardId": "elevacion_piernas",
+    "reason": "Wrong identity (dip/leg-press machine, not leg raise), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (529).mp4",
+    "wizardId": "hip_thrust",
+    "reason": "Wrong identity (crunch/sit-up motion), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (532).mp4",
+    "wizardId": "curl_concentrado",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (533).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (535).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (seated curl, not bench press), checkmark UI."
+  },
+  {
+    "file": "Treinos (546).mp4",
+    "wizardId": "curl_femoral",
+    "reason": "Wrong identity (bench press motion, not leg curl), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (547).mp4",
+    "wizardId": "tricep_overhead",
+    "reason": "Wrong identity (leg press/adductor machine), baked text (\"INNER/OUTER/ENTIRE\") + branded splash."
+  },
+  {
+    "file": "Treinos (548).mp4",
+    "wizardId": "face_pull",
+    "reason": "Ambiguous/wrong motion + checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (549).mp4",
+    "wizardId": "extension_pierna",
+    "reason": "Wrong identity (standing cable pulldown/face-pull), baked text (\"REAR DELTS/UPPER BACK/LATS\") + branded splash."
+  },
+  {
+    "file": "Treinos (552).mp4",
+    "wizardId": "curl_concentrado",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (554).mp4",
+    "wizardId": "crunch",
+    "reason": "Baked text labels (\"LOWER/UPPER/FULL/ABDOMINALS\") + branded splash (identity itself correct)."
+  },
+  {
+    "file": "Treinos (558).mp4",
+    "wizardId": "dominadas",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (560).mp4",
+    "wizardId": "extension_pierna",
+    "reason": "Baked text (\"TOES OUT/IN/UP\") + branded logo."
+  },
+  {
+    "file": "Treinos (568).mp4",
+    "wizardId": "curl_muneca",
+    "reason": "Baked text (\"INNER/OUTER FOREARMS\") + branded logo (identity itself correct)."
+  },
+  {
+    "file": "Treinos (569).mp4",
+    "wizardId": "curl_muneca",
+    "reason": "Same content type as #568, baked text + branded logo."
+  },
+  {
+    "file": "Treinos (570).mp4",
+    "wizardId": "fondos_pecho",
+    "reason": "Baked text (\"GYM/HOME\") + branded splash."
+  },
+  {
+    "file": "Treinos (572).mp4",
+    "wizardId": "fondos_pecho",
+    "reason": "Baked text (\"GYM/HOME\") + branded splash."
+  },
+  {
+    "file": "Treinos (576).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Abstract lock-icon diagram UI, not real exercise content + branded logo."
+  },
+  {
+    "file": "Treinos (580).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Badge UI + baked rep-count text (\"3 x 12\") + branded splash."
+  },
+  {
+    "file": "Treinos (583).mp4",
+    "wizardId": "elevaciones_frontales",
+    "reason": "Wrong identity drift (raise -> bent row), badge UI + branded."
+  },
+  {
+    "file": "Treinos (588).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (dumbbell curl/overhead press, not bench press), checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (589).mp4",
+    "wizardId": "curl_bicep",
+    "reason": "Wrong identity drift (curl -> overhead press), branded splash."
+  },
+  {
+    "file": "Treinos (594).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (standing dumbbell curl, not bench press), badge UI + branded splash."
+  },
+  {
+    "file": "Treinos (595).mp4",
+    "wizardId": "press_mancuernas",
+    "reason": "Baked text labels (\"TRICEPS/CHEST/SHOULDERS\") + branded splash."
+  },
+  {
+    "file": "Treinos (606).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity + multi-exercise (fly + tricep pushdown), baked text captions + branded logo."
+  },
+  {
+    "file": "Treinos (616).mp4",
+    "wizardId": "press_banca",
+    "reason": "Checkmark UI + branded splash."
+  },
+  {
+    "file": "Treinos (625).mp4",
+    "wizardId": "peso_muerto_rumano",
+    "reason": "Baked text (\"HAMSTRINGS/INNER THIGHS/GLUTES\") + faint branded logo."
+  },
+  {
+    "file": "Treinos (626).mp4",
+    "wizardId": "press_banca",
+    "reason": "Wrong identity (pulldown/overhead press machine, not bench press), badges + branded splash."
+  },
+  {
+    "file": "Treinos (631).mp4",
+    "wizardId": "peso_muerto_rumano",
+    "reason": "Baked text (\"KETTLEBELL RDL\") + branded logo."
+  },
+  {
+    "file": "Treinos (639).mp4",
+    "wizardId": "prensa",
+    "reason": "Correct identity (leg press), no baked text/logo, but green-check/red-X badge icons present (app screen-recording tell)."
+  },
+  {
+    "file": "Treinos (641).mp4",
+    "wizardId": "press_mancuernas",
+    "reason": "Wrong identity (sit-up/crunch motion, not dumbbell press), baked \"3x15\" text + badges."
+  },
+  {
+    "file": "Treinos (644).mp4",
+    "wizardId": "prensa",
+    "reason": "Same as #639 — correct identity but check/X badges present."
+  },
+  {
+    "file": "Treinos (646).mp4",
+    "wizardId": "press_mancuernas",
+    "reason": "Wrong identity (sit-up/crunch motion), baked \"3x15\" text + badges."
+  },
+  {
+    "file": "Treinos (655).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Wrong identity (seated cable/lat pulldown), badge UI."
+  },
+  {
+    "file": "Treinos (656).mp4",
+    "wizardId": "plancha_lateral",
+    "reason": "Wrong identity (seated cable/lat pulldown), badge UI."
+  },
+  {
+    "file": "Treinos (657).mp4",
+    "wizardId": "plancha_lateral",
+    "reason": "Wrong identity + multi-exercise (scissor kicks/Russian twist), baked English text + rest timers."
+  },
+  {
+    "file": "Treinos (659).mp4",
+    "wizardId": "ab_wheel",
+    "reason": "Same compilation as #657, wrong identity, baked text."
+  },
+  {
+    "file": "Treinos (665).mp4",
+    "wizardId": "curl_femoral",
+    "reason": "Wrong identity (bird-dog/cat-cow stretch, not leg curl), checkmark UI."
+  },
+  {
+    "file": "Treinos (667).mp4",
+    "wizardId": "remo_polea",
+    "reason": "Wrong identity + multi-exercise (leg curl -> calf raise -> ab machine), baked text labels."
+  },
+  {
+    "file": "Treinos (671).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Wrong identity (seated cable row, not lat pulldown), checkmark UI."
+  },
+  {
+    "file": "Treinos (672).mp4",
+    "wizardId": "jalon_polea",
+    "reason": "Looked clean at 5- and 9-frame sampling (real-footage lat pulldown, no checkmark UI, no branded outro) but a full-bleed test composite revealed a small \"DEMIC\" wordmark baked into the cable machine's seat pad, visible around the ~20s mark — a moment none of the 9 deep-check samples (2/15/30/45/60/75/88/96/99%) happened to land on. Missed at thumbnail scale and at 9-frame granularity."
+  },
+  {
+    "file": "Treinos (673).mp4",
+    "wizardId": "patada_gluteo",
+    "reason": "Box UI badges present (app screen-recording tell)."
+  },
+  {
+    "file": "Treinos (677).mp4",
+    "wizardId": "elevaciones_laterales",
+    "reason": "Wrong identity drift (lateral raise -> overhead press), checkmark UI."
+  }
+]
