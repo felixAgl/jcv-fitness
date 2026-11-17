@@ -1,0 +1,26 @@
+# GitHub disables scheduled workflows after 60 days without repository
+# activity. Re-enabling a workflow through the API resets that timer, so this
+# job re-enables every scheduled workflow (itself included) twice a month.
+# No commits are pushed: main is a protected branch and rejects direct pushes.
+name: Keep Workflows Alive
+
+on:
+  schedule:
+    - cron: "0 5 1,15 * *" # 1st and 15th of each month, 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Re-enable scheduled workflows
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for wf in keep-workflows-alive.yml supabase-keepalive.yml db-backup.yml daily-reel.yml; do
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$wf/enable"
+            echo "enabled $wf"
+          done
